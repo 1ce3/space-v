@@ -129,7 +129,7 @@ public class ThermalSolver
         c.TempK = temp;
         ThermalStateRules.Evaluate(c);
 
-        float max = c.BaseDefinition?.MaxSafeTempK ?? 0f;
+        float max = ThermalStateRules.MaxSafeTemp(c);
         float min = c.BaseDefinition?.MinSafeTempK ?? 0f;
         if (max > 0f) result.MaxTempRatio = Mathf.Max(result.MaxTempRatio, temp / max);
         if (min > 0f) result.LowestTempRatio = Mathf.Min(result.LowestTempRatio, temp / min);
@@ -220,7 +220,7 @@ public class ThermalSolver
     {
         foreach (RocketPart part in parts.ActiveParts)
         {
-            float max = part.Definition?.MaxSafeTempK ?? 0f;
+            float max = part.GetEffectiveMaxSafeTempK();
             float min = part.Definition?.MinSafeTempK ?? 0f;
             if (max > 0f) result.MaxTempRatio = Mathf.Max(result.MaxTempRatio, part.TempK / max);
             if (min > 0f) result.LowestTempRatio = Mathf.Min(result.LowestTempRatio, part.TempK / min);

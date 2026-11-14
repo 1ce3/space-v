@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://cj5360vbn6aqv"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,4 +10,6 @@ Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t1_avionics")
 UnlocksModelIds = PackedStringArray("startracker_st1", "rcs_r1", "comms_c2")
+PrerequisiteNodeIds = PackedStringArray("t1_avionics", "fuel_monoprop")
+UnlocksModelIds = PackedStringArray("startracker_st1", "rcs_r1")
 BuildWeightBonus = 0

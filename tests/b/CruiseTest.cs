@@ -90,8 +90,11 @@ public partial class CruiseTest : Node
         foreach (SolarArrayModule solar in pod.GetModules<SolarArrayModule>()) solar.SetDeployed(true);
         GD.Print($"[Cruise] Modules: {ModuleList(pod)}; parts left {tree.ActiveParts.Count}");
 
+        // Balance test: no random cruise events (B11) or transfer-burn incidents.
+        var segment = (MissionSegmentDefinition)Segment.Duplicate();
+        segment.EnabledHazards &= ~(CruiseEventDirector.EventMask | FlightEventMask.EngineFlameout | FlightEventMask.CryoLeak);
         var sim = new CruiseSimulator { Settings = Settings };
-        sim.Begin(tree, Segment, Origin, Destination);
+        sim.Begin(tree, segment, Origin, Destination);
 
         if (doBurn)
         {

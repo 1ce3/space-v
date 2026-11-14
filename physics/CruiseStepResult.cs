@@ -24,4 +24,6 @@ public struct CruiseStepResult
     public List<string> BrokenComponents;
     /// <summary>ModelIds of components that became Frozen today.</summary>
     public List<string> FrozenComponents;
+    /// <summary>ModelIds of pod modules broken today by a cruise event (solar flare, instrument failure). B11.</summary>
+    public List<string> DamagedModules;
 }

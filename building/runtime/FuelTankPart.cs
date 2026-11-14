@@ -22,7 +22,7 @@ public partial class FuelTankPart : RocketPart
         LeakRateKgPerSec = 0f;
     }
 
-    public override float GetCurrentMass() => DryMass + CurrentFuel;
+    public override float GetCurrentMass() => GetEffectiveDryMass() + CurrentFuel;
 
     /// <summary>Fuel left, 0..1.</summary>
     public float GetFuelFraction()

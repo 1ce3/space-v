@@ -14,6 +14,8 @@ public partial class TechTreeManager : Node
     [Export] public Godot.Collections.Array<TechNode> AllNodes { get; set; } = new();
     /// <summary>ModelIds available from the start.</summary>
     [Export] public string[] StarterModelIds { get; set; } = System.Array.Empty<string>();
+    /// <summary>NodeIds owned from the start, also after a reset (B10: fuel_kerolox). Shown as bought.</summary>
+    [Export] public string[] StarterNodeIds { get; set; } = System.Array.Empty<string>();
     /// <summary>Build weight before any frame upgrade.</summary>
     [Export(PropertyHint.Range, "1,200,1")] public int BaseBuildWeight { get; set; } = 20;
 
@@ -36,7 +38,17 @@ public partial class TechTreeManager : Node
             if (!_byId.TryAdd(node.NodeId, node)) GD.PushError($"[Research] Duplicate tech NodeId '{node.NodeId}'.");
         }
         ValidatePrerequisites();
+        AddStarterNodes();
         RebuildUnlockedModels();
+    }
+
+    private void AddStarterNodes()
+    {
+        foreach (string id in StarterNodeIds)
+        {
+            if (_byId.ContainsKey(id)) UnlockedNodes.Add(id);
+            else GD.PushError($"[Research] StarterNodeIds has unknown tech node '{id}'.");
+        }
     }
 
     /// <summary>Tech node by id, or null.</summary>
@@ -98,6 +110,7 @@ public partial class TechTreeManager : Node
             if (_byId.ContainsKey(id)) UnlockedNodes.Add(id);
             else GD.PushWarning($"[Research] Save contains unknown tech node '{id}', ignored.");
         }
+        AddStarterNodes();
         RebuildUnlockedModels();
     }
 
