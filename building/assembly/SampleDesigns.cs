@@ -40,11 +40,12 @@ public static class SampleDesigns
         design.AddDecoupler(DecouplerId, new Edge(new Vector2I(4, 2), Side.Right));
 
         // pod_mk2 modules (slots A2 / T1 / P2).
-        design.AddModule("imu_g2", ModuleSlotType.Avionics, 0);
-        design.AddModule("wheel_rw1", ModuleSlotType.Avionics, 1);
-        design.AddModule("insulation_i1", ModuleSlotType.Thermal, 0);
-        design.AddModule("battery_b2", ModuleSlotType.Power, 0);
-        design.AddModule("solar_s1", ModuleSlotType.Power, 1);
+        // pod_mk2 grid 3x3: row 0 = IMU, wheel, insulation; battery B2 and solar S1 are 1x2 below.
+        design.AddModule("imu_g2", new Vector2I(0, 0));
+        design.AddModule("wheel_rw1", new Vector2I(1, 0));
+        design.AddModule("insulation_i1", new Vector2I(2, 0));
+        design.AddModule("battery_b2", new Vector2I(0, 1));
+        design.AddModule("solar_s1", new Vector2I(1, 1));
 
         return design;
     }

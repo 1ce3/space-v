@@ -14,7 +14,8 @@ public class RocketDesign
     /// <summary>Where the last design is auto-saved (decision #14).</summary>
     public const string SavePath = "user://current_design.json";
     /// <summary>Format version written in the JSON.</summary>
-    public const int FormatVersion = 1;
+    /// <summary>2 = modules stored by inventory cell (phase 2). Version 1 files load with every module Unplaced.</summary>
+    public const int FormatVersion = 2;
 
     /// <summary>A part on the grid.</summary>
     public class PartEntry
@@ -31,13 +32,12 @@ public class RocketDesign
         public Edge Edge { get; set; }
     }
 
-    /// <summary>A module in a pod slot.</summary>
+    /// <summary>A module in the pod inventory grid.</summary>
     public class ModuleEntry
     {
         public string ModelId { get; set; } = "";
-        public ModuleSlotType SlotType { get; set; }
-        /// <summary>Index within SlotType.</summary>
-        public int SlotIndex { get; set; }
+        /// <summary>Top-left cell, or PodInventory.Unplaced (first free cell when built).</summary>
+        public Vector2I Cell { get; set; } = PodInventory.Unplaced;
     }
 
     public List<PartEntry> PartEntries { get; } = new();
@@ -51,8 +51,8 @@ public class RocketDesign
     public void AddDecoupler(string modelId, Edge edge) =>
         DecouplerEntries.Add(new DecouplerEntry { ModelId = modelId, Edge = BuildGrid.Normalize(edge) });
 
-    public void AddModule(string modelId, ModuleSlotType slotType, int slotIndex) =>
-        ModuleEntries.Add(new ModuleEntry { ModelId = modelId, SlotType = slotType, SlotIndex = slotIndex });
+    public void AddModule(string modelId, Vector2I cell) =>
+        ModuleEntries.Add(new ModuleEntry { ModelId = modelId, Cell = cell });
 
     /// <summary>Removes every entry.</summary>
     public void Clear()
@@ -73,7 +73,7 @@ public class RocketDesign
         foreach (DecouplerEntry d in DecouplerEntries)
             dto.Decouplers.Add(new DecouplerDto { Id = d.ModelId, X = d.Edge.Cell.X, Y = d.Edge.Cell.Y, Side = d.Edge.Side });
         foreach (ModuleEntry m in ModuleEntries)
-            dto.Modules.Add(new ModuleDto { Id = m.ModelId, Slot = m.SlotType, Index = m.SlotIndex });
+            dto.Modules.Add(new ModuleDto { Id = m.ModelId, X = m.Cell.X, Y = m.Cell.Y });
         return JsonSerializer.Serialize(dto, JsonOptions);
     }
 
@@ -100,7 +100,8 @@ public class RocketDesign
         foreach (DecouplerDto d in dto.Decouplers ?? new List<DecouplerDto>())
             if (!string.IsNullOrEmpty(d?.Id)) design.AddDecoupler(d.Id, new Edge(new Vector2I(d.X, d.Y), d.Side));
         foreach (ModuleDto m in dto.Modules ?? new List<ModuleDto>())
-            if (!string.IsNullOrEmpty(m?.Id)) design.AddModule(m.Id, m.Slot, m.Index);
+            if (!string.IsNullOrEmpty(m?.Id))
+                design.AddModule(m.Id, dto.Version >= 2 && m.X.HasValue && m.Y.HasValue ? new Vector2I(m.X.Value, m.Y.Value) : PodInventory.Unplaced);
         return design;
     }
 
@@ -171,7 +172,10 @@ public class RocketDesign
     private class ModuleDto
     {
         public string Id { get; set; }
-        public ModuleSlotType Slot { get; set; }
-        public int Index { get; set; }
+        public int? X { get; set; }
+        public int? Y { get; set; }
+        /// <summary>Version 1 only (slot type name and index); read and ignored, never written.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string Slot { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? Index { get; set; }
     }
 }

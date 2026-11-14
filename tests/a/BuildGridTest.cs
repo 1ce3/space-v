@@ -188,8 +188,7 @@ public partial class BuildGridTest : Node
         for (int i = 0; i < a.DecouplerEntries.Count; i++)
             if (a.DecouplerEntries[i].ModelId != b.DecouplerEntries[i].ModelId || a.DecouplerEntries[i].Edge != b.DecouplerEntries[i].Edge) return false;
         for (int i = 0; i < a.ModuleEntries.Count; i++)
-            if (a.ModuleEntries[i].ModelId != b.ModuleEntries[i].ModelId || a.ModuleEntries[i].SlotType != b.ModuleEntries[i].SlotType
-                || a.ModuleEntries[i].SlotIndex != b.ModuleEntries[i].SlotIndex) return false;
+            if (a.ModuleEntries[i].ModelId != b.ModuleEntries[i].ModelId || a.ModuleEntries[i].Cell != b.ModuleEntries[i].Cell) return false;
         return true;
     }
 
