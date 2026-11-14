@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "t3_thermal"
-DisplayName = "Kiểm soát nhiệt"
+DisplayName = "Thermal Control"
 Tier = 3
 CostRP = 70
 PrerequisiteNodeIds = PackedStringArray("t2_power", "t2_pod")

@@ -57,7 +57,11 @@ public partial class FlightControlSubsystem : Node
         LastInput = input;
 
         // TODO(C7): Anomalies.HandleInput(input);
-        // TODO(C3/C4): discrete commands (stage, fairing, chute, RCS, deploy, SAS mode, abort) per 5 step 3.
+        if (input.StagePressed) Staging.ActivateNextStage();
+        if (input.FairingPressed) Staging.JettisonFairing();
+        if (input.ChutePressed) Staging.ToggleParachute();
+        if (input.AbortPressed) Director?.Abort();
+        // TODO(C4): RCS toggle, deploy toggle, SAS toggle and mode requests.
 
         Estimator.CurrentAltitudeM = lastFrame.AltitudeM;
         Estimator.Update(lastFrame.PitchDeg, lastFrame.AngularRateDegPerSec, deltaTime);

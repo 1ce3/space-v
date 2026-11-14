@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://presentation/parts/FairingVisual.cs" id="1_script"]
+
+[sub_resource type="CylinderMesh" id="mesh_halfleft"]
+top_radius = 0
+bottom_radius = 0.48
+height = 0.95
+
+[sub_resource type="CylinderMesh" id="mesh_halfright"]
+top_radius = 0
+bottom_radius = 0.48
+height = 0.95
+
+[node name="Fairing" type="Node3D" node_paths=PackedStringArray("MeshRoot")]
+script = ExtResource("1_script")
+MeshRoot = NodePath("MeshRoot")
+GroupColor = Color(0.95, 0.95, 0.95, 1)
+
+[node name="MeshRoot" type="Node3D" parent="."]
+
+[node name="HalfLeft" type="MeshInstance3D" parent="MeshRoot"]
+transform = Transform3D(0.5, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0, 0)
+mesh = SubResource("mesh_halfleft")
+
+[node name="HalfRight" type="MeshInstance3D" parent="MeshRoot"]
+transform = Transform3D(0.5, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, 0, 0)
+mesh = SubResource("mesh_halfright")

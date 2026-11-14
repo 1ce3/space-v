@@ -51,14 +51,19 @@ public static class TestRocketFactory
         var stage0 = new StageGroup { StageIndex = 0, Depth = 0 };
         stage0.EnginesToArm.Add(engine);
 
+        new RocketAssembler().AttachVisuals(tree);
         return new AssembledRocket(tree, new List<StageGroup> { stage0 }, MassCenterCalculator.Calculate(tree.ActiveParts));
     }
 
-    /// <summary>The sample Mars stack through the real RocketAssembler (5 stages). Deadline H6.</summary>
+    /// <summary>The sample Mars stack (A_BUILDING.md 5.4) through the real RocketAssembler: 19 parts, 5 stages. Needs PartCatalog.</summary>
     public static AssembledRocket CreateMarsStack()
     {
-        // TODO(A4): new RocketAssembler().AssembleRocket(SampleDesigns.CreateMarsStack())
-        return null;
+        if (PartCatalog.Instance == null)
+        {
+            GD.PushError("[Building] TestRocketFactory.CreateMarsStack needs the PartCatalog autoload (.tres definitions)");
+            return null;
+        }
+        return new RocketAssembler().AssembleRocket(SampleDesigns.CreateMarsStack());
     }
 
     /// <summary>Part definition from the catalog, or the fallback for tests.</summary>

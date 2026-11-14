@@ -35,22 +35,78 @@ public partial class StagingManager : Node
     /// <summary>Stage 0 arms engines; later stages separate their joints then arm their engines.</summary>
     public bool ActivateNextStage()
     {
-        // TODO(C3): per 4.5; out of stages -> StagingWarning("No decouplers available to jettison").
-        return false;
+        if (Tree == null || CurrentStageIndex >= Stages.Count)
+        {
+            Warn("No decouplers available to jettison");
+            return false;
+        }
+
+        int index = CurrentStageIndex;
+        StageGroup stage = Stages[index];
+        if (index > 0)
+        {
+            foreach (Joint joint in stage.Joints)
+            {
+                if (joint.IsSeparated || joint.Decouplers.Count == 0) continue;
+                joint.Decouplers[0].TriggerSeparation();
+            }
+        }
+        foreach (EnginePart engine in stage.EnginesToArm)
+        {
+            if (engine.IsAttached) engine.Arm();
+        }
+
+        CurrentStageIndex++;
+        if (DebugLog) GD.Print($"[Control] Stage {index} activated ({stage.Joints.Count} joints, {stage.EnginesToArm.Count} engines armed)");
+        EmitSignal(SignalName.StageActivated, index);
+        return true;
     }
 
     /// <summary>Jettisons the fairing if one is still attached.</summary>
     public bool JettisonFairing()
     {
-        // TODO(C3)
-        return false;
+        FairingPart fairing = Tree?.GetParts<FairingPart>().Find(f => f.IsAttached);
+        if (fairing == null)
+        {
+            Warn("Không còn fairing để tách");
+            return false;
+        }
+        fairing.Jettison();
+        return true;
     }
 
     /// <summary>Stowed -> Deploy, Deployed -> Cut.</summary>
     public bool ToggleParachute()
     {
-        // TODO(C6)
+        ParachutePart chute = Tree?.GetParts<ParachutePart>().Find(c => c.IsAttached);
+        if (chute == null)
+        {
+            Warn("Không có dù");
+            return false;
+        }
+        if (chute.ChuteState == ParachuteState.Stowed)
+        {
+            if (chute.Deploy()) return true;
+            Warn("Chưa thể mở dù: còn fairing");
+            return false;
+        }
+        if (chute.ChuteState == ParachuteState.Deployed)
+        {
+            chute.Cut();
+            return true;
+        }
         return false;
+    }
+
+    /// <summary>Text for the HUD: next stage and what it does.</summary>
+    public string DescribeNextStage()
+    {
+        if (CurrentStageIndex >= Stages.Count) return "Hết tầng";
+        StageGroup stage = Stages[CurrentStageIndex];
+        var engines = new List<string>();
+        foreach (EnginePart e in stage.EnginesToArm) engines.Add(e.ModelId);
+        string joints = stage.Joints.Count > 0 ? $"tách {stage.Joints.Count} khớp" : "phóng";
+        return $"Tầng {CurrentStageIndex}/{Stages.Count - 1}: {joints}" + (engines.Count > 0 ? $", bật {string.Join(", ", engines)}" : "");
     }
 
     private void Warn(string message)

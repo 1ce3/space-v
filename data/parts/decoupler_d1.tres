@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="DecouplerPartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/DecouplerPartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "decoupler_d1"
+DisplayName = "Bộ tách tầng D1"
+Tier = 0
+BuildWeight = 1
+DryMass = 30.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1200.0
+MinSafeTempK = 200.0
+PartGroup = 8
+Footprint = Vector2i(1, 1)
+AllowedTop = 0
+AllowedBottom = 0
+AllowedSides = 0
+FrontalArea = 0.5
+SideArea = 4.0
+DragCoefficient = 0.1
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+AttachmentStrength = 300000.0
+EjectionImpulse = 3000.0

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "t2_pod"
-DisplayName = "Khoang điều khiển Mk2"
+DisplayName = "Command Pod Mk2"
 Tier = 2
 CostRP = 60
 PrerequisiteNodeIds = PackedStringArray("t1_avionics")

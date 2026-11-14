@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "t4_rtg"
-DisplayName = "Pin đồng vị phóng xạ"
+DisplayName = "Radioisotope Power"
 Tier = 4
 CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_thermal")

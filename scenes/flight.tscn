@@ -1,0 +1,206 @@
+[gd_scene load_steps=24 format=3]
+
+[ext_resource type="Script" path="res://control/flight/FlightScene.cs" id="1_scene"]
+[ext_resource type="Script" path="res://presentation/flight/BodyEnvironmentVisual.cs" id="2_env"]
+[ext_resource type="Script" path="res://physics/PhysicsCoordinator.cs" id="3_physics"]
+[ext_resource type="Resource" path="res://data/settings/physics_settings.tres" id="4_physset"]
+[ext_resource type="Script" path="res://control/flight/VehicleRoot.cs" id="5_vehicle"]
+[ext_resource type="Resource" path="res://data/settings/flight_settings.tres" id="6_flightset"]
+[ext_resource type="Script" path="res://control/piloting/FlightControlSubsystem.cs" id="7_fcs"]
+[ext_resource type="Script" path="res://control/piloting/InputHandler.cs" id="8_input"]
+[ext_resource type="Script" path="res://control/piloting/AttitudeEstimator.cs" id="9_est"]
+[ext_resource type="Script" path="res://control/piloting/AttitudeController.cs" id="10_att"]
+[ext_resource type="Script" path="res://control/piloting/PIDStabilizer.cs" id="11_pid"]
+[ext_resource type="Script" path="res://control/piloting/ControlAllocator.cs" id="12_alloc"]
+[ext_resource type="Script" path="res://control/piloting/ThrottleController.cs" id="13_throttle"]
+[ext_resource type="Script" path="res://control/piloting/AnomalyResponseHandler.cs" id="14_anom"]
+[ext_resource type="Script" path="res://control/flight/StagingManager.cs" id="15_staging"]
+[ext_resource type="Script" path="res://control/flight/FlightDirector.cs" id="16_director"]
+[ext_resource type="Script" path="res://control/cruise/CruiseController.cs" id="17_cruise"]
+[ext_resource type="Script" path="res://presentation/flight/FlightCameraRig.cs" id="18_camera"]
+[ext_resource type="Script" path="res://control/ui/FlightHUD.cs" id="19_hud"]
+[ext_resource type="Script" path="res://control/ui/CruiseHUD.cs" id="20_cruisehud"]
+
+[sub_resource type="Environment" id="Env_sky"]
+background_mode = 1
+background_color = Color(0.45, 0.65, 0.95, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.62, 0.68, 1)
+ambient_light_energy = 0.7
+
+[node name="FlightScene" type="Node3D" node_paths=PackedStringArray("Director", "Cruise", "Vehicle")]
+script = ExtResource("1_scene")
+Director = NodePath("FlightDirector")
+Cruise = NodePath("CruiseController")
+Vehicle = NodePath("VehicleRoot")
+
+[node name="Environment" type="Node3D" parent="." node_paths=PackedStringArray("WorldEnvironment")]
+script = ExtResource("2_env")
+Settings = ExtResource("6_flightset")
+WorldEnvironment = NodePath("WorldEnvironment")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
+environment = SubResource("Env_sky")
+
+[node name="Sun" type="DirectionalLight3D" parent="Environment"]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 50, 50)
+
+[node name="Physics" type="Node" parent="."]
+script = ExtResource("3_physics")
+Settings = ExtResource("4_physset")
+
+[node name="VehicleRoot" type="RigidBody3D" parent="." node_paths=PackedStringArray("Coordinator", "Director", "FlightControl", "Staging", "Environment")]
+script = ExtResource("5_vehicle")
+Coordinator = NodePath("../Physics")
+Director = NodePath("../FlightDirector")
+FlightControl = NodePath("FlightControlSubsystem")
+Staging = NodePath("StagingManager")
+Environment = NodePath("../Environment")
+Settings = ExtResource("6_flightset")
+
+[node name="FlightControlSubsystem" type="Node" parent="VehicleRoot" node_paths=PackedStringArray("InputHandler", "Estimator", "AttitudeController", "PIDStabilizer", "Allocator", "ThrottleController", "Anomalies", "Staging", "Director")]
+script = ExtResource("7_fcs")
+InputHandler = NodePath("InputHandler")
+Estimator = NodePath("AttitudeEstimator")
+AttitudeController = NodePath("AttitudeController")
+PIDStabilizer = NodePath("PIDStabilizer")
+Allocator = NodePath("ControlAllocator")
+ThrottleController = NodePath("ThrottleController")
+Anomalies = NodePath("AnomalyResponseHandler")
+Staging = NodePath("../StagingManager")
+Director = NodePath("../../FlightDirector")
+
+[node name="InputHandler" type="Node" parent="VehicleRoot/FlightControlSubsystem"]
+script = ExtResource("8_input")
+
+[node name="AttitudeEstimator" type="Node" parent="VehicleRoot/FlightControlSubsystem"]
+script = ExtResource("9_est")
+Settings = ExtResource("6_flightset")
+
+[node name="AttitudeController" type="Node" parent="VehicleRoot/FlightControlSubsystem" node_paths=PackedStringArray("Estimator", "PIDStabilizer")]
+script = ExtResource("10_att")
+Estimator = NodePath("../AttitudeEstimator")
+PIDStabilizer = NodePath("../PIDStabilizer")
+
+[node name="PIDStabilizer" type="Node" parent="VehicleRoot/FlightControlSubsystem"]
+script = ExtResource("11_pid")
+Settings = ExtResource("6_flightset")
+
+[node name="ControlAllocator" type="Node" parent="VehicleRoot/FlightControlSubsystem" node_paths=PackedStringArray("Vehicle")]
+script = ExtResource("12_alloc")
+Vehicle = NodePath("../..")
+
+[node name="ThrottleController" type="Node" parent="VehicleRoot/FlightControlSubsystem"]
+script = ExtResource("13_throttle")
+Settings = ExtResource("6_flightset")
+
+[node name="AnomalyResponseHandler" type="Node" parent="VehicleRoot/FlightControlSubsystem" node_paths=PackedStringArray("Coordinator", "AttitudeController", "ThrottleController")]
+script = ExtResource("14_anom")
+Coordinator = NodePath("../../../Physics")
+AttitudeController = NodePath("../AttitudeController")
+ThrottleController = NodePath("../ThrottleController")
+
+[node name="StagingManager" type="Node" parent="VehicleRoot"]
+script = ExtResource("15_staging")
+
+[node name="FlightDirector" type="Node" parent="." node_paths=PackedStringArray("Vehicle", "Coordinator", "InputHandler", "Hud", "CameraRig", "Environment")]
+script = ExtResource("16_director")
+Vehicle = NodePath("../VehicleRoot")
+Coordinator = NodePath("../Physics")
+InputHandler = NodePath("../VehicleRoot/FlightControlSubsystem/InputHandler")
+Hud = NodePath("../UI/FlightHUD")
+CameraRig = NodePath("../CameraRig")
+Environment = NodePath("../Environment")
+Settings = ExtResource("6_flightset")
+DebugLog = true
+
+[node name="CruiseController" type="Node" parent="." node_paths=PackedStringArray("Vehicle", "Hud", "FlightHud", "InputHandler", "Staging", "Anomalies")]
+script = ExtResource("17_cruise")
+Vehicle = NodePath("../VehicleRoot")
+Hud = NodePath("../UI/CruiseHUD")
+FlightHud = NodePath("../UI/FlightHUD")
+InputHandler = NodePath("../VehicleRoot/FlightControlSubsystem/InputHandler")
+Staging = NodePath("../VehicleRoot/StagingManager")
+Anomalies = NodePath("../VehicleRoot/FlightControlSubsystem/AnomalyResponseHandler")
+Settings = ExtResource("6_flightset")
+
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("Camera")]
+script = ExtResource("18_camera")
+Camera = NodePath("Camera3D")
+Settings = ExtResource("6_flightset")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 60)
+current = true
+far = 20000.0
+
+[node name="UI" type="Node" parent="."]
+
+[node name="FlightHUD" type="CanvasLayer" parent="UI" node_paths=PackedStringArray("TelemetryLabel", "StageLabel", "SasLabel", "WarningLabel", "AnomalyLabel")]
+script = ExtResource("19_hud")
+TelemetryLabel = NodePath("Telemetry")
+StageLabel = NodePath("Stage")
+SasLabel = NodePath("Sas")
+WarningLabel = NodePath("Warning")
+AnomalyLabel = NodePath("Anomaly")
+
+[node name="Telemetry" type="Label" parent="UI/FlightHUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 420.0
+offset_bottom = 220.0
+text = "T+0"
+
+[node name="Stage" type="Label" parent="UI/FlightHUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 120.0
+horizontal_alignment = 2
+
+[node name="Sas" type="Label" parent="UI/FlightHUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -48.0
+offset_right = -16.0
+offset_bottom = -16.0
+horizontal_alignment = 2
+
+[node name="Warning" type="Label" parent="UI/FlightHUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 16.0
+offset_right = 300.0
+offset_bottom = 48.0
+horizontal_alignment = 1
+
+[node name="Anomaly" type="Label" parent="UI/FlightHUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 56.0
+offset_right = 300.0
+offset_bottom = 88.0
+horizontal_alignment = 1
+
+[node name="CruiseHUD" type="CanvasLayer" parent="UI" node_paths=PackedStringArray("DayLabel")]
+visible = false
+script = ExtResource("20_cruisehud")
+DayLabel = NodePath("Day")
+
+[node name="Day" type="Label" parent="UI/CruiseHUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 400.0
+offset_bottom = 48.0
+text = "Ngày 0"

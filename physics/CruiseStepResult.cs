@@ -22,4 +22,6 @@ public struct CruiseStepResult
     public List<FlightEvent> Events;
     /// <summary>ModelIds of components that became Broken today.</summary>
     public List<string> BrokenComponents;
+    /// <summary>ModelIds of components that became Frozen today.</summary>
+    public List<string> FrozenComponents;
 }

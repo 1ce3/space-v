@@ -3,6 +3,7 @@ using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Physics;
 using RocketGame.Presentation;
+using RocketGame.Research;
 
 namespace RocketGame.Control;
 
@@ -49,6 +50,14 @@ public partial class FlightDirector : Node
         if (!NodeGuard.Require(this, Hud, nameof(Hud))) return;
         if (!NodeGuard.Require(this, CameraRig, nameof(CameraRig))) return;
         NodeGuard.Require(this, Settings, nameof(Settings));
+        Coordinator.Failures.BreakTriggered += OnBreakTriggered;
+        Vehicle.Staging.StageActivated += OnStageActivated;
+        Vehicle.Staging.StagingWarning += Hud.ShowWarning;
+    }
+
+    public override void _ExitTree()
+    {
+        if (Coordinator?.Failures != null) Coordinator.Failures.BreakTriggered -= OnBreakTriggered;
     }
 
     /// <summary>Starts a flown segment (EarthAscent or MarsEdl) of the run.</summary>
@@ -56,14 +65,60 @@ public partial class FlightDirector : Node
     {
         Run = run;
         _hasEnded = false;
-        // TODO(C2): EarthAscent -> Coordinator.Initialize(segment), Vehicle.OnDesignConfirmed(run.Rocket), PreLaunch.
-        // TODO(C6): MarsEdl -> Vehicle.RestoreFromRun(run), Entry, InputHandler.SetInputEnabled(true).
+        if (run == null) return;
+        MissionSegmentDefinition segment = run.CurrentSegment;
+        if (segment == null)
+        {
+            GD.PushError("[Control] FlightDirector.StartSegment: run has no current segment");
+            return;
+        }
+
+        Vehicle.Run = run;
+        switch (segment.Kind)
+        {
+            case SegmentKind.EarthAscent:
+                Coordinator.Initialize(segment);
+                Environment?.SetBody(segment.Body);
+                Vehicle.OnDesignConfirmed(run.Rocket);
+                CameraRig.Follow(Vehicle);
+                InputHandler.SetInputEnabled(true);
+                Phase = FlightPhase.Entry; // force the PhaseChanged emit below
+                SetPhase(FlightPhase.PreLaunch);
+                break;
+            case SegmentKind.MarsEdl:
+                // TODO(C6): Vehicle.RestoreFromRun(run), Entry, InputHandler.SetInputEnabled(true).
+                break;
+            default:
+                GD.PushError($"[Control] FlightDirector.StartSegment: {segment.Kind} is not a flown segment");
+                break;
+        }
+        if (DebugLog) GD.Print($"[Control] Segment {run.SegmentIndex} ({segment.SegmentId}) started");
     }
 
     /// <summary>Called by VehicleRoot after every physics tick.</summary>
     public void OnTick(TelemetryFrame frame)
     {
-        // TODO(C5): phase transitions, segment 1 success, out-of-thrust failure.
+        if (Run == null) return;
+        Hud.ShowTelemetry(frame, false);
+        Hud.ShowStageText(Vehicle.Staging.DescribeNextStage());
+        if (_hasEnded) return;
+
+        // PoweredAscent <-> Coast by whether an engine burns.
+        if (Phase == FlightPhase.PoweredAscent || Phase == FlightPhase.Coast)
+            SetPhase(AnyEngineIgnited() ? FlightPhase.PoweredAscent : FlightPhase.Coast);
+        // TODO(C5): segment 1 success (TargetAltitudeM, TargetSpeedMps), out-of-thrust failure.
+    }
+
+    private void OnStageActivated(int index)
+    {
+        if (index == 0 && Phase == FlightPhase.PreLaunch) SetPhase(FlightPhase.PoweredAscent);
+    }
+
+    private bool AnyEngineIgnited()
+    {
+        foreach (EnginePart engine in Vehicle.PartTree.GetParts<EnginePart>())
+            if (engine.IsIgnited) return true;
+        return false;
     }
 
     /// <summary>Called for every cut of the part tree.</summary>
@@ -75,19 +130,36 @@ public partial class FlightDirector : Node
     /// <summary>FailureDetector.BreakTriggered handler: records the failure and ends the run.</summary>
     public void OnBreakTriggered(RocketPart part, FailureCause cause)
     {
-        // TODO(C5): BlackBox.RecordFailure(cause, part); EndMission(MissionOutcome.Failed).
+        if (_hasEnded || Run == null) return;
+        BlackBox.RecordFailure(cause, part);
+        Hud.ShowWarning($"Hỏng: {cause} ở {part?.ModelId}");
+        EndMission(MissionOutcome.Failed);
     }
 
     /// <summary>Called by VehicleRoot when the lowest part reaches altitude 0.</summary>
     public void OnGroundContact(RocketPart part, float contactSpeed)
     {
-        // TODO(C5/C6): MonitorImpact, landing check (MaxLandingTiltDeg, pod present) -> Landed or failure.
+        if (_hasEnded || Run == null) return;
+        if (Run.CurrentKind == SegmentKind.EarthAscent)
+        {
+            // Segment 1: touching the ground after lift-off always ends the run.
+            bool broke = Coordinator.Failures.MonitorImpact(part, contactSpeed); // a break also calls OnBreakTriggered
+            if (!broke)
+            {
+                BlackBox.RecordFailure(FailureCause.TargetNotReached, part);
+                EndMission(MissionOutcome.Failed);
+            }
+            return;
+        }
+        // TODO(C6): segment 3 landing check (MaxLandingTiltDeg, pod present) -> Landed or failure.
     }
 
     /// <summary>Player abort (flight_abort).</summary>
     public void Abort()
     {
-        // TODO(C5): BlackBox.RecordFailure(FailureCause.Aborted, null); EndMission(MissionOutcome.Aborted).
+        if (_hasEnded || Run == null) return;
+        BlackBox.RecordFailure(FailureCause.Aborted, null);
+        EndMission(MissionOutcome.Aborted);
     }
 
     private void SetPhase(FlightPhase phase)
@@ -104,7 +176,10 @@ public partial class FlightDirector : Node
         if (_hasEnded || Run == null) return;
         _hasEnded = true;
         InputHandler?.SetInputEnabled(false);
+        Vehicle.FlightControl.ThrottleController?.SetThrottle(0f);
+        Vehicle.SetSimulationFrozen(true);
         SetPhase(outcome == MissionOutcome.Success ? FlightPhase.Landed : FlightPhase.Failed);
+        if (DebugLog) GD.Print($"[Control] Mission ended: {outcome}, cause {BlackBox.FailureCause}, max alt {BlackBox.MaxAltitude:0} m");
         EmitSignal(SignalName.MissionEnded, Run.BlackBox.BuildResult(outcome));
     }
 }

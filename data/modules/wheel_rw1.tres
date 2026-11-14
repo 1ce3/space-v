@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AcsModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/AcsModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "wheel_rw1"
+DisplayName = "Bánh đà RW1"
+Tier = 1
+BuildWeight = 1
+DryMass = 40.0
+PowerDrawW = 40.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 0
+Kind = 2
+ControlAuthority = 3000.0
+MaxMomentumStorageNms = 30000.0

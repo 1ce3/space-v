@@ -14,6 +14,8 @@ public struct ThermalStepResult
     public float MassAblatedKg;
     /// <summary>ModelIds of parts and modules that became Overheated this step.</summary>
     public List<string> OverheatedComponents;
+    /// <summary>ModelIds of parts and modules that became Frozen this step (cruise).</summary>
+    public List<string> FrozenComponents;
     /// <summary>ModelIds of parts and modules that became Broken this step.</summary>
     public List<string> BrokenComponents;
     /// <summary>Grid parts that became Broken this step (FailureDetector turns them into a Break).</summary>

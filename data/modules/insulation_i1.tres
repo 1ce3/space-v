@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ThermalModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/ThermalModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "insulation_i1"
+DisplayName = "Lớp cách nhiệt I1"
+Tier = 3
+BuildWeight = 1
+DryMass = 15.0
+PowerDrawW = 0.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 1
+Kind = 0
+ReflectiveEfficiency = 0.7

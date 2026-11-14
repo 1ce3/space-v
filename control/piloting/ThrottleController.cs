@@ -30,6 +30,8 @@ public partial class ThrottleController : Node
     {
         _tree = tree;
         Throttle = 0f;
+        CommandPodPart pod = tree?.RootPart as CommandPodPart;
+        MaxGForce = pod?.PodDefinition?.MaxGForce ?? 0f;
     }
 
     /// <summary>Updates Throttle from input, applies the G limiter, then commands the liquid engines.</summary>
@@ -46,8 +48,14 @@ public partial class ThrottleController : Node
         if (GLimiterEnabled && MaxGForce > 0f)
             Throttle = ClampThrottleForGLimit(Throttle, currentGForce, MaxGForce);
 
-        // TODO(C3): for each armed LiquidEnginePart: Ignite() when Throttle > 0 and not lit,
-        //           Shutdown() when Throttle == 0 and lit, always SetThrottle(Throttle).
+        if (_tree == null) return;
+        foreach (LiquidEnginePart engine in _tree.GetParts<LiquidEnginePart>())
+        {
+            if (!engine.IsArmed) continue;
+            if (Throttle > 0f && !engine.IsIgnited) engine.Ignite();
+            else if (Throttle <= 0f && engine.IsIgnited) engine.Shutdown();
+            engine.SetThrottle(Throttle);
+        }
     }
 
     /// <summary>Scales the throttle down so G stays under maxGLimit (assumes G roughly proportional to throttle).</summary>

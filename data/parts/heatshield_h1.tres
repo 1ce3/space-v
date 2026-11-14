@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="HeatShieldPartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/HeatShieldPartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "heatshield_h1"
+DisplayName = "Khiên nhiệt H1"
+Tier = 3
+BuildWeight = 2
+DryMass = 200.0
+PowerDrawW = 0.0
+MaxSafeTempK = 2400.0
+MinSafeTempK = 200.0
+PartGroup = 3
+Footprint = Vector2i(1, 1)
+AllowedTop = 49
+AllowedBottom = 272
+AllowedSides = 0
+FrontalArea = 6.0
+SideArea = 4.0
+DragCoefficient = 1.5
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+MaxAblatorKg = 80.0
+HeatOfAblationJPerKg = 150000.0

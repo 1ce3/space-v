@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://bexhlfn86rawj"]
+
+[ext_resource type="Script" uid="uid://bepugj103v60i" path="res://tests/a/VisualTest.cs" id="1_test"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.08, 0.1, 0.16, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.55, 0.58, 0.65, 1)
+ambient_light_energy = 0.8
+
+[node name="VisualTest" type="Node3D" unique_id=1820080055 node_paths=PackedStringArray("Vehicle")]
+script = ExtResource("1_test")
+Vehicle = NodePath("Vehicle")
+
+[node name="Vehicle" type="Node3D" parent="." unique_id=281323197]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1886280592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 13, 60)
+projection = 1
+size = 32.0
+far = 200.0
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=701596149]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 20, 20)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1884822399]
+environment = SubResource("env")

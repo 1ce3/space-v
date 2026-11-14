@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "t2_main_engine"
-DisplayName = "Động cơ chính"
+DisplayName = "Main Engine"
 Tier = 2
 CostRP = 60
 PrerequisiteNodeIds = PackedStringArray("t1_heavy")
