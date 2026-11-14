@@ -9,8 +9,6 @@ public abstract class PodModule : IFlightComponent
     public ModuleDefinition Definition { get; private set; }
     /// <summary>Pod it is installed in.</summary>
     public CommandPodPart Pod { get; set; }
-    /// <summary>Index within its slot type.</summary>
-    public int SlotIndex { get; set; }
 
     public ComponentState State { get; set; } = ComponentState.Idle;
     /// <summary>Temperature (K).</summary>
@@ -95,7 +93,7 @@ public abstract class PodModule : IFlightComponent
 
     public virtual void OnFixedTick(float deltaTime) { }
 
-    /// <summary>Phase 2: top-left cell in the pod inventory grid.</summary>
+    /// <summary>Top-left cell in the pod inventory grid.</summary>
     public Vector2I GridCell { get; set; }
 
     /// <summary>

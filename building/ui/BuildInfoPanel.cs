@@ -24,8 +24,6 @@ public partial class BuildInfoPanel : VBoxContainer
     private Label _mode;
     private VBoxContainer _slots;
     private PopupMenu _slotMenu;
-    private ModuleSlotType _menuSlotType;
-    private int _menuSlotIndex;
     private readonly List<ModuleDefinition> _menuModules = new();
     private const int RemoveItemId = 10000;
     private const int NoModuleItemId = 10001;
@@ -156,12 +154,17 @@ public partial class BuildInfoPanel : VBoxContainer
         ModuleSlotType.Avionics => "Avionics",
         ModuleSlotType.Thermal => "Nhiệt",
         ModuleSlotType.Power => "Nguồn",
+        ModuleSlotType.Sensor => "Cảm biến",
+        ModuleSlotType.Comms => "Liên lạc",
         _ => type.ToString(),
     };
 
     private static string NameOf(ComponentDefinition def) => string.IsNullOrEmpty(def.DisplayName) ? def.ModelId : def.DisplayName;
 
-    /// <summary>One button per pod slot; clicking opens the module menu for that slot.</summary>
+    /// <summary>
+    /// A10 interim view of the pod inventory grid: one button per installed module (click: remove) and an "add" button
+    /// whose menu installs at the first free cell. A11 replaces this with the drag-and-drop grid.
+    /// </summary>
     private void RebuildSlots()
     {
         foreach (Node child in _slots.GetChildren())
@@ -177,75 +180,69 @@ public partial class BuildInfoPanel : VBoxContainer
             return;
         }
 
-        int total = 0;
-        foreach (ModuleSlotType type in System.Enum.GetValues<ModuleSlotType>())
+        Vector2I size = def.InventorySize;
+        int used = 0;
+        foreach (PodInventory.Item item in Building.GetOccupiedCells()) used += item.Size.X * item.Size.Y;
+        _slots.AddChild(new Label { Text = $"Lưới {size.X} x {size.Y}: dùng {used}/{size.X * size.Y} ô" });
+
+        foreach (KeyValuePair<Vector2I, ModuleDefinition> pair in Building.InstalledModules)
         {
-            int count = def.GetSlotCount(type);
-            for (int i = 0; i < count; i++)
+            Vector2I cell = pair.Key;
+            ModuleDefinition module = pair.Value;
+            Vector2I s = PodInventory.SizeOf(module);
+            var button = new Button
             {
-                total++;
-                bool filled = Building.InstalledModules.TryGetValue((type, i), out ModuleDefinition module);
-                var button = new Button
-                {
-                    Text = $"{SlotTypeName(type)} {i + 1}: {(filled ? NameOf(module) : "trống")}",
-                    Alignment = HorizontalAlignment.Left,
-                    CustomMinimumSize = new Vector2(0, SlotButtonMinHeight),
-                    FocusMode = FocusModeEnum.None,
-                    TooltipText = filled ? module.GetFormattedTooltip() : "Bấm để gắn module",
-                    Modulate = filled ? FilledSlotColor : EmptySlotColor,
-                };
-                ModuleSlotType slotType = type;
-                int slotIndex = i;
-                button.Pressed += () => OpenSlotMenu(slotType, slotIndex, button);
-                _slots.AddChild(button);
-            }
+                Text = $"{NameOf(module)}  [{s.X}x{s.Y}] ô ({cell.X}, {cell.Y})",
+                Alignment = HorizontalAlignment.Left,
+                CustomMinimumSize = new Vector2(0, SlotButtonMinHeight),
+                FocusMode = FocusModeEnum.None,
+                TooltipText = module.GetFormattedTooltip() + "\nBấm để gỡ",
+                Modulate = FilledSlotColor,
+            };
+            button.Pressed += () => Building.RemoveModule(cell);
+            _slots.AddChild(button);
         }
-        if (total == 0) _slots.AddChild(new Label { Text = "(pod không có slot)" });
+
+        var add = new Button
+        {
+            Text = "+ Thêm module",
+            Alignment = HorizontalAlignment.Left,
+            CustomMinimumSize = new Vector2(0, SlotButtonMinHeight),
+            FocusMode = FocusModeEnum.None,
+            Modulate = EmptySlotColor,
+        };
+        add.Pressed += () => OpenAddMenu(add);
+        _slots.AddChild(add);
     }
 
-    private void OpenSlotMenu(ModuleSlotType type, int index, Godot.Control anchor)
+    private void OpenAddMenu(Godot.Control anchor)
     {
-        _menuSlotType = type;
-        _menuSlotIndex = index;
         _menuModules.Clear();
-        _menuModules.AddRange(Building.GetAvailableModules(type));
+        _menuModules.AddRange(Building.GetAvailableModules());
         _slotMenu.Clear();
-
-        Building.InstalledModules.TryGetValue((type, index), out ModuleDefinition installed);
-        int freed = installed?.BuildWeight ?? 0;
+        var occupied = Building.GetOccupiedCells();
         for (int i = 0; i < _menuModules.Count; i++)
         {
             ModuleDefinition m = _menuModules[i];
-            _slotMenu.AddItem($"{NameOf(m)}  (weight {m.BuildWeight}, {m.DryMass:0} kg)", i);
+            Vector2I s = PodInventory.SizeOf(m);
+            _slotMenu.AddItem($"{NameOf(m)}  [{s.X}x{s.Y}]  (weight {m.BuildWeight}, {m.DryMass:0} kg)", i);
             int idx = _slotMenu.GetItemIndex(i);
             _slotMenu.SetItemTooltip(idx, m.GetFormattedTooltip());
-            bool affordable = m.BuildWeight - freed <= Building.Budget.Remaining;
-            bool same = installed != null && installed.ModelId == m.ModelId;
-            _slotMenu.SetItemDisabled(idx, !affordable || same);
+            bool fits = PodInventory.FindFreeCell(Building.InventorySize, occupied, s) != null;
+            _slotMenu.SetItemDisabled(idx, !fits || m.BuildWeight > Building.Budget.Remaining);
         }
         if (_menuModules.Count == 0)
         {
-            _slotMenu.AddItem("(chưa mở khoá module cho slot này)", NoModuleItemId);
+            _slotMenu.AddItem("(chưa mở khoá module)", NoModuleItemId);
             _slotMenu.SetItemDisabled(_slotMenu.ItemCount - 1, true);
         }
-        if (installed != null)
-        {
-            _slotMenu.AddSeparator();
-            _slotMenu.AddItem($"Gỡ {NameOf(installed)}", RemoveItemId);
-        }
-
         var at = (Vector2I)(anchor.GlobalPosition + new Vector2(0f, anchor.Size.Y));
         _slotMenu.Popup(new Rect2I(at, new Vector2I((int)anchor.Size.X, 0)));
     }
 
     private void OnSlotMenuPressed(long id)
     {
-        if (id == RemoveItemId)
-        {
-            Building.RemoveModule(_menuSlotType, _menuSlotIndex);
-            return;
-        }
         if (id < 0 || id >= _menuModules.Count) return; // includes NoModuleItemId
-        Building.InstallModule(_menuModules[(int)id].ModelId, _menuSlotIndex);
+        Building.InstallModule(_menuModules[(int)id].ModelId);
     }
 }

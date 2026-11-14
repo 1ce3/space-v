@@ -34,6 +34,7 @@ public partial class BuildingSystemTest : Node
         TestModules();
         TestOrphansAndPodRemoval();
         TestRoundTrip();
+        TestVersion1Design();
         GD.Print($"[A test] ---- {_passed} passed, {_failed} failed ----");
         if (_failed > 0) GD.PushError($"[A test] {_failed} check(s) failed");
         if (QuitWhenDone) GetTree().Quit(_failed > 0 ? 1 : 0);
@@ -64,31 +65,38 @@ public partial class BuildingSystemTest : Node
     private void TestModules()
     {
         BuildingSystem b = NewSystem();
-        Check("no pod: InstallModule refused", !b.InstallModule("imu_g1", 0));
+        Check("no pod: InstallModule refused", !b.InstallModule("imu_g1", new Vector2I(0, 0)));
         BuildStarter(b);
         int before = b.Budget.CurrentWeight;
+        Check("pod_mk1 grid is 2x2", b.InventorySize == new Vector2I(2, 2), $"{b.InventorySize}");
 
-        Check("imu_g1 in Avionics 0", b.InstallModule("imu_g1", 0));
+        Check("imu_g1 at (0,0)", b.InstallModule("imu_g1", new Vector2I(0, 0)));
         Check("weight +1", b.Budget.CurrentWeight == before + 1, $"{b.Budget.CurrentWeight}");
-        Check("design has 1 module entry", b.Design.ModuleEntries.Count == 1);
-        Check("pod_mk1 has only 1 avionics slot: index 1 refused", !b.InstallModule("imu_g1", 1));
-        Check("battery_b1 in Power 0", b.InstallModule("battery_b1", 0));
+        Check("design has 1 module entry at (0,0)", b.Design.ModuleEntries.Count == 1 && b.Design.ModuleEntries[0].Cell == Vector2I.Zero);
+        Check("outside the 2x2 grid refused", !b.InstallModule("imu_g1", new Vector2I(2, 0)));
+        Check("battery_b1 at (1,0)", b.InstallModule("battery_b1", new Vector2I(1, 0)));
         Check("2 modules installed", b.InstalledModules.Count == 2);
-        Check("pod_mk1 has no thermal slot: insulation refused", !b.InstallModule("insulation_i1", 0));
+        Check("insulation_i1 at (0,1)", b.InstallModule("insulation_i1", new Vector2I(0, 1)));
+        Check("1x2 battery_b2 over the insulation refused", !b.CanInstallModule("battery_b2", new Vector2I(0, 0)));
+        Check("module covering (1,1)? none yet", b.GetModuleCellAt(new Vector2I(1, 1)) == null);
+        b.RemoveModule(new Vector2I(0, 1));
 
-        Check("replace imu_g1 with imu_g2", b.InstallModule("imu_g2", 0));
+        Check("replace imu_g1 with imu_g2 at the same cell", b.InstallModule("imu_g2", new Vector2I(0, 0)));
         Check("still 2 modules, 2 entries", b.InstalledModules.Count == 2 && b.Design.ModuleEntries.Count == 2);
-        Check("Avionics 0 is imu_g2", b.InstalledModules.TryGetValue((ModuleSlotType.Avionics, 0), out ModuleDefinition m) && m.ModelId == "imu_g2");
+        Check("(0,0) is imu_g2", b.InstalledModules.TryGetValue(Vector2I.Zero, out ModuleDefinition m) && m.ModelId == "imu_g2");
         Check("weight unchanged by same-weight replace", b.Budget.CurrentWeight == before + 2, $"{b.Budget.CurrentWeight}");
 
         float massWith = b.GetPreviewMass().TotalMass;
-        b.RemoveModule(ModuleSlotType.Power, 0);
+        b.RemoveModule(new Vector2I(1, 0));
         Check("RemoveModule refunds weight", b.Budget.CurrentWeight == before + 1, $"{b.Budget.CurrentWeight}");
         Check("RemoveModule lowers preview mass by 20 kg", Mathf.Abs(massWith - b.GetPreviewMass().TotalMass - 20f) < 0.01f);
 
+        Check("auto-place goes to the first free cell (1,0)", b.InstallModule("battery_b1") && b.InstalledModules.ContainsKey(new Vector2I(1, 0)));
+        b.RemoveModule(new Vector2I(1, 0));
+
         b.Budget.SetMax(b.Budget.CurrentWeight);
-        Check("full budget: battery refused", !b.InstallModule("battery_b1", 0));
-        Check("full budget: same-weight replace allowed", b.InstallModule("imu_g1", 0));
+        Check("full budget: battery refused", !b.InstallModule("battery_b1", new Vector2I(1, 0)));
+        Check("full budget: same-weight replace allowed", b.InstallModule("imu_g1", new Vector2I(0, 0)));
         Dispose(b);
     }
 
@@ -97,8 +105,8 @@ public partial class BuildingSystemTest : Node
         BuildingSystem b = NewSystem();
         BuildStarter(b);
         Check("decoupler between tank and engine", b.PlaceDecoupler("decoupler_d1", TankEngineEdge));
-        b.InstallModule("imu_g1", 0);
-        b.InstallModule("battery_b1", 0);
+        b.InstallModule("imu_g1", new Vector2I(0, 0));
+        b.InstallModule("battery_b1", new Vector2I(1, 0));
         int full = b.Budget.CurrentWeight;
 
         b.RemovePart(EngineCell);
@@ -111,13 +119,34 @@ public partial class BuildingSystemTest : Node
         Dispose(b);
     }
 
+    /// <summary>A design saved before phase 2 (modules by slot type and index) still loads: modules go to the first free cells.</summary>
+    private void TestVersion1Design()
+    {
+        BuildingSystem b = NewSystem();
+        BuildStarter(b);
+        var node = System.Text.Json.Nodes.JsonNode.Parse(b.Design.Serialize());
+        node["version"] = 1;
+        node["modules"] = System.Text.Json.Nodes.JsonNode.Parse(
+            "[{\"id\":\"imu_g1\",\"slot\":\"Avionics\",\"index\":0},{\"id\":\"battery_b1\",\"slot\":\"Power\",\"index\":0}]");
+        Dispose(b);
+
+        RocketDesign old = RocketDesign.Deserialize(node.ToJsonString());
+        Check("version 1 design parses with 2 modules", old.ModuleEntries.Count == 2, $"{old.ModuleEntries.Count}");
+        Check("version 1 modules are Unplaced", old.ModuleEntries.TrueForAll(e => e.Cell == PodInventory.Unplaced));
+        BuildingSystem c = NewSystem();
+        c.LoadDesign(old);
+        Check("version 1 modules auto-placed at (0,0) and (1,0)",
+            c.InstalledModules.ContainsKey(new Vector2I(0, 0)) && c.InstalledModules.ContainsKey(new Vector2I(1, 0)));
+        Dispose(c);
+    }
+
     private void TestRoundTrip()
     {
         BuildingSystem b = NewSystem();
         BuildStarter(b);
         b.PlaceDecoupler("decoupler_d1", TankEngineEdge);
-        b.InstallModule("imu_g1", 0);
-        b.InstallModule("battery_b1", 0);
+        b.InstallModule("imu_g1", new Vector2I(0, 0));
+        b.InstallModule("battery_b1", new Vector2I(1, 0));
         int weight = b.Budget.CurrentWeight;
         float mass = b.GetPreviewMass().TotalMass;
         Check("starter design is valid", b.Validate().Count == 0, string.Join(" | ", b.Validate()));
@@ -131,7 +160,7 @@ public partial class BuildingSystemTest : Node
         Check("3 parts restored", c.Grid.Parts.Count == 3, $"{c.Grid.Parts.Count}");
         Check("1 decoupler restored", c.Grid.Decouplers.Count == 1, $"{c.Grid.Decouplers.Count}");
         Check("2 modules restored", c.InstalledModules.Count == 2, $"{c.InstalledModules.Count}");
-        Check("Power 0 is battery_b1", c.InstalledModules.TryGetValue((ModuleSlotType.Power, 0), out ModuleDefinition bat) && bat.ModelId == "battery_b1");
+        Check("(1,0) is battery_b1", c.InstalledModules.TryGetValue(new Vector2I(1, 0), out ModuleDefinition bat) && bat.ModelId == "battery_b1");
         Check("same weight", c.Budget.CurrentWeight == weight, $"{c.Budget.CurrentWeight} vs {weight}");
         Check("same preview mass", Mathf.Abs(c.GetPreviewMass().TotalMass - mass) < 0.01f);
         Check("design entries match (3/1/2)",

@@ -117,9 +117,9 @@ public class RocketAssembler
             CheckMaxOne<ParachutePart>(parts, "dù", errors);
             CheckMaxOne<HeatShieldPart>(parts, "khiên nhiệt", errors);
 
-            // Modules: right slot type, index within the pod's slots, no slot used twice.
+            // Modules: inside the pod inventory grid, no two modules on the same cell (Unplaced = first free cell).
             var pod = pods.Count > 0 ? (CommandPodPart)pods[0] : null;
-            var usedSlots = new HashSet<(ModuleSlotType, int)>();
+            var occupied = new List<PodInventory.Item>();
             foreach (RocketDesign.ModuleEntry entry in design.ModuleEntries)
             {
                 if (GetDefinition(entry.ModelId) is not ModuleDefinition def)
@@ -133,16 +133,15 @@ public class RocketAssembler
                     errors.Add($"Module {Name(def)} cần có khoang điều khiển.");
                     continue;
                 }
-                if (def.SlotType != entry.SlotType)
-                {
-                    errors.Add($"Module {Name(def)} phải lắp ở slot {def.SlotType}, không phải {entry.SlotType}.");
-                    continue;
-                }
-                int slots = pod.PodDefinition?.GetSlotCount(entry.SlotType) ?? 0;
-                if (entry.SlotIndex < 0 || entry.SlotIndex >= slots)
-                    errors.Add($"{Name(pod.Definition)} chỉ có {slots} slot {entry.SlotType} (module {Name(def)} ở slot {entry.SlotIndex + 1}).");
-                else if (!usedSlots.Add((entry.SlotType, entry.SlotIndex)))
-                    errors.Add($"Slot {entry.SlotType} {entry.SlotIndex + 1} đã có module.");
+                Vector2I size = PodInventory.SizeOf(def);
+                Vector2I inventory = pod.InventorySize;
+                Vector2I? cell = entry.Cell == PodInventory.Unplaced ? PodInventory.FindFreeCell(inventory, occupied, size) : entry.Cell;
+                if (cell == null || !PodInventory.InBounds(inventory, cell.Value, size))
+                    errors.Add($"Module {Name(def)} ({size.X}x{size.Y} ô) không vừa lưới {inventory.X}x{inventory.Y} của {Name(pod.Definition)}.");
+                else if (!PodInventory.Fits(inventory, occupied, cell.Value, size))
+                    errors.Add($"Module {Name(def)} chồng lên module khác ở ô ({cell.Value.X}, {cell.Value.Y}).");
+                else
+                    occupied.Add(new PodInventory.Item(cell.Value, size));
             }
 
             // Weight.
@@ -286,9 +285,17 @@ public class RocketAssembler
                 GD.PushError($"[Building] RocketAssembler: unknown module '{entry.ModelId}'");
                 continue;
             }
+            Vector2I? cell = entry.Cell == PodInventory.Unplaced
+                ? PodInventory.FindFreeCell(pod.InventorySize, pod.GetOccupiedCells(), PodInventory.SizeOf(def))
+                : entry.Cell;
+            if (cell == null || !pod.CanPlaceModule(def, cell.Value))
+            {
+                GD.PushWarning($"[Building] RocketAssembler: module '{entry.ModelId}' does not fit the pod grid, skipped");
+                continue;
+            }
             PodModule module = PodModule.Create(def);
             if (module == null) continue;
-            module.SlotIndex = entry.SlotIndex;
+            module.GridCell = cell.Value;
             pod.AddModule(module);
         }
     }

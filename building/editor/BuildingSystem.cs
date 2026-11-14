@@ -14,7 +14,8 @@ public partial class BuildingSystem : Node
     [Signal] public delegate void PartPlacedEventHandler(RocketPart part);
     [Signal] public delegate void PartRemovedEventHandler(RocketPart part);
     [Signal] public delegate void PartMovedEventHandler(RocketPart part);
-    [Signal] public delegate void ModuleChangedEventHandler(ModuleSlotType slotType, int slotIndex);
+    /// <summary>A module was installed or removed; cell is its top-left inventory cell.</summary>
+    [Signal] public delegate void ModuleChangedEventHandler(Vector2I cell);
     [Signal] public delegate void DesignConfirmedEventHandler(AssembledRocket rocket);
     /// <summary>Anything in the design changed (parts, decouplers, modules, clear). The UI refreshes on it.</summary>
     [Signal] public delegate void DesignChangedEventHandler();
@@ -46,9 +47,10 @@ public partial class BuildingSystem : Node
     public PartCatalog Catalog => PartCatalog.Instance;
     public RocketDesign Design { get; private set; } = new();
     /// <summary>Preview pod modules by (slot type, index).</summary>
-    public IReadOnlyDictionary<(ModuleSlotType, int), ModuleDefinition> InstalledModules => _modules;
+    /// <summary>Installed modules by top-left inventory cell.</summary>
+    public IReadOnlyDictionary<Vector2I, ModuleDefinition> InstalledModules => _modules;
 
-    private readonly Dictionary<(ModuleSlotType, int), ModuleDefinition> _modules = new();
+    private readonly Dictionary<Vector2I, ModuleDefinition> _modules = new();
 
     public override void _Ready()
     {
@@ -69,15 +71,8 @@ public partial class BuildingSystem : Node
     /// <summary>Unlocked part definitions for the palette.</summary>
     public List<PartDefinition> GetAvailableParts() => Catalog?.GetUnlocked<PartDefinition>() ?? new List<PartDefinition>();
 
-    /// <summary>Unlocked modules that fit a slot type.</summary>
-    public List<ModuleDefinition> GetAvailableModules(ModuleSlotType slot)
-    {
-        var result = new List<ModuleDefinition>();
-        if (Catalog == null) return result;
-        foreach (ModuleDefinition def in Catalog.GetUnlocked<ModuleDefinition>())
-            if (def.SlotType == slot) result.Add(def);
-        return result;
-    }
+    /// <summary>Unlocked modules (any group) for the pod inventory.</summary>
+    public List<ModuleDefinition> GetAvailableModules() => Catalog?.GetUnlocked<ModuleDefinition>() ?? new List<ModuleDefinition>();
 
     /// <summary>True when the part fits (cell, neighbors) and the budget allows it.</summary>
     public bool CanPlacePart(string modelId, Vector2I cell) =>
@@ -192,36 +187,70 @@ public partial class BuildingSystem : Node
         return null;
     }
 
-    /// <summary>Installs a module; its slot type comes from the definition, slotIndex is within that type.</summary>
-    public bool InstallModule(string modelId, int slotIndex)
+    /// <summary>Size of the pod inventory grid, or (0,0) without a pod.</summary>
+    public Vector2I InventorySize => GetPod()?.InventorySize ?? Vector2I.Zero;
+
+    /// <summary>Rectangles taken by the installed modules, optionally without the one anchored at skipCell.</summary>
+    public List<PodInventory.Item> GetOccupiedCells(Vector2I? skipCell = null)
     {
-        if (Catalog?.GetDefinition(modelId) is not ModuleDefinition def) return false;
-        CommandPodPart pod = GetPod();
-        int slots = pod?.PodDefinition?.GetSlotCount(def.SlotType) ?? 0;
-        if (slotIndex < 0 || slotIndex >= slots) return false;
+        var items = new List<PodInventory.Item>();
+        foreach (KeyValuePair<Vector2I, ModuleDefinition> pair in _modules)
+            if (skipCell == null || pair.Key != skipCell.Value) items.Add(new PodInventory.Item(pair.Key, PodInventory.SizeOf(pair.Value)));
+        return items;
+    }
 
-        (ModuleSlotType, int) key = (def.SlotType, slotIndex);
-        ModuleDefinition old = _modules.TryGetValue(key, out ModuleDefinition existing) ? existing : null;
-        int extra = def.BuildWeight - (old?.BuildWeight ?? 0);
-        if (extra > Budget.Remaining) return false;
+    /// <summary>Top-left cell of the module covering cell, or null.</summary>
+    public Vector2I? GetModuleCellAt(Vector2I cell) => PodInventory.ItemAt(GetOccupiedCells(), cell)?.Cell;
 
-        if (old != null) RemoveModule(def.SlotType, slotIndex);
-        _modules[key] = def;
-        Design.AddModule(modelId, def.SlotType, slotIndex);
+    /// <summary>
+    /// True when the module can go at cell: a pod exists, the rectangle is inside the grid and on free cells (a module
+    /// anchored exactly at cell is replaced), and the weight budget allows it.
+    /// </summary>
+    public bool CanInstallModule(string modelId, Vector2I cell)
+    {
+        if (Catalog?.GetDefinition(modelId) is not ModuleDefinition def || GetPod() == null) return false;
+        ModuleDefinition old = _modules.TryGetValue(cell, out ModuleDefinition existing) ? existing : null;
+        if (!PodInventory.Fits(InventorySize, GetOccupiedCells(old != null ? cell : null), cell, PodInventory.SizeOf(def))) return false;
+        return def.BuildWeight - (old?.BuildWeight ?? 0) <= Budget.Remaining;
+    }
+
+    /// <summary>Installs a module with its top-left at cell (replacing a module anchored there). False when it does not fit.</summary>
+    public bool InstallModule(string modelId, Vector2I cell)
+    {
+        if (!CanInstallModule(modelId, cell)) return false;
+        var def = (ModuleDefinition)Catalog.GetDefinition(modelId);
+        if (_modules.ContainsKey(cell)) RemoveModuleAnchoredAt(cell);
+        _modules[cell] = def;
+        Design.AddModule(modelId, cell);
         Budget.Add(def);
-        if (DebugLog) GD.Print($"[Building] Installed {modelId} in {def.SlotType} {slotIndex + 1} ({Budget.CurrentWeight}/{Budget.MaxWeight})");
-        EmitSignal(SignalName.ModuleChanged, Variant.From(def.SlotType), slotIndex);
+        if (DebugLog) GD.Print($"[Building] Installed {modelId} at ({cell.X}, {cell.Y}) ({Budget.CurrentWeight}/{Budget.MaxWeight})");
+        EmitSignal(SignalName.ModuleChanged, cell);
         EmitSignal(SignalName.DesignChanged);
         return true;
     }
 
-    public void RemoveModule(ModuleSlotType slotType, int slotIndex)
+    /// <summary>Installs a module at the first free cell (row by row). False when it fits nowhere or the budget is short.</summary>
+    public bool InstallModule(string modelId)
     {
-        if (!_modules.TryGetValue((slotType, slotIndex), out ModuleDefinition def)) return;
-        _modules.Remove((slotType, slotIndex));
-        Design.ModuleEntries.RemoveAll(e => e.SlotType == slotType && e.SlotIndex == slotIndex);
+        if (Catalog?.GetDefinition(modelId) is not ModuleDefinition def || GetPod() == null) return false;
+        Vector2I? cell = PodInventory.FindFreeCell(InventorySize, GetOccupiedCells(), PodInventory.SizeOf(def));
+        return cell != null && InstallModule(modelId, cell.Value);
+    }
+
+    /// <summary>Removes the module covering cell (any of its cells).</summary>
+    public void RemoveModule(Vector2I cell)
+    {
+        Vector2I? anchor = GetModuleCellAt(cell);
+        if (anchor != null) RemoveModuleAnchoredAt(anchor.Value);
+    }
+
+    private void RemoveModuleAnchoredAt(Vector2I anchor)
+    {
+        if (!_modules.TryGetValue(anchor, out ModuleDefinition def)) return;
+        _modules.Remove(anchor);
+        Design.ModuleEntries.RemoveAll(e => e.Cell == anchor);
         Budget.Remove(def);
-        EmitSignal(SignalName.ModuleChanged, Variant.From(slotType), slotIndex);
+        EmitSignal(SignalName.ModuleChanged, anchor);
         EmitSignal(SignalName.DesignChanged);
     }
 
@@ -323,7 +352,7 @@ public partial class BuildingSystem : Node
         foreach (RocketDesign.DecouplerEntry e in design.DecouplerEntries)
             if (!IsUnlocked(e.ModelId) || !PlaceDecoupler(e.ModelId, e.Edge)) skipped++;
         foreach (RocketDesign.ModuleEntry e in design.ModuleEntries)
-            if (!IsUnlocked(e.ModelId) || !InstallModule(e.ModelId, e.SlotIndex)) skipped++;
+            if (!IsUnlocked(e.ModelId) || !(e.Cell == PodInventory.Unplaced ? InstallModule(e.ModelId) : InstallModule(e.ModelId, e.Cell))) skipped++;
         if (skipped > 0) GD.PushWarning($"[Building] LoadDesign: {skipped} entries could not be restored");
         if (DebugLog)
             GD.Print($"[Building] Loaded design: {Grid.Parts.Count} parts, {Grid.Decouplers.Count} decouplers, {_modules.Count} modules");
@@ -358,6 +387,6 @@ public partial class BuildingSystem : Node
 
     private void ClearModules()
     {
-        foreach ((ModuleSlotType type, int index) in new List<(ModuleSlotType, int)>(_modules.Keys)) RemoveModule(type, index);
+        foreach (Vector2I anchor in new List<Vector2I>(_modules.Keys)) RemoveModuleAnchoredAt(anchor);
     }
 }
