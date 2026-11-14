@@ -83,7 +83,7 @@ public partial class CruiseController : Node
         Hud.ResetControls();
         Hud.ShowProgress(0, TotalDays);
         RefreshDeltaV();
-        Hud.ShowMessage("Bấm \"Đốt chuyển quỹ đạo\" (hoặc Z). Có thể tách tầng (Space) và mở pin (G) trước.");
+        Hud.ShowMessage("Press \"Transfer burn\" (or Z). You can stage (Space) and open the solar panels (G) first.");
         SetProcess(true);
         if (DebugLog) GD.Print($"[Control] Cruise started: {TotalDays} days, delta-v {_sim.GetRemainingDeltaV():0} / {RequiredDeltaV:0} m/s");
     }
@@ -96,20 +96,20 @@ public partial class CruiseController : Node
         if (!_solarWarned && CountSolarArrays(deployed: false) > 0)
         {
             _solarWarned = true;
-            Hud.ShowMessage("Pin mặt trời chưa mở, sẽ cạn điện giữa đường. Bấm G để mở rồi đốt; bấm đốt lần nữa để bỏ qua.");
+            Hud.ShowMessage("Solar panels are closed and the battery will run out on the way. Press G to open them, then burn; press burn again to skip.");
             return;
         }
         float before = _sim.GetRemainingDeltaV();
         if (!_sim.ExecuteTransferBurn())
         {
-            Hud.ShowMessage($"Không đủ delta-v: còn {before:0} m/s, cần {RequiredDeltaV:0} m/s");
+            Hud.ShowMessage($"Not enough delta-v: {before:0} m/s left, {RequiredDeltaV:0} m/s needed");
             EndMission(FailureCause.InsufficientDeltaV);
             return;
         }
         HasBurned = true;
         Hud.SetBurnDone(true);
         RefreshDeltaV();
-        Hud.ShowMessage("Đã đốt chuyển quỹ đạo. Đang bay tới sao Hỏa...");
+        Hud.ShowMessage("Transfer burn done. On the way to Mars...");
         if (DebugLog) GD.Print($"[Control] Transfer burn done, delta-v left {_sim.GetRemainingDeltaV():0} m/s");
     }
 
@@ -131,7 +131,7 @@ public partial class CruiseController : Node
 
             if (_run.PartTree?.RootPart is CommandPodPart pod && pod.State == ComponentState.Broken)
             {
-                Hud.ShowMessage("Khoang điều khiển hỏng vì nhiệt");
+                Hud.ShowMessage("Command pod lost to temperature");
                 EndMission(FailureCause.Thermal, pod);
                 return;
             }
@@ -162,7 +162,7 @@ public partial class CruiseController : Node
         {
             Vehicle.FlightControl?.ToggleDeployables();
             int open = CountSolarArrays(deployed: true), closed = CountSolarArrays(deployed: false);
-            if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"Đã mở {open} pin mặt trời." : "Đã gập pin mặt trời.");
+            if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"{open} solar panel(s) open." : "Solar panels folded.");
         }
         if (input.ThrottleFull) RequestTransferBurn();
         if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
@@ -183,7 +183,7 @@ public partial class CruiseController : Node
         if (step.Events == null) return;
         foreach (FlightEvent e in step.Events)
         {
-            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e.Type)}");
+            Hud.ShowMessage($"Day {step.Day}: {e.Type}");
             _sim.Acknowledge(e.Type);
             if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
         }
@@ -205,10 +205,10 @@ public partial class CruiseController : Node
     /// <summary>Player-facing text for a cruise event.</summary>
     public static string EventText(FlightEventType type) => type switch
     {
-        FlightEventType.PowerBrownout => "mất điện, pin cạn (mở pin mặt trời bằng G)",
-        FlightEventType.ComponentOverheat => "linh kiện quá nhiệt",
-        FlightEventType.DebrisWarning => "cảnh báo mảnh vỡ",
-        FlightEventType.SeuGlitch => "lỗi bức xạ trong máy tính",
+        FlightEventType.PowerBrownout => "brownout, battery empty (open the solar panels with G)",
+        FlightEventType.ComponentOverheat => "component overheating",
+        FlightEventType.DebrisWarning => "debris warning",
+        FlightEventType.SeuGlitch => "radiation glitch in the computer",
         _ => type.ToString(),
     };
 

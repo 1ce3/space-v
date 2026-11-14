@@ -150,12 +150,12 @@ public partial class AssemblerTest : Node
         var noPod = new RocketDesign();
         noPod.AddPart("tank_s1", new Vector2I(4, 1));
         noPod.AddPart("engine_lv1", new Vector2I(4, 0));
-        ExpectError(assembler, noPod, "no pod", "khoang điều khiển");
+        ExpectError(assembler, noPod, "no pod", "command pod");
 
         var noEngine = new RocketDesign();
         noEngine.AddPart("pod_mk1", new Vector2I(4, 2));
         noEngine.AddPart("tank_s1", new Vector2I(4, 0));
-        ExpectError(assembler, noEngine, "no engine", "động cơ");
+        ExpectError(assembler, noEngine, "no engine", "engine");
 
         var wrongFuel = new RocketDesign();
         wrongFuel.AddPart("pod_mk1", new Vector2I(4, 3));
@@ -165,11 +165,11 @@ public partial class AssemblerTest : Node
 
         var loose = MinimalDesign();
         loose.AddPart("tank_s1", new Vector2I(0, 10));
-        ExpectError(assembler, loose, "part not connected", "không nối");
+        ExpectError(assembler, loose, "part not connected", "not connected");
 
         var badDecoupler = MinimalDesign();
         badDecoupler.AddDecoupler("decoupler_d1", new Edge(new Vector2I(4, 3), Side.Top));
-        ExpectError(assembler, badDecoupler, "decoupler on an empty edge", "Bộ tách tầng");
+        ExpectError(assembler, badDecoupler, "decoupler on an empty edge", "decoupler");
 
         var badModule = MinimalDesign();
         badModule.AddModule("battery_b1", ModuleSlotType.Avionics, 0);
@@ -182,7 +182,7 @@ public partial class AssemblerTest : Node
 
         var overlap = MinimalDesign();
         overlap.AddPart("fin_f1", new Vector2I(4, 1));
-        ExpectError(assembler, overlap, "overlapping parts", "đặt sai chỗ");
+        ExpectError(assembler, overlap, "overlapping parts", "placed wrong");
 
         Check("minimal design is valid", assembler.ValidateConnections(MinimalDesign(), RocketAssembler.NoWeightLimit).Count == 0,
             string.Join(" | ", assembler.ValidateConnections(MinimalDesign(), RocketAssembler.NoWeightLimit)));

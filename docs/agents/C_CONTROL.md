@@ -292,7 +292,7 @@ Xử lý xong thì `Coordinator.Hazards.Acknowledge(type)` và phát `AnomalyRes
 | `flight_deploy_toggle` | G |
 | `flight_sce_to_aux` | C |
 | `flight_seal_leak` | V |
-| `flight_abort` | Backspace |
+| `flight_abort` | Esc (giữ 1,5 s) |
 | `flight_zoom_in`, `flight_zoom_out` | Lăn chuột lên, xuống |
 | `build_place`, `build_remove` | Chuột trái, chuột phải |
 | `build_toggle_decoupler` | Tab |

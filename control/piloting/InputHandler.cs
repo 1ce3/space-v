@@ -44,6 +44,14 @@ public partial class InputHandler : Node
 
     private PilotInput _pending;
 
+    /// <summary>How long Esc must be held to abort. Not Backspace: Vietnamese input methods (Unikey,
+    /// EVKey) send Backspace while A or D is held. A hold so a stray tap cannot end the flight.</summary>
+    [Export] public float AbortHoldSeconds { get; set; } = 1.5f;
+    /// <summary>0..1 progress of the abort hold, for the HUD.</summary>
+    public float AbortHoldProgress { get; private set; }
+    private ulong _abortHeldSinceMs;
+    private bool _abortFired;
+
     /// <summary>Input for this tick. Returns PilotInput.Empty when disabled.</summary>
     public PilotInput Poll()
     {
@@ -58,6 +66,7 @@ public partial class InputHandler : Node
         input.PitchAxis = Input.GetAxis(Actions.PitchLeft, Actions.PitchRight);
         input.ThrottleAxis = Input.GetAxis(Actions.ThrottleDown, Actions.ThrottleUp);
         input.RcsTranslateAxis = Input.GetAxis(Actions.RcsLeft, Actions.RcsRight);
+        input.AbortPressed = PollAbortHold();
         return input;
     }
 
@@ -86,10 +95,27 @@ public partial class InputHandler : Node
         else if (@event.IsActionPressed(Actions.DeployToggle)) _pending.DeployTogglePressed = true;
         else if (@event.IsActionPressed(Actions.SceToAux)) _pending.SceToAuxPressed = true;
         else if (@event.IsActionPressed(Actions.SealLeak)) _pending.SealLeakPressed = true;
-        else if (@event.IsActionPressed(Actions.Abort)) _pending.AbortPressed = true;
         else return;
 
         if (DebugLog) GD.Print($"[Control] Input {@event.AsText()}");
+    }
+
+    private bool PollAbortHold()
+    {
+        if (!IsInputEnabled || !Input.IsActionPressed(Actions.Abort))
+        {
+            _abortHeldSinceMs = 0;
+            _abortFired = false;
+            AbortHoldProgress = 0f;
+            return false;
+        }
+        ulong now = Time.GetTicksMsec();
+        if (_abortHeldSinceMs == 0) _abortHeldSinceMs = now;
+        float held = (now - _abortHeldSinceMs) / 1000f;
+        AbortHoldProgress = Mathf.Clamp(held / Mathf.Max(AbortHoldSeconds, 0.01f), 0f, 1f);
+        if (_abortFired || held < AbortHoldSeconds) return false;
+        _abortFired = true;
+        return true;
     }
 
     private void RequestSas(SasMode mode)

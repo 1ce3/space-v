@@ -15,7 +15,7 @@ public partial class BuildPalettePanel : VBoxContainer
     [Export] public Color SelectedColor { get; set; } = new(1f, 0.85f, 0.3f);
 
     /// <summary>Palette groups in display order.</summary>
-    public static readonly string[] GroupOrder = { "Pod", "Tank", "Engine", "Booster", "EDL", "Khác" };
+    public static readonly string[] GroupOrder = { "Pod", "Tank", "Engine", "Booster", "EDL", "Other" };
 
     private readonly Dictionary<string, Button> _buttons = new();
 
@@ -31,7 +31,7 @@ public partial class BuildPalettePanel : VBoxContainer
     /// <summary>Palette group of a part definition.</summary>
     public static string GetGroup(PartDefinition def) => def switch
     {
-        DecouplerPartDefinition => "Khác",
+        DecouplerPartDefinition => "Other",
         _ => def.PartGroup switch
         {
             PartGroup.CommandPod => "Pod",
@@ -39,7 +39,7 @@ public partial class BuildPalettePanel : VBoxContainer
             PartGroup.LiquidEngine => "Engine",
             PartGroup.SolidBooster => "Booster",
             PartGroup.Fairing or PartGroup.Parachute or PartGroup.HeatShield => "EDL",
-            _ => "Khác",
+            _ => "Other",
         },
     };
 

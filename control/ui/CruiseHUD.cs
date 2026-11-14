@@ -58,7 +58,7 @@ public partial class CruiseHUD : CanvasLayer
         _paused = false;
         _fast = false;
         SetBurnDone(false);
-        if (PauseButton != null) PauseButton.Text = "Tạm dừng";
+        if (PauseButton != null) PauseButton.Text = "Pause";
         if (SpeedButton != null) SpeedButton.Text = "×1";
         if (ResourcesLabel != null) ResourcesLabel.Text = "";
         if (AnomalyLabel != null) AnomalyLabel.Text = "";
@@ -70,7 +70,7 @@ public partial class CruiseHUD : CanvasLayer
         if (BurnButton != null)
         {
             BurnButton.Disabled = burned;
-            BurnButton.Text = burned ? "Đã đốt" : "Đốt chuyển quỹ đạo [Z]";
+            BurnButton.Text = burned ? "Burn done" : "Transfer burn [Z]";
         }
         if (PauseButton != null) PauseButton.Disabled = !burned;
         if (SpeedButton != null) SpeedButton.Disabled = !burned;
@@ -79,7 +79,7 @@ public partial class CruiseHUD : CanvasLayer
     /// <summary>Day counter and progress bar.</summary>
     public void ShowProgress(int day, int totalDays)
     {
-        if (DayLabel != null) DayLabel.Text = $"Hành trình tới sao Hỏa: ngày {day} / {totalDays}";
+        if (DayLabel != null) DayLabel.Text = $"Cruise to Mars: day {day} / {totalDays}";
         if (DayBar != null)
         {
             DayBar.MaxValue = Mathf.Max(totalDays, 1);
@@ -91,7 +91,7 @@ public partial class CruiseHUD : CanvasLayer
     public void ShowDeltaV(float remainingMps, float requiredMps)
     {
         if (DeltaVLabel == null) return;
-        DeltaVLabel.Text = $"Delta-v còn {remainingMps:0} m/s   (cần {requiredMps:0} m/s)";
+        DeltaVLabel.Text = $"Delta-v left {remainingMps:0} m/s   (needed {requiredMps:0} m/s)";
         DeltaVLabel.AddThemeColorOverride("font_color", remainingMps >= requiredMps ? OkColor : BadColor);
     }
 
@@ -100,8 +100,8 @@ public partial class CruiseHUD : CanvasLayer
     {
         if (ResourcesLabel == null) return;
         ResourcesLabel.Text =
-            $"Công suất ròng {step.PowerBalanceW:+0;-0;0} W   Pin {step.BatteryFraction * 100f:0} %   " +
-            $"Nhiệt độ thấp nhất {step.LowestTempRatio * 100f:0} % giới hạn" + (step.IsBrownout ? "   MẤT ĐIỆN" : "");
+            $"Net power {step.PowerBalanceW:+0;-0;0} W   Battery {step.BatteryFraction * 100f:0} %   " +
+            $"Coldest part at {step.LowestTempRatio * 100f:0} % of its limit" + (step.IsBrownout ? "   BROWNOUT" : "");
         ResourcesLabel.AddThemeColorOverride("font_color", step.IsBrownout ? BadColor : OkColor);
     }
 
@@ -123,7 +123,7 @@ public partial class CruiseHUD : CanvasLayer
     private void OnPausePressed()
     {
         _paused = !_paused;
-        if (PauseButton != null) PauseButton.Text = _paused ? "Tiếp tục" : "Tạm dừng";
+        if (PauseButton != null) PauseButton.Text = _paused ? "Resume" : "Pause";
         EmitSignal(SignalName.PauseToggled, _paused);
     }
 

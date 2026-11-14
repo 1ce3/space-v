@@ -68,7 +68,7 @@ public partial class StagingManager : Node
         FairingPart fairing = Tree?.GetParts<FairingPart>().Find(f => f.IsAttached);
         if (fairing == null)
         {
-            Warn("Không còn fairing để tách");
+            Warn("No fairing left to jettison");
             return false;
         }
         fairing.Jettison();
@@ -81,13 +81,13 @@ public partial class StagingManager : Node
         ParachutePart chute = Tree?.GetParts<ParachutePart>().Find(c => c.IsAttached);
         if (chute == null)
         {
-            Warn("Không có dù");
+            Warn("No parachute");
             return false;
         }
         if (chute.ChuteState == ParachuteState.Stowed)
         {
             if (chute.Deploy()) return true;
-            Warn("Chưa thể mở dù: còn fairing");
+            Warn("Cannot open the parachute: jettison the fairing first (F)");
             return false;
         }
         if (chute.ChuteState == ParachuteState.Deployed)
@@ -101,12 +101,12 @@ public partial class StagingManager : Node
     /// <summary>Text for the HUD: next stage and what it does.</summary>
     public string DescribeNextStage()
     {
-        if (CurrentStageIndex >= Stages.Count) return "Hết tầng";
+        if (CurrentStageIndex >= Stages.Count) return "No stages left";
         StageGroup stage = Stages[CurrentStageIndex];
         var engines = new List<string>();
         foreach (EnginePart e in stage.EnginesToArm) engines.Add(e.ModelId);
-        string joints = stage.Joints.Count > 0 ? $"tách {stage.Joints.Count} khớp" : "phóng";
-        return $"Tầng {CurrentStageIndex}/{Stages.Count - 1}: {joints}" + (engines.Count > 0 ? $", bật {string.Join(", ", engines)}" : "");
+        string joints = stage.Joints.Count > 0 ? $"separate {stage.Joints.Count} joint(s)" : "ignite";
+        return $"Next stage {CurrentStageIndex}/{Stages.Count - 1} [Space]: {joints}" + (engines.Count > 0 ? $", fire {string.Join(", ", engines)}" : "");
     }
 
     private void Warn(string message)

@@ -59,10 +59,10 @@ public partial class BuildInfoPanel : VBoxContainer
         AddChild(_mass);
         AddChild(_mode);
         AddChild(new HSeparator());
-        AddChild(new Label { Text = "Slot của pod" });
+        AddChild(new Label { Text = "Pod slots" });
         AddChild(_slots);
         AddChild(new HSeparator());
-        AddChild(new Label { Text = "Kiểm tra thiết kế" });
+        AddChild(new Label { Text = "Check design" });
         AddChild(_errors);
 
         AddChild(new HSeparator());
@@ -70,12 +70,12 @@ public partial class BuildInfoPanel : VBoxContainer
         _windTunnel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         AddChild(_windTunnel);
 
-        _launch = AddButton("Phóng", () => Building.ConfirmDesign());
-        AddButton("Nghiên cứu", () => Root.RequestResearch());
-        AddButton("Xoá hết", () => Building.ClearAll());
+        _launch = AddButton("Launch", () => Building.ConfirmDesign());
+        AddButton("Research", () => Root.RequestResearch());
+        AddButton("Clear all", () => Building.ClearAll());
         AddChild(new Label
         {
-            Text = "Chuột trái: đặt   Chuột phải: xoá\nTab: chế độ decoupler   Esc: bỏ chọn\nLăn chuột: zoom\nKhông chọn gì: kéo part để di chuyển, để chuột trên part để xem thông số",
+            Text = "Left click: place   Right click: remove\nTab: decoupler mode   Esc: deselect\nMouse wheel: zoom\nNothing selected: drag a part to move it, hover a part for its stats",
             Modulate = new Color(1f, 1f, 1f, 0.6f),
         });
     }
@@ -103,7 +103,7 @@ public partial class BuildInfoPanel : VBoxContainer
         _weight.Modulate = budget.CurrentWeight > budget.MaxWeight ? OverWeightColor : Colors.White;
 
         MassProperties mp = Building.GetPreviewMass();
-        _mass.Text = $"Khối lượng: {mp.TotalMass:0} kg (chưa tính payload)";
+        _mass.Text = $"Mass: {mp.TotalMass:0} kg (without payload)";
 
         RebuildSlots();
         RefreshMode();
@@ -116,7 +116,7 @@ public partial class BuildInfoPanel : VBoxContainer
 
     private void RefreshMode()
     {
-        _mode.Text = Cursor != null && Cursor.DecouplerMode ? "Chế độ decoupler: trỏ vào cạnh giữa hai part" : "";
+        _mode.Text = Cursor != null && Cursor.DecouplerMode ? "Decoupler mode: point at the edge between two parts" : "";
     }
 
     private void ShowWindTunnelReport()
@@ -142,7 +142,7 @@ public partial class BuildInfoPanel : VBoxContainer
     {
         if (errors.Count == 0)
         {
-            _errors.Text = $"[color=#{OkColor.ToHtml(false)}]Hợp lệ, sẵn sàng phóng[/color]";
+            _errors.Text = $"[color=#{OkColor.ToHtml(false)}]Valid, ready to launch[/color]";
             return;
         }
         var sb = new StringBuilder();
@@ -154,8 +154,8 @@ public partial class BuildInfoPanel : VBoxContainer
     private static string SlotTypeName(ModuleSlotType type) => type switch
     {
         ModuleSlotType.Avionics => "Avionics",
-        ModuleSlotType.Thermal => "Nhiệt",
-        ModuleSlotType.Power => "Nguồn",
+        ModuleSlotType.Thermal => "Thermal",
+        ModuleSlotType.Power => "Power",
         _ => type.ToString(),
     };
 
@@ -173,7 +173,7 @@ public partial class BuildInfoPanel : VBoxContainer
         CommandPodPartDefinition def = Building.GetPod()?.PodDefinition;
         if (def == null)
         {
-            _slots.AddChild(new Label { Text = "(chưa có pod)" });
+            _slots.AddChild(new Label { Text = "(no pod yet)" });
             return;
         }
 
@@ -191,7 +191,7 @@ public partial class BuildInfoPanel : VBoxContainer
                     Alignment = HorizontalAlignment.Left,
                     CustomMinimumSize = new Vector2(0, SlotButtonMinHeight),
                     FocusMode = FocusModeEnum.None,
-                    TooltipText = filled ? module.GetFormattedTooltip() : "Bấm để gắn module",
+                    TooltipText = filled ? module.GetFormattedTooltip() : "Click to install a module",
                     Modulate = filled ? FilledSlotColor : EmptySlotColor,
                 };
                 ModuleSlotType slotType = type;
@@ -200,7 +200,7 @@ public partial class BuildInfoPanel : VBoxContainer
                 _slots.AddChild(button);
             }
         }
-        if (total == 0) _slots.AddChild(new Label { Text = "(pod không có slot)" });
+        if (total == 0) _slots.AddChild(new Label { Text = "(this pod has no slots)" });
     }
 
     private void OpenSlotMenu(ModuleSlotType type, int index, Godot.Control anchor)
@@ -225,13 +225,13 @@ public partial class BuildInfoPanel : VBoxContainer
         }
         if (_menuModules.Count == 0)
         {
-            _slotMenu.AddItem("(chưa mở khoá module cho slot này)", NoModuleItemId);
+            _slotMenu.AddItem("(no module unlocked for this slot)", NoModuleItemId);
             _slotMenu.SetItemDisabled(_slotMenu.ItemCount - 1, true);
         }
         if (installed != null)
         {
             _slotMenu.AddSeparator();
-            _slotMenu.AddItem($"Gỡ {NameOf(installed)}", RemoveItemId);
+            _slotMenu.AddItem($"Remove {NameOf(installed)}", RemoveItemId);
         }
 
         var at = (Vector2I)(anchor.GlobalPosition + new Vector2(0f, anchor.Size.Y));
