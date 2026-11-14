@@ -160,7 +160,7 @@ Không có Comms: báo trước 3 s. Khởi động lại theo tier: T1 0.3, T2 
   `p = FlareBaseDamageChance × (1 − RadiationShielding của vật liệu khoang lái) × (1 − RadiationResistance của module)`
   (`FlareBaseDamageChance` mặc định 0.5). Module tắt nguồn trước bão (người chơi chọn "Tắt thiết bị" khi được báo trước) dùng `p × 0.3`.
 - Module hỏng: `State = Broken`, `IsPowered = false`.
-- Kết quả trả về danh sách module hỏng (`CruiseStepResult.DamagedModules`).
+- ModelId của module hỏng ghi vào `CruiseStepResult.BrokenComponents` (trường có sẵn).
 
 ### 5.4 Lỗi thiết bị ngẫu nhiên (B)
 
@@ -202,7 +202,7 @@ Va chạm (B tính hậu quả, C phát hiện va chạm):
 | `MaterialDefinition`, `PartDefinition.AcceptsMaterial/DefaultMaterialId`, `RocketPart.Material` + `GetEffective…()` | A | `GetEffective…()` trả giá trị gốc |
 | `PartCatalog.GetMaterial(id)` | A | trả null |
 | `PodModule.TryReboot(rng)` | A | trả false |
-| `CruiseEventDirector`, `CruiseStepResult.DamagedModules` | B | không sinh event |
+| `CruiseEventDirector` (`Plan`, `EventsForDay`, `ApplySolarFlare`) | B | không sinh event |
 | `PowerSolver.TryDrawEnergy(pod, wh)` | B | trả true |
 | `MeteorImpact.Resolve(part, speedMps)` (hậu quả va chạm) | B | không làm gì |
 | `AsteroidField`, chế độ né trong `CruiseController` | C | — |

@@ -34,6 +34,12 @@ public abstract partial class PartDefinition : ComponentDefinition
 	[Export] public float ImpactToleranceMps { get; set; } = 10f;
 
 	/// <summary>Visual scene (root: PartVisual). Null = placeholder of the group.</summary>
+	[ExportGroup("Material")]
+	/// <summary>Phase 2: hull parts (tanks, pod, decoupler shell) take a material chosen per part.</summary>
+	[Export] public bool AcceptsMaterial { get; set; }
+	/// <summary>MaterialId used when the design names none.</summary>
+	[Export] public string DefaultMaterialId { get; set; } = "mat_al2024";
+
 	[ExportGroup("Visual")]
 	[Export] public PackedScene Scene { get; set; }
 
