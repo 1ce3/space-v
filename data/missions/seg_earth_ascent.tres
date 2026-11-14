@@ -12,4 +12,4 @@ Body = ExtResource("2_body")
 RewardRP = 60
 EnabledHazards = 992
 TargetAltitudeM = 90000.0
-TargetSpeedMps = 2200.0
+TargetSpeedMps = 2250.0

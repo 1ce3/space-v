@@ -10,6 +10,8 @@ public class AerodynamicSolver
 {
     /// <summary>Dynamic pressure warning limit (Pa).</summary>
     public float MaxQLimit { get; set; }
+    /// <summary>A chute opened above its limits tore: (chute, q in Pa, Mach). Control can show a warning.</summary>
+    public event System.Action<ParachutePart, float, float> ParachuteTorn;
 
     private const float MinSpeedMps = 0.01f;
     private readonly PhysicsSettings _settings;
@@ -115,7 +117,8 @@ public class AerodynamicSolver
         if (_checkedChutes.Add(chute) && (q > def.MaxDeployDynamicPressure || mach > def.MaxDeployMach))
         {
             chute.State = ComponentState.Broken;
-            GD.Print($"[Physics] Parachute torn: q {q:F0} Pa, Mach {mach:F2}");
+            GD.PushWarning($"[Physics] Parachute torn: opened at q {q:F0} Pa (max {def.MaxDeployDynamicPressure:F0}), Mach {mach:F2} (max {def.MaxDeployMach:F1})");
+            ParachuteTorn?.Invoke(chute, q, mach);
             return Vector2.Zero;
         }
         return -velDir * (q * def.DeployedDragArea);

@@ -25,6 +25,8 @@ public partial class PhysicsCoordinator : Node
     public StructuralStressEvaluator StressEvaluator { get; private set; }
     /// <summary>In-flight incidents.</summary>
     public HazardMonitor Hazards { get; private set; }
+    /// <summary>A parachute was opened too fast and tore: (chute, q in Pa, Mach). Hook a HUD warning here.</summary>
+    public event System.Action<ParachutePart, float, float> ParachuteTorn;
     /// <summary>Body of the current segment, or null before Initialize.</summary>
     public CelestialBodyDefinition CurrentBody { get; private set; }
 
@@ -50,6 +52,7 @@ public partial class PhysicsCoordinator : Node
         StressEvaluator.PodBreakGFactor = Settings.PodBreakGFactor;
         StressEvaluator.JointCompressionFactor = Settings.JointCompressionFactor;
         _aerodynamics = new AerodynamicSolver(Settings);
+        _aerodynamics.ParachuteTorn += (chute, q, mach) => ParachuteTorn?.Invoke(chute, q, mach);
         _gravity = new OrbitalGravitySolver();
         _propulsion = new PropulsionSolver();
         _thermal = new ThermalSolver(Settings);
