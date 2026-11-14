@@ -9,5 +9,5 @@ DisplayName = "Entry, Descent and Landing"
 Tier = 3
 CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_upper_stage")
-UnlocksModelIds = PackedStringArray("heatshield_h1", "chute_p1")
+UnlocksModelIds = PackedStringArray("heatshield_h1", "chute_p1", "airbag_a1")
 BuildWeightBonus = 0

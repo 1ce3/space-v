@@ -30,7 +30,7 @@ public class AerodynamicSolver
     /// Aero force and torque on the parts. airVelBody = air velocity relative to the vehicle in the vehicle-local frame (= -velocity), m/s.
     /// com is the local center of mass (m). partLoads (optional) receives the aero force of each part.
     /// </summary>
-    public AeroResult Solve(PartTree parts, Vector2 airVelBody, AtmosphereSample air, Vector2 com, List<PartLoad> partLoads = null)
+    public AeroResult Solve(PartTree parts, Vector2 airVelBody, AtmosphereSample air, Vector2 com, List<PartLoad> partLoads = null, float deltaTime = 0f)
     {
         float speed = airVelBody.Length();
         float q = CalculateDynamicPressure(air.Density, speed);
@@ -57,7 +57,7 @@ public class AerodynamicSolver
             Vector2 force = -velDir * (q * (frontal + part.SideArea * sideCd * sinA) * machMult);
 
             if (part is AeroSurfacePart fin) force += FinForce(fin, flowDir, q, stallSin);
-            else if (part is ParachutePart chute) force += ChuteForce(chute, velDir, q, mach);
+            else if (part is ParachutePart chute) force += ChuteForce(chute, velDir, q, mach, deltaTime);
 
             Vector2 r = part.GetLocalPosition() - com;
             result.Force += force;
@@ -108,8 +108,11 @@ public class AerodynamicSolver
         return length > limit && length > 0f ? force * (limit / length) : force;
     }
 
-    /// <summary>Drag of an open chute; a chute opened above its q or Mach limit tears (Broken) on its first open tick.</summary>
-    private Vector2 ChuteForce(ParachutePart chute, Vector2 velDir, float q, float mach)
+    /// <summary>
+    /// Drag of an open chute; a chute opened above its q or Mach limit tears (Broken) on its first open tick.
+    /// The canopy opens over InflationTimeS (deltaTime 0 = already open, e.g. the wind tunnel); drag grows with the fraction squared.
+    /// </summary>
+    private Vector2 ChuteForce(ParachutePart chute, Vector2 velDir, float q, float mach, float deltaTime)
     {
         if (chute.ChuteState != ParachuteState.Deployed || chute.State == ComponentState.Broken) return Vector2.Zero;
         ParachutePartDefinition def = chute.ChuteDefinition;
@@ -121,6 +124,9 @@ public class AerodynamicSolver
             ParachuteTorn?.Invoke(chute, q, mach);
             return Vector2.Zero;
         }
-        return -velDir * (q * def.DeployedDragArea);
+        float inflation = def.InflationTimeS > 0f && deltaTime > 0f ? deltaTime / def.InflationTimeS : 1f;
+        chute.InflationFraction = Mathf.Min(1f, chute.InflationFraction + inflation);
+        float open = chute.InflationFraction * chute.InflationFraction;
+        return -velDir * (q * def.DeployedDragArea * open);
     }
 }

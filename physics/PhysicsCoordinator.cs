@@ -102,7 +102,7 @@ public partial class PhysicsCoordinator : Node
 
         // 3-4. Thrust and aero, vehicle-local frame.
         ThrustStepResult thrust = _propulsion.Solve(input.Parts, output.Air.Pressure, com, input.DeltaTime, _bodyLoads, _solverEvents);
-        AeroResult aero = _aerodynamics.Solve(input.Parts, -velBody, output.Air, com, _bodyLoads);
+        AeroResult aero = _aerodynamics.Solve(input.Parts, -velBody, output.Air, com, _bodyLoads, input.DeltaTime);
 
         // 5. Gravity at the center of mass, world frame.
         output.GravityForce = _gravity.CalculateGravityForce(input.Position, input.Mass.TotalMass);

@@ -16,10 +16,10 @@ public partial class BuildScreenRoot : Node3D
 		NodeGuard.Require(this, Building, nameof(Building));
 	}
 
-    /// <summary>Called by the research button. Saves the design first so it is back when the player returns.</summary>
-    public void RequestResearch()
-    {
-        Building?.SaveDesign();
-        EmitSignal(SignalName.ResearchRequested);
-    }
+	/// <summary>Called by the research button. Saves the design first so it is back when the player returns.</summary>
+	public void RequestResearch()
+	{
+		Building?.SaveDesign();
+		EmitSignal(SignalName.ResearchRequested);
+	}
 }

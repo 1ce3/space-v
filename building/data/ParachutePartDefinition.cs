@@ -16,6 +16,8 @@ public partial class ParachutePartDefinition : PartDefinition
     [Export] public float MaxDeployMach { get; set; } = 2.5f;
     /// <summary>Strength of its self-separating joint (N).</summary>
     [Export] public float AttachmentStrength { get; set; } = 150_000f;
+    /// <summary>Seconds from Deploy to a fully open canopy; drag grows with the opened fraction squared.</summary>
+    [Export] public float InflationTimeS { get; set; } = 3f;
 
     public ParachutePartDefinition()
     {
