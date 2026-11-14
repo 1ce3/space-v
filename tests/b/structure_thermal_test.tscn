@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/b/StructureThermalTest.cs" id="1_test"]
+[ext_resource type="Script" path="res://physics/PhysicsCoordinator.cs" id="2_coordinator"]
+[ext_resource type="Resource" path="res://data/settings/physics_settings.tres" id="3_settings"]
+[ext_resource type="Resource" path="res://data/missions/seg_earth_ascent.tres" id="4_earth"]
+[ext_resource type="Resource" path="res://data/missions/seg_mars_edl.tres" id="5_mars"]
+
+[node name="StructureThermalTest" type="Node" node_paths=PackedStringArray("Coordinator")]
+script = ExtResource("1_test")
+Coordinator = NodePath("Physics")
+EarthSegment = ExtResource("4_earth")
+MarsSegment = ExtResource("5_mars")
+
+[node name="Physics" type="Node" parent="."]
+script = ExtResource("2_coordinator")
+Settings = ExtResource("3_settings")

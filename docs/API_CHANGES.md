@@ -34,3 +34,5 @@ Một dòng cho mỗi thay đổi hợp đồng (chỉ thêm, không đổi tên
 | H1 | C | Tạm thời: `tests/c/contract_stubs/` + hằng `C_STUB_A`, `C_STUB_B` trong csproj (đã gỡ ở M0) | Nhánh C build được trước khi skeleton A/B vào main |
 | H1 | C | AGENTS 5: viết `Godot.Control` thay cho `Control` | Namespace `RocketGame.Control` che class `Godot.Control` |
 | M0 | C | AGENTS 5: file dùng `Side` thêm `using Side = RocketGame.Core.Side;` | Godot cũng có enum `Side` (lỗi CS0104) |
+| B3 | B | `ThermalSolver.Step(PartTree, float heatFlux, float dt, Vector2 velDirBody = default, Vector2 com = default, float airTemperatureK = 3f)` thêm tham số mặc định | Cần hướng bay để biết đáy trước / mũi trước, và nhiệt độ khí để tính bức xạ |
+| B3 | B | Luật: heat shield hết ablator mà vẫn bị đốt nóng thì `Broken` (cháy thủng) → `FailureDetector.MonitorThermalLimits` gây Break `Thermal` | Đúng mục "Xong khi" B3; nếu chỉ dồn nhiệt dư vào TempK thì shield gần như không bao giờ hỏng |
