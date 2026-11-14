@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PowerModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/PowerModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "battery_b1"
+DisplayName = "Pin B1"
+Tier = 0
+BuildWeight = 1
+DryMass = 20.0
+PowerDrawW = 0.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 2
+Kind = 0
+EnergyStorageWh = 500.0

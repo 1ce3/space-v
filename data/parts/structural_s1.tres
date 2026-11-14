@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="StructuralPartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/StructuralPartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "structural_s1"
+DisplayName = "Khung S1"
+Tier = 0
+BuildWeight = 1
+DryMass = 50.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1200.0
+MinSafeTempK = 200.0
+PartGroup = 8
+Footprint = Vector2i(1, 1)
+AllowedTop = 313
+AllowedBottom = 272
+AllowedSides = 0
+FrontalArea = 3.1
+SideArea = 4.0
+DragCoefficient = 0.1
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+AttachmentStrength = 500000.0

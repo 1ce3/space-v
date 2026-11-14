@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="FuelTankPartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/FuelTankPartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "tank_m1"
+DisplayName = "Bình Kerolox M1"
+Tier = 1
+BuildWeight = 3
+DryMass = 400.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1200.0
+MinSafeTempK = 200.0
+PartGroup = 4
+Footprint = Vector2i(1, 3)
+AllowedTop = 313
+AllowedBottom = 312
+AllowedSides = 192
+FrontalArea = 3.1
+SideArea = 12.0
+DragCoefficient = 0.1
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+PropellantType = 1
+FuelCapacity = 6000.0

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ParachutePartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/ParachutePartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "chute_p1"
+DisplayName = "Dù P1"
+Tier = 3
+BuildWeight = 1
+DryMass = 60.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1200.0
+MinSafeTempK = 200.0
+PartGroup = 2
+Footprint = Vector2i(1, 1)
+AllowedTop = 2
+AllowedBottom = 1
+AllowedSides = 0
+FrontalArea = 3.1
+SideArea = 4.0
+DragCoefficient = 0.3
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+DeployedDragArea = 80.0
+MaxDeployDynamicPressure = 1500.0
+MaxDeployMach = 2.5
+AttachmentStrength = 150000.0

@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://building/editor/PartCatalog.cs" id="1"]
+[ext_resource type="Resource" path="res://data/settings/build_settings.tres" id="2_settings"]
 
 [node name="PartCatalog" type="Node"]
 script = ExtResource("1")
+Settings = ExtResource("2_settings")
