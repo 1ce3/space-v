@@ -45,6 +45,24 @@ public partial class CruiseController : Node
     private CruiseSimulator _sim;
     private float _dayAccumulator;
     private bool _solarWarned;
+    // Phase 2 meteor dodge: > 0 while the player must press the dodge key.
+    private float _dodgeTimer;
+    /// <summary>Seconds the day counter stays stopped after an event so the player can read and react.</summary>
+    [Export] public float EventHoldSeconds { get; set; } = 4f;
+    private float _holdTimer;
+    private bool _waitForEnter;
+    /// <summary>Player chose storm shelter (H) after a flare warning. B: read this when applying flare damage.</summary>
+    public bool StormShelter { get; set; }
+    /// <summary>Seconds left of the slowed-down time after a flare warning.</summary>
+    private float _slowTimer;
+    [Export] public float FlareWarningSlowSeconds { get; set; } = 8f;
+    [Export(PropertyHint.Range, "0.01,1,0.01")] public float FlareWarningTimeFactor { get; set; } = 0.1f;
+    private int _dodgeDir; // -1 left (A/Q), +1 right (D/E)
+    private readonly RandomNumberGenerator _rng = new();
+
+    /// <summary>Lead time (s) without a comms instrument.</summary>
+    [Export] public float BaseDodgeSeconds { get; set; } = 3f;
+    [Export] public float AutoDodgeEnergyWh { get; set; } = 30f;
 
     public override void _Ready()
     {
@@ -68,6 +86,11 @@ public partial class CruiseController : Node
         TimeScale = 1f;
         _dayAccumulator = 0f;
         _solarWarned = false;
+        _waitForEnter = false;
+        _holdTimer = 0f;
+        _slowTimer = 0f;
+        StormShelter = false;
+        _dodgeTimer = 0f;
 
         Vehicle.SetSimulationFrozen(true);
         InputHandler.SetInputEnabled(true);
@@ -116,8 +139,14 @@ public partial class CruiseController : Node
     /// <summary>Advances simulated time by deltaTime real seconds.</summary>
     public void Advance(float deltaTime)
     {
-        if (!IsActive || !HasBurned || IsPaused || _sim == null) return;
-        _dayAccumulator += deltaTime * DaysPerSecond * TimeScale;
+        if (!IsActive || !HasBurned || IsPaused || _sim == null || _dodgeTimer > 0f || _holdTimer > 0f || _waitForEnter) return;
+        float slow = 1f;
+        if (_slowTimer > 0f)
+        {
+            _slowTimer -= deltaTime;
+            slow = FlareWarningTimeFactor;
+        }
+        _dayAccumulator += deltaTime * DaysPerSecond * TimeScale * slow;
         while (_dayAccumulator >= 1f && IsActive)
         {
             _dayAccumulator -= 1f;
@@ -128,6 +157,7 @@ public partial class CruiseController : Node
             Hud.ShowResources(step);
             Hud.ShowDeltaV(step.DeltaVRemaining, RequiredDeltaV);
             HandleEvents(step);
+            if (_dodgeTimer > 0f || _holdTimer > 0f || _waitForEnter) _dayAccumulator = 0f; // stop here until the player reacts
 
             if (_run.PartTree?.RootPart is CommandPodPart pod && pod.State == ComponentState.Broken)
             {
@@ -166,6 +196,13 @@ public partial class CruiseController : Node
         }
         if (input.ThrottleFull) RequestTransferBurn();
         if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
+        if (Anomalies?.ConsumeMessage() is string rebootLine) Hud.ShowMessage(rebootLine);
+        if (_holdTimer > 0f) _holdTimer -= (float)delta;
+        if (_dodgeTimer > 0f)
+        {
+            _dodgeTimer -= (float)delta;
+            if (_dodgeTimer <= 0f) MeteorHit("Không kịp né!");
+        }
         if (!IsPaused) Advance((float)delta);
     }
 
@@ -180,16 +217,128 @@ public partial class CruiseController : Node
     /// <summary>P0: cruise events are warnings only (C7 adds the key responses), then acknowledged.</summary>
     private void HandleEvents(CruiseStepResult step)
     {
+        _lastBroken.Clear();
+        if (step.BrokenComponents != null) _lastBroken.AddRange(step.BrokenComponents);
         if (step.Events == null) return;
         foreach (FlightEvent e in step.Events)
         {
-            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e.Type)}");
             _sim.Acknowledge(e.Type);
+            if (HandlePhase2Event(step.Day, e))
+            {
+                if (e.Type == FlightEventType.SolarFlare && e.Severity > 0f) _holdTimer = EventHoldSeconds; // time to read the damage
+                continue;
+            }
+            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e.Type)}");
             if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
         }
     }
 
     /// <summary>Solar arrays on attached pods that are (or are not) deployed.</summary>
+    // ------------------------------------------------------------------ Phase 2: flare, meteors
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!IsActive || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (_waitForEnter && key.PhysicalKeycode is Key.Enter or Key.KpEnter)
+        {
+            _waitForEnter = false;
+            _holdTimer = 0f;
+            Hud.ShowMessage("Tiếp tục hành trình...");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (OS.IsDebugBuild() && key.PhysicalKeycode == Key.K && !HasBurned)
+        {
+            HasBurned = true; // debug: skip the transfer burn (no fuel used)
+            Hud.SetBurnDone(true);
+            Hud.ShowMessage("[DEBUG K] Bỏ qua đốt chuyển quỹ đạo");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (key.PhysicalKeycode == Key.H && _sim != null && HasBurned)
+        {
+            StormShelter = !StormShelter;
+            Hud.ShowMessage(StormShelter ? "Chế độ trú bão: tắt toàn bộ thiết bị để tránh bức xạ" : "Đã bật lại thiết bị");
+            GetViewport().SetInputAsHandled();
+        }
+        else if (_dodgeTimer > 0f)
+        {
+            int dir = key.PhysicalKeycode is Key.A or Key.Q ? -1 : key.PhysicalKeycode is Key.D or Key.E ? 1 : 0;
+            if (dir == 0) return;
+            bool rcs = key.PhysicalKeycode is Key.Q or Key.E;
+            if (rcs && Pod?.GetModules<RcsThrusterModule>().Exists(m => m.CanOperate()) != true)
+            {
+                Hud.ShowMessage("Không có RCS hoạt động, dùng A/D (động cơ chính)");
+                return;
+            }
+            _dodgeTimer = 0f;
+            if (dir == _dodgeDir) Hud.ShowMessage("Né thành công! Thiên thạch bay qua.");
+            else MeteorHit("Né sai hướng!");
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
+    private readonly System.Collections.Generic.List<string> _lastBroken = new();
+
+    private CommandPodPart Pod => PowerSolver.FindPod(_run?.PartTree);
+
+    /// <summary>True when the event is a phase 2 event and was handled here.</summary>
+    private bool HandlePhase2Event(int day, FlightEvent e)
+    {
+        if (e.Type == FlightEventType.SolarFlare)
+        {
+            if (e.Severity <= 0f)
+            {
+                _slowTimer = FlareWarningSlowSeconds;
+                Hud.ShowMessage($"Ngày {day}: cảm biến báo BÃO MẶT TRỜI sắp tới! Bấm H để trú bão.");
+                return true;
+            }
+            StormShelter = false;
+            var broke = _lastBroken;
+            Hud.ShowMessage(broke.Count == 0
+                ? $"Ngày {day}: bão mặt trời đi qua, không thiết bị nào hỏng."
+                : $"Ngày {day}: bão mặt trời làm hỏng {string.Join(", ", broke)}. Bấm B để khởi động lại.");
+            return true;
+        }
+        if (e.Type != FlightEventType.MeteorField) return false;
+
+        float lead = BaseDodgeSeconds;
+        bool canAuto = false;
+        CommandPodPart pod = Pod;
+        if (pod != null)
+            foreach (InstrumentModule m in pod.GetModules<InstrumentModule>())
+                if (m.CanOperate() && m.Definition is InstrumentModuleDefinition d && d.Kind == InstrumentKind.Comms)
+                {
+                    lead = Mathf.Max(lead, d.WarningLeadSeconds);
+                    canAuto |= d.AllowsAutoDodge;
+                }
+        bool hasRcs = pod?.GetModules<RcsThrusterModule>().Exists(m => m.CanOperate()) == true;
+        if (canAuto && hasRcs && PowerSolver.TryDrawEnergy(pod, AutoDodgeEnergyWh))
+        {
+            Hud.ShowMessage($"Ngày {day}: VÙNG THIÊN THẠCH - ăng-ten và RCS tự né thành công ({AutoDodgeEnergyWh:0} Wh).");
+            return true;
+        }
+        _dodgeDir = _rng.Randf() < 0.5f ? -1 : 1;
+        _dodgeTimer = lead / Mathf.Max(TimeScale, 1f) + 0.5f;
+        string side = _dodgeDir < 0 ? "TRÁI (A hoặc Q)" : "PHẢI (D hoặc E)";
+        Hud.ShowMessage($"Ngày {day}: THIÊN THẠCH lao tới! Né sang {side} trong {lead:0} s");
+        return true;
+    }
+
+    private void MeteorHit(string prefix)
+    {
+        _dodgeTimer = 0f;
+        var targets = new System.Collections.Generic.List<RocketPart>();
+        foreach (RocketPart p in _run?.PartTree?.ActiveParts ?? new())
+            if (p is FuelTankPart or CommandPodPart) targets.Add(p);
+        if (targets.Count == 0) return;
+        RocketPart hit = targets[_rng.RandiRange(0, targets.Count - 1)];
+        string name = string.IsNullOrEmpty(hit.Definition?.DisplayName) ? hit.ModelId : hit.Definition.DisplayName;
+        bool damaged = MeteorImpact.Resolve(hit, _rng.RandfRange(4f, 30f));
+        Hud.ShowMessage(damaged ? $"{prefix} Thiên thạch làm hư {name} (B để khởi động lại thiết bị hỏng)" : $"{prefix} Thiên thạch va vào {name}, vỏ chịu được");
+        RefreshDeltaV();
+    }
+
     private int CountSolarArrays(bool deployed)
     {
         int count = 0;

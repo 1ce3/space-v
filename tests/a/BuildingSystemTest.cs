@@ -186,6 +186,17 @@ public partial class BuildingSystemTest : Node
         foreach (string id in new[] { "comms_c1", "comms_c2", "rad_x1", "rad_x2", "fuel_f1", "pressure_p1" })
             Check($"{id} is an instrument", cat.GetDefinition(id) is InstrumentModuleDefinition);
         Check("pod_mk3 grid 4x3", (cat.GetDefinition("pod_mk3") as CommandPodPartDefinition)?.InventorySize == new Vector2I(4, 3));
+        var def = (ModuleDefinition)cat.GetDefinition("comms_c1").Duplicate();
+        PodModule m = PodModule.Create(def);
+        Check("comms_c1 creates an InstrumentModule", m is InstrumentModule);
+        var rng = new RandomNumberGenerator { Seed = 7 };
+        Check("healthy module: reboot does nothing", !m.TryReboot(rng));
+        m.State = ComponentState.Broken;
+        def.RebootSuccessChance = 1f;
+        Check("chance 1: reboot works", m.TryReboot(rng) && m.State != ComponentState.Broken);
+        m.State = ComponentState.Broken;
+        def.RebootSuccessChance = 0f;
+        Check("chance 0: reboot fails", !m.TryReboot(rng) && m.State == ComponentState.Broken);
         Check("tech tree matches catalog", cat.ValidateAgainstTechTree().Count == 0, string.Join(" | ", cat.ValidateAgainstTechTree()));
     }
 

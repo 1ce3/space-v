@@ -98,7 +98,18 @@ public abstract class PodModule : IFlightComponent
 
     /// <summary>
     /// Phase 2 (PHASE2_PLAN.md 5.7): one reboot attempt of a Broken module; true when it works again.
-    /// Energy is drawn by the caller (PowerSolver.TryDrawEnergy). Stub until A13: always false.
+    /// Energy and cooldown are handled by ModuleReboot.
     /// </summary>
-    public virtual bool TryReboot(RandomNumberGenerator rng) => false;
+    public virtual bool TryReboot(RandomNumberGenerator rng)
+    {
+        if (State != ComponentState.Broken) return false;
+        float chance = Definition?.RebootSuccessChance ?? 0f;
+        if ((rng?.Randf() ?? GD.Randf()) >= chance) return false;
+        State = ComponentState.Idle;
+        TempK = Mathf.Clamp(TempK, Definition?.MinSafeTempK ?? 0f, Definition?.MaxSafeTempK ?? 1000f);
+        return true;
+    }
+
+    /// <summary>Time (seconds, ModuleReboot clock) before the next reboot attempt is allowed.</summary>
+    public float RebootReadyAtS { get; set; }
 }

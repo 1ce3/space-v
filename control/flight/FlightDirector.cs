@@ -124,6 +124,7 @@ public partial class FlightDirector : Node
         Hud.ShowTelemetry(frame, anomalies?.IsTelemetryGlitched ?? false);
         Hud.ShowAnomalies(anomalies?.ActiveAnomalies, Vehicle.FlightControl?.InputHandler?.AbortHoldProgress ?? 0f);
         Hud.ShowStageText(Vehicle.Staging.DescribeNextStage());
+        if (anomalies?.ConsumeMessage() is string rebootLine) Hud.ShowWarning(rebootLine);
         FlightControlSubsystem control = Vehicle.FlightControl;
         if (control?.AttitudeController != null && control.Estimator != null)
             Hud.ShowSasState(control.AttitudeController.Mode, control.Estimator.GetEnabledSasModes());
@@ -208,6 +209,17 @@ public partial class FlightDirector : Node
             }
         }
         return false;
+    }
+
+    /// <summary>Debug builds only: K ends the current flight segment as reached (to test cruise events quickly).</summary>
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!OS.IsDebugBuild() || Run == null || _hasEnded || _segmentDone) return;
+        if (@event is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.K })
+        {
+            CompleteSegment(FlightPhase.OrbitReached, "[DEBUG K] Bỏ qua đoạn bay");
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     /// <summary>The segment ended well: cut the throttle, lock input and hand over to GameFlowManager.</summary>

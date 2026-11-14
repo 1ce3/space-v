@@ -98,9 +98,10 @@ public partial class PartRuntimeTest : Node
     {
         AssembledRocket rocket = TestRocketFactory.CreateMinimal();
         var tank = rocket.PartTree.GetParts<FuelTankPart>()[0];
+        float start = tank.CurrentFuel;
         Check("DrainFuel(300) returns 300", Near(tank.DrainFuel(300f), 300f));
-        Check("700 kg left", Near(tank.CurrentFuel, 700f));
-        Check("DrainFuel(5000) returns the rest", Near(tank.DrainFuel(5000f), 700f) && Near(tank.CurrentFuel, 0f));
+        Check($"{start - 300f:0} kg left", Near(tank.CurrentFuel, start - 300f));
+        Check("DrainFuel(1e6) returns the rest", Near(tank.DrainFuel(1e6f), start - 300f) && Near(tank.CurrentFuel, 0f));
         Check("tank mass = dry when empty", Near(tank.GetCurrentMass(), 150f));
 
         var engine = rocket.PartTree.GetParts<LiquidEnginePart>()[0];

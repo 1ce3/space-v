@@ -44,6 +44,25 @@ public partial class AnomalyResponseHandler : Node
         if (ThrottleController != null) ThrottleController.IsFrozen = false;
     }
 
+    // ------------------------------------------------------------------ A13: reboot broken modules (key B)
+
+    private string _pendingMessage;
+
+    /// <summary>HUD line from the last reboot attempt, cleared when read.</summary>
+    public string ConsumeMessage()
+    {
+        string m = _pendingMessage;
+        _pendingMessage = null;
+        return m;
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.B } || _tree == null) return;
+        _pendingMessage = ModuleReboot.TryRebootNext(PowerSolver.FindPod(_tree)) ?? "Không có thiết bị hỏng";
+        GetViewport().SetInputAsHandled();
+    }
+
     /// <summary>True when an anomaly of this type is waiting.</summary>
     public bool Has(FlightEventType type) => Find(type) != null;
 
