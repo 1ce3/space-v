@@ -218,6 +218,7 @@ public partial class VehicleRoot : RigidBody3D
         };
         PhysicsStepOutput output = Coordinator.ExecutePhysicsStep(input);
         _lastOutput = output;
+        EngineVisual.AmbientPressurePa = output.Air.Pressure; // plume shape only
 
         // 5. Pad hold: stay put until the net force lifts the rocket.
         Vector2 up = FlightMath.LocalUp(position, center);
