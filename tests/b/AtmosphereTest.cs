@@ -17,6 +17,8 @@ public partial class AtmosphereTest : Node
     [Export] public float[] MarsAltitudesKm { get; set; } = { 0f, 10f, 50f, 100f };
     /// <summary>Altitude at which the circular orbit speed is printed (km).</summary>
     [Export] public float OrbitAltitudeKm { get; set; } = 90f;
+    /// <summary>Quit the game after printing, so the log is flushed when run headless or from tools.</summary>
+    [Export] public bool QuitWhenDone { get; set; } = true;
 
     public override void _Ready()
     {
@@ -24,6 +26,7 @@ public partial class AtmosphereTest : Node
         if (!NodeGuard.Require(this, Mars, nameof(Mars))) return;
         PrintBody(Earth, EarthAltitudesKm);
         PrintBody(Mars, MarsAltitudesKm);
+        if (QuitWhenDone) GetTree().Quit();
     }
 
     private void PrintBody(CelestialBodyDefinition body, float[] altitudesKm)
