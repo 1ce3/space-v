@@ -1,0 +1,208 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% PHYSICS ENGINE: stateless solvers that aggregate per-part data
+    %% Lumped stats (DragCoefficient, VacuumThrust, RemainingFuel...) removed
+    %% ==========================================
+    class PhysicsCoordinator {
+        -IAtmosphereModel _atmosphere
+        -AerodynamicSolver _aerodynamics
+        -OrbitalGravitySolver _gravity
+        -PropulsionSolver _propulsion
+        -ThermalSolver _thermal
+        -PowerSolver _power
+        -HazardMonitor _hazards
+        +Initialize(MissionSegmentDefinition segment)
+        +ExecutePhysicsStep(PhysicsStepInput input) PhysicsStepOutput
+    }
+
+    class IAtmosphereModel {
+        <<interface>>
+        +Sample(float altitudeMeters) AtmosphereSample
+    }
+    class USSA76AtmosphereModel {
+        +LayerTable[] Layers
+        +Sample(float altitudeMeters) AtmosphereSample
+    }
+    class ExponentialAtmosphereModel {
+        +float SeaLevelDensity
+        +float SeaLevelPressure
+        +float ScaleHeight
+        +Sample(float altitudeMeters) AtmosphereSample
+    }
+
+    class AerodynamicSolver {
+        +float MaxQLimit
+        +Solve(parts, Vector2 airVelBody, AtmosphereSample air, Vector2 com) AeroResult
+        +CalculateDynamicPressure(float airDensity, float speed) float
+        +IsOverMaxQ(float dynamicPressure) bool
+    }
+
+    class OrbitalGravitySolver {
+        +float GravitationalConstant
+        +float PlanetMass
+        +float PlanetRadius
+        +Vector2 PlanetCenter
+        +CalculateGravityForce(Vector2 worldPosition, float shipMass) Vector2
+        +CalculateOrbitalVelocity(float altitudeMeters) float
+        +Configure(CelestialBodyDefinition body)
+        +GetAltitude(Vector2 worldPosition) float
+    }
+
+    class PropulsionSolver {
+        +Solve(engines, float ambientPressure, Vector2 com, float deltaTime) ThrustStepResult
+    }
+
+    class ThermalSolver {
+        +float SuttonGravesConstant
+        +float NoseRadius
+        +CalculateHeatFlux(float airDensity, float speed) float
+        +Step(components, float heatFlux, float deltaTime) ThermalStepResult
+        +SolveSteadyState(components, float solarFluxWm2) ThermalStepResult
+    }
+
+    class PowerSolver {
+        +Step(components, float dynamicPressure, float solarFluxWm2, float deltaTime) PowerStepResult
+        +SolveSteadyState(components, float solarFluxWm2) PowerStepResult
+    }
+
+    class HazardMonitor {
+        +float WindShearForceX
+        +bool IsStormy
+        +Evaluate(PhysicsStepInput input, PhysicsStepOutput partial) List~FlightEvent~
+        +CheckLightningStrike(float altitudeMeters) bool
+        +CheckDebrisWarning(Vector2 rocketPos, Vector2 nearestDebrisPos) bool
+        +CheckCryoLeak(tanks) bool
+        +CheckSeuGlitch(float altitudeMeters) bool
+    }
+
+    class FailureDetector {
+        +MonitorStressThresholds(StressReport report)
+        +MonitorThermalLimits(ThermalStepResult thermal)
+        +MonitorImpact(RocketPart part, float contactSpeed)
+        +TriggerBreak(RocketPart part, FailureCause cause)
+    }
+    class StructuralBreakHandler {
+        +HandleBreak(RocketPart part, FailureCause cause)
+        +SpawnDebrisRigidBody(parts)
+        +TransferMomentum()
+    }
+    class StructuralStressEvaluator {
+        <<Building>>
+        +EvaluateRecursiveLoad(partLoads, Vector2 acceleration)
+        +CheckYieldLimits() StressReport
+    }
+
+    class CruiseSimulator {
+        +Begin(PartTree parts, MissionSegmentDefinition segment)
+        +GetRemainingDeltaV() float
+        +ExecuteTransferBurn() bool
+        +StepDay() CruiseStepResult
+    }
+    class CruiseStepResult {
+        <<struct>>
+        +int Day
+        +float DeltaVRemaining
+        +float PowerBalanceW
+        +float LowestTempRatio
+        +bool IsBrownout
+        +List~FlightEvent~ Events
+        +List BrokenComponents
+    }
+    class CelestialBodyDefinition {
+        <<Resource>>
+        +string BodyId
+        +float Mass
+        +float Radius
+        +bool UsesLayerTable
+        +float SeaLevelDensity
+        +float SeaLevelPressure
+        +float ScaleHeight
+        +float SolarFluxWm2
+        +PackedScene EnvironmentScene
+    }
+
+    class PhysicsStepInput {
+        <<struct>>
+        +Vector2 Position
+        +Vector2 LinearVelocity
+        +float PitchAngleDeg
+        +float AngularVelocityDegPerSec
+        +MassProperties Mass
+        +PartTree Parts
+        +float DeltaTime
+    }
+    class PhysicsStepOutput {
+        <<struct>>
+        +Vector2 NetForce
+        +float NetTorqueZ
+        +float ConsumedMass
+        +float AltitudeMeters
+        +float CurrentGForce
+        +float DynamicPressure
+        +float MachNumber
+        +float HeatFlux
+        +List~PartLoad~ PartLoads
+        +List~FlightEvent~ Events
+    }
+    class AeroResult {
+        <<struct>>
+        +Vector2 Force
+        +float TorqueZ
+        +Vector2 CenterOfPressure
+        +float DynamicPressure
+        +float MachNumber
+    }
+    class ThrustStepResult {
+        <<struct>>
+        +Vector2 ThrustForceVector
+        +float TorqueZ
+        +float MassBurnedKg
+        +float MassLeakedKg
+    }
+    class ThermalStepResult {
+        <<struct>>
+        +float MaxTempRatio
+        +List OverheatedComponents
+        +List BrokenComponents
+        +float MassAblatedKg
+    }
+    class PowerStepResult {
+        <<struct>>
+        +float SupplyW
+        +float DemandW
+        +bool IsBrownout
+    }
+    class PartLoad {
+        <<struct>>
+        +RocketPart Part
+        +Vector2 Force
+    }
+
+    PhysicsCoordinator --> IAtmosphereModel : queries
+    PhysicsCoordinator --> AerodynamicSolver : queries
+    PhysicsCoordinator --> OrbitalGravitySolver : queries
+    PhysicsCoordinator --> PropulsionSolver : queries
+    PhysicsCoordinator --> ThermalSolver : queries
+    PhysicsCoordinator --> PowerSolver : queries
+    PhysicsCoordinator --> HazardMonitor : queries
+    PhysicsCoordinator ..> PhysicsStepInput : consumes
+    PhysicsCoordinator ..> PhysicsStepOutput : produces
+
+    IAtmosphereModel <|.. USSA76AtmosphereModel
+    IAtmosphereModel <|.. ExponentialAtmosphereModel
+
+    AerodynamicSolver ..> AeroResult : returns
+    PropulsionSolver ..> ThrustStepResult : returns
+    ThermalSolver ..> ThermalStepResult : returns
+    PowerSolver ..> PowerStepResult : returns
+    PhysicsStepOutput --> PartLoad
+
+    StructuralStressEvaluator ..> FailureDetector : StressReport
+    FailureDetector --> StructuralBreakHandler : TriggerBreak
+    PhysicsCoordinator --> CelestialBodyDefinition : body of segment
+    CruiseSimulator ..> CruiseStepResult : returns
+    CruiseSimulator --> PowerSolver : SolveSteadyState
+    CruiseSimulator --> ThermalSolver : SolveSteadyState
+    CruiseSimulator --> HazardMonitor : queries

@@ -1,0 +1,273 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% CONTROL SYSTEM (new): game flow, flight session, piloting,
+    %% staging, anomaly response, telemetry
+    %% ==========================================
+    class GameFlowManager {
+        <<autoload>>
+        +GameState State
+        +MissionRun CurrentRun
+        +OnDesignConfirmed(AssembledRocket rocket)
+        +OnSegmentCompleted(MissionRun run)
+        +OnMissionEnded(FlightResult result)
+        +GoToResearch()
+        +GoToBuild()
+        +StateChanged(GameState state) signal
+    }
+
+    class FlightDirector {
+        +FlightPhase Phase
+        +MissionRun Run
+        +VehicleRoot Vehicle
+        +BlackBoxTelemetryLogger BlackBox
+        +StartSegment(MissionRun run)
+        +OnTick(TelemetryFrame frame)
+        +OnPartSevered(RocketPart part, SeverCause cause)
+        +OnGroundContact(RocketPart part, float contactSpeed)
+        +Abort()
+        +PhaseChanged(FlightPhase phase) signal
+        +SegmentCompleted(MissionRun run) signal
+        +MissionEnded(FlightResult result) signal
+    }
+
+    class VehicleRoot {
+        <<RigidBody3D>>
+        +PartTree PartTree
+        +MassProperties Mass
+        +FlightControlSubsystem FlightControl
+        +StagingManager Staging
+        +OnDesignConfirmed(AssembledRocket rocket)
+        +RestoreFromRun(MissionRun run)
+        +_IntegrateForces(state)
+        +RecalculatePhysicalProperties()
+        +GetTelemetry() TelemetryFrame
+        +MassPropertiesChanged(MassProperties mass) signal
+    }
+
+    class FlightControlSubsystem {
+        +InputHandler InputHandler
+        +AttitudeEstimator Estimator
+        +AttitudeController AttitudeController
+        +PIDStabilizer PIDStabilizer
+        +ControlAllocator Allocator
+        +ThrottleController ThrottleController
+        +AnomalyResponseHandler Anomalies
+        +Update(float deltaTime)
+        +OnMassPropertiesChanged(MassProperties mass)
+    }
+
+    class InputHandler {
+        +Poll() PilotInput
+        +SetInputEnabled(bool enabled)
+    }
+
+    class PilotInput {
+        <<struct>>
+        +float PitchAxis
+        +float ThrottleAxis
+        +bool ThrottleFull
+        +bool ThrottleCut
+        +bool StagePressed
+        +bool FairingPressed
+        +bool ChutePressed
+        +bool SasTogglePressed
+        +SasMode RequestedSasMode
+        +bool RcsTogglePressed
+        +float RcsTranslateAxis
+        +bool SceToAuxPressed
+        +bool SealLeakPressed
+        +bool DeployTogglePressed
+        +bool AbortPressed
+    }
+
+    class AttitudeEstimator {
+        +float EstimatedPitchDeg
+        +float EstimatedRateDegPerSec
+        +bool HasValidAttitude
+        +Update(float truePitchDeg, float trueRateDegPerSec, float deltaTime)
+        +GetEnabledSasModes() List~SasMode~
+    }
+
+    class AttitudeController {
+        +SasMode Mode
+        +float TargetPitchDeg
+        +SetMode(SasMode mode) bool
+        +ComputeDemand(PilotInput input, float deltaTime) float
+    }
+
+    class PIDStabilizer {
+        +float Kp
+        +float Ki
+        +float Kd
+        +Compute(float errorDeg, float rateDegPerSec, float deltaTime) float
+        +Reset()
+    }
+
+    class ControlAllocator {
+        +float MomentOfInertia
+        +Allocate(float angularAccelDemand, float dynamicPressure)
+        +GetAvailableTorque() float
+    }
+
+    class ThrottleController {
+        +float Throttle
+        +bool GLimiterEnabled
+        +bool IsFrozen
+        +Update(PilotInput input, float currentGForce, float deltaTime)
+        +ClampThrottleForGLimit(float throttle, float currentGForce, float maxGLimit) float
+    }
+
+    class StagingManager {
+        +int CurrentStageIndex
+        +List~StageGroup~ Stages
+        +ActivateNextStage() bool
+        +JettisonFairing() bool
+        +ToggleParachute() bool
+        +StageActivated(int stageIndex) signal
+        +StagingWarning(string message) signal
+    }
+
+    class AnomalyResponseHandler {
+        +List~ActiveAnomaly~ ActiveAnomalies
+        +bool IsSceToAuxActive
+        +bool IsSafeModeActive
+        +bool IsTelemetryGlitched
+        +OnFlightEvents(events)
+        +HandleInput(PilotInput input)
+        +AnomalyRaised(ActiveAnomaly anomaly) signal
+        +AnomalyResolved(ActiveAnomaly anomaly) signal
+    }
+
+    class ActiveAnomaly {
+        <<struct>>
+        +FlightEventType Type
+        +float TimeRemaining
+        +string SourceId
+    }
+
+    class BlackBoxTelemetryLogger {
+        +float MaxAltitude
+        +float MaxSpeed
+        +float MaxQ
+        +float MaxG
+        +FailureCause FailureCause
+        +string FailedModelId
+        +int SegmentsCompleted
+        +LogFlightMetrics(TelemetryFrame frame)
+        +OnPartSevered(RocketPart part, SeverCause cause)
+        +BuildResult(MissionOutcome outcome) FlightResult
+    }
+
+    class TelemetryFrame {
+        <<struct>>
+        +float AltitudeM
+        +float SpeedMps
+        +float VerticalSpeedMps
+        +float PitchDeg
+        +float Throttle
+        +float StageFuelFraction
+        +float DynamicPressure
+        +float GForce
+        +float MachNumber
+        +float MaxTempRatio
+        +float MaxStressRatio
+        +float HeatFlux
+        +int CurrentStageIndex
+        +float RadarAltitudeM
+        +float AblatorFraction
+    }
+
+    class FlightHUD {
+        <<CanvasLayer>>
+        +ShowTelemetry(TelemetryFrame frame, bool glitched)
+        +ShowStages(stages, int currentIndex)
+        +ShowAnomaly(ActiveAnomaly anomaly)
+        +ShowWarning(string message)
+        +ShowSasState(SasMode mode, enabledModes)
+    }
+
+    class MissionRun {
+        +MissionDefinition Mission
+        +int SegmentIndex
+        +PartTree PartTree
+        +List~StageGroup~ Stages
+        +int StageIndex
+        +float ElapsedDays
+        +BlackBoxTelemetryLogger BlackBox
+    }
+    class CruiseController {
+        +StartCruise(MissionRun run)
+        +Advance(float deltaTime)
+        +SetPaused(bool paused)
+        +SegmentCompleted(MissionRun run) signal
+        +MissionEnded(FlightResult result) signal
+    }
+    class CruiseHUD {
+        <<CanvasLayer>>
+        +ShowProgress(int day, int totalDays)
+        +ShowResources(CruiseStepResult step)
+        +ShowCruiseAnomaly(ActiveAnomaly anomaly)
+    }
+    class CruiseSimulator {
+        <<Physics>>
+    }
+
+    class FlightCameraRig {
+        +Follow(VehicleRoot vehicle)
+    }
+
+    class PhysicsCoordinator {
+        <<Physics>>
+    }
+    class FailureDetector {
+        <<Physics>>
+    }
+    class MassCenterCalculator {
+        <<Building>>
+    }
+    class StructuralStressEvaluator {
+        <<Building>>
+    }
+    class PartTree {
+        <<Building>>
+    }
+    class ResearchCampaignEngine {
+        <<Research>>
+    }
+
+    GameFlowManager ..> FlightDirector : StartSegment
+    GameFlowManager ..> ResearchCampaignEngine : ProcessMissionEnd
+    FlightDirector *-- VehicleRoot
+    MissionRun *-- BlackBoxTelemetryLogger
+    FlightDirector *-- FlightHUD
+    FlightDirector *-- FlightCameraRig
+
+    VehicleRoot *-- FlightControlSubsystem
+    VehicleRoot *-- StagingManager
+    VehicleRoot *-- PartTree
+    VehicleRoot *-- MassCenterCalculator
+    VehicleRoot *-- StructuralStressEvaluator
+    VehicleRoot --> PhysicsCoordinator : ExecutePhysicsStep
+    VehicleRoot --> FailureDetector : stress results
+
+    FlightControlSubsystem *-- InputHandler
+    FlightControlSubsystem *-- AttitudeEstimator
+    FlightControlSubsystem *-- AttitudeController
+    FlightControlSubsystem *-- PIDStabilizer
+    FlightControlSubsystem *-- ControlAllocator
+    FlightControlSubsystem *-- ThrottleController
+    FlightControlSubsystem *-- AnomalyResponseHandler
+
+    InputHandler ..> PilotInput : returns
+    AttitudeController ..> PIDStabilizer : Compute
+    AttitudeController ..> AttitudeEstimator : reads
+    AnomalyResponseHandler ..> ActiveAnomaly
+    BlackBoxTelemetryLogger ..> TelemetryFrame : reads
+    FlightHUD ..> TelemetryFrame : reads
+    GameFlowManager *-- MissionRun
+    GameFlowManager ..> CruiseController : StartCruise
+    CruiseController *-- CruiseHUD
+    CruiseController --> CruiseSimulator : StepDay
+    CruiseController ..> AnomalyResponseHandler : cruise events

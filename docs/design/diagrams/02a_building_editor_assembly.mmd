@@ -1,0 +1,131 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% ROCKET BUILDING: editor + assembly
+    %% Convention: "Name(args) signal" = Godot signal
+    %% ==========================================
+    class BuildingSystem {
+        +BuildGrid Grid
+        +BuildBudget Budget
+        +PartCatalog Catalog
+        +RocketDesign Design
+        +GetAvailableParts() List~PartDefinition~
+        +GetAvailableModules(ModuleSlotType slot) List~ModuleDefinition~
+        +PlacePart(string modelId, Vector2I cell) bool
+        +RemovePart(Vector2I cell)
+        +MovePart(Vector2I from, Vector2I to) bool
+        +PlaceDecoupler(string modelId, Edge edge) bool
+        +RemoveDecoupler(Edge edge)
+        +InstallModule(string modelId, int slotIndex) bool
+        +RemoveModule(int slotIndex)
+        +Validate() List~string~
+        +ConfirmDesign()
+        +ShowWindTunnel()
+        +LoadSavedDesign()
+        +PartPlaced(part) signal
+        +PartRemoved(part) signal
+        +PartMoved(part) signal
+        +ModuleChanged(slotIndex) signal
+        +DesignConfirmed(AssembledRocket rocket) signal
+    }
+
+    class BuildGrid {
+        +int Width
+        +int Height
+        +float CellSize
+        +CanPlace(PartDefinition def, Vector2I cell) bool
+        +CanPlaceDecoupler(PartDefinition def, Edge edge) bool
+        +GetPartAt(Vector2I cell) RocketPart
+        +GetNeighbors(RocketPart part)
+        +GetContactEdges(RocketPart a, RocketPart b) List~Edge~
+    }
+
+    class BuildBudget {
+        +int MaxWeight
+        +int CurrentWeight
+        +int Remaining
+        +CanAfford(ComponentDefinition def) bool
+        +Add(ComponentDefinition def)
+        +Remove(ComponentDefinition def)
+        +SetMax(int value)
+    }
+
+    class PartCatalog {
+        +GetDefinition(string modelId) ComponentDefinition
+        +GetAll() List~ComponentDefinition~
+        +GetUnlocked(category) List~ComponentDefinition~
+        +ValidateAgainstTechTree() List~string~
+        +ValidateScenes() List~string~
+        +GetPlaceholderScene(PartGroup group) PackedScene
+    }
+
+    class RocketDesign {
+        +List PartEntries
+        +List DecouplerEntries
+        +List ModuleEntries
+        +Serialize()
+        +Deserialize()
+        +SaveCurrent()
+        +LoadLast() RocketDesign
+    }
+
+    class WindTunnelAnalyzer {
+        +Analyze(parts, TestConditions conditions) AeroReport
+    }
+
+    class RocketAssembler {
+        +ValidateConnections(RocketDesign design) List~string~
+        +AssembleRuntimeTree(RocketDesign design) PartTree
+        +InstallModules(RocketDesign design, CommandPodPart pod)
+        +LinkFeedTanks(PartTree tree)
+        +AttachVisuals(PartTree tree)
+        +DeriveStages(PartTree tree) List~StageGroup~
+        +AssembleRocket(RocketDesign design) AssembledRocket
+    }
+
+    class AssembledRocket {
+        +PartTree PartTree
+        +List~StageGroup~ Stages
+        +MassProperties MassProperties
+    }
+
+    class StageGroup {
+        +int StageIndex
+        +int Depth
+        +List~Joint~ Joints
+        +List~RocketPart~ Parts
+        +List~EnginePart~ EnginesToArm
+    }
+
+    class MassCenterCalculator {
+        +Calculate(parts) MassProperties
+        +CalculateCoM(parts) Vector2
+        +CalculateMomentOfInertia(parts, Vector2 com) float
+    }
+
+    class TechTreeManager {
+        <<Research>>
+    }
+    class AerodynamicSolver {
+        <<Physics>>
+    }
+    class GameFlowManager {
+        <<Control>>
+    }
+
+    BuildingSystem --> BuildGrid : Grid
+    BuildingSystem --> BuildBudget : Budget
+    BuildingSystem --> PartCatalog : Catalog
+    BuildingSystem --> RocketDesign : Design
+    BuildingSystem ..> RocketAssembler : ConfirmDesign
+    BuildingSystem ..> WindTunnelAnalyzer : ShowWindTunnel
+    BuildingSystem ..> MassCenterCalculator : mass preview
+    BuildingSystem ..> TechTreeManager : IsUnlocked, GetMaxBuildWeight
+    BuildingSystem ..> GameFlowManager : DesignConfirmed
+    PartCatalog ..> TechTreeManager : GetUnlockedModels
+    WindTunnelAnalyzer ..> AerodynamicSolver : Solve
+    RocketAssembler ..> AssembledRocket : creates
+    RocketAssembler ..> PartCatalog : GetDefinition
+    RocketAssembler ..> MassCenterCalculator : Calculate
+    AssembledRocket --> StageGroup : Stages

@@ -1,0 +1,106 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% PRESENTATION LAYER: visuals read game state, never the reverse
+    %% Contract for the model / graphics / audio team
+    %% ==========================================
+    class PartVisual {
+        <<Node3D>>
+        +RocketPart Part
+        +Bind(RocketPart part)
+        +SetGhost(bool isValid)
+        +SetMirrored(bool mirrored)
+        +OnSevered(SeverCause cause)
+        #UpdateVisual(float deltaTime)
+        #FindAnchor(string anchorName) Node3D
+        #ApplyThermalOverlay(float tempRatio, ComponentState state)
+    }
+
+    class EngineVisual {
+        +UpdateExhaust(bool isIgnited, float thrustFraction, float ambientPressure)
+        +UpdateGimbal(float gimbalAngleDeg)
+    }
+    class FinVisual {
+        +UpdateDeflection(float deflectionAngleDeg)
+    }
+    class TankVisual {
+        +UpdateLeak(float leakRateKgPerSec)
+    }
+    class ParachuteVisual {
+        +UpdateChute(ParachuteState state)
+    }
+    class FairingVisual {
+        +PlayJettison()
+    }
+    class HeatShieldVisual {
+        +UpdateAblation(float ablatorFraction, float heatFlux)
+    }
+    class DecouplerVisual {
+        +PlaySeparation()
+    }
+    class PodVisual {
+        +UpdateRcs(float torqueCommand, float translateCommand)
+        +UpdateDeployables(bool solarDeployed, bool radiatorExtended)
+        +ShowPayload(PackedScene payloadScene)
+    }
+
+    class FlightVfxDirector {
+        +OnPartSevered(RocketPart part, SeverCause cause)
+        +OnStageActivated(int stageIndex)
+        +OnAnomalyRaised(ActiveAnomaly anomaly)
+        +OnPhaseChanged(FlightPhase phase)
+        +UpdateFromTelemetry(TelemetryFrame frame)
+    }
+
+    class FlightAudioDirector {
+        +OnPartSevered(RocketPart part, SeverCause cause)
+        +OnStageActivated(int stageIndex)
+        +OnAnomalyRaised(ActiveAnomaly anomaly)
+        +OnPhaseChanged(FlightPhase phase)
+        +UpdateFromTelemetry(TelemetryFrame frame)
+    }
+
+    class BodyEnvironmentVisual {
+        <<Node3D>>
+        +CelestialBodyDefinition Body
+        +UpdateSky(float altitudeMeters, float airDensity)
+        +GetSurfaceAnchor() Node3D
+    }
+
+    class RocketPart {
+        <<Building>>
+    }
+    class PartDefinition {
+        <<Building>>
+    }
+    class PartCatalog {
+        <<Building>>
+    }
+    class RocketAssembler {
+        <<Building>>
+    }
+    class CelestialBodyDefinition {
+        <<Physics>>
+    }
+    class FlightDirector {
+        <<Control>>
+    }
+
+    PartVisual <|-- EngineVisual
+    PartVisual <|-- FinVisual
+    PartVisual <|-- TankVisual
+    PartVisual <|-- ParachuteVisual
+    PartVisual <|-- FairingVisual
+    PartVisual <|-- HeatShieldVisual
+    PartVisual <|-- DecouplerVisual
+    PartVisual <|-- PodVisual
+
+    PartVisual --> RocketPart : reads state
+    PartDefinition --> PartVisual : Scene root
+    RocketAssembler ..> PartVisual : AttachVisuals, Bind
+    PartCatalog ..> PartVisual : ValidateScenes
+    FlightDirector *-- FlightVfxDirector
+    FlightDirector *-- FlightAudioDirector
+    FlightDirector *-- BodyEnvironmentVisual
+    BodyEnvironmentVisual --> CelestialBodyDefinition : EnvironmentScene
