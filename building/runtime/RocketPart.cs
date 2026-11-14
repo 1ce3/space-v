@@ -44,6 +44,17 @@ public partial class RocketPart : Node3D, IFlightComponent
     public float MaxBending => Definition?.MaxBending ?? 0f;
     public float ImpactToleranceMps => Definition?.ImpactToleranceMps ?? 0f;
 
+    /// <summary>Phase 2: hull material (null for parts that take none).</summary>
+    public MaterialDefinition Material { get; set; }
+
+    // Phase 2 effective values: base definition value with the material applied. Solvers move to these in B9.
+    public float GetEffectiveDryMass() => DryMass * (Material?.MassMultiplier ?? 1f);
+    public float GetEffectiveMaxSafeTempK() => (Definition?.MaxSafeTempK ?? 0f) + (Material?.MaxTempBonusK ?? 0f);
+    public float GetEffectiveImpactToleranceMps() => ImpactToleranceMps * (Material?.ImpactToleranceMultiplier ?? 1f);
+    public float GetEffectiveMaxShear() => MaxShear * (Material?.StrengthMultiplier ?? 1f);
+    public float GetEffectiveMaxBending() => MaxBending * (Material?.StrengthMultiplier ?? 1f);
+    public float GetRadiationShielding() => Material?.RadiationShielding ?? 0f;
+
     /// <summary>Creates the runtime class that matches the definition type (A_BUILDING.md 4.2).</summary>
     public static RocketPart Create(PartDefinition def)
     {

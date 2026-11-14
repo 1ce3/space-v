@@ -21,6 +21,10 @@ public partial class PartCatalog : Node
     [ExportGroup("Folders")]
     [Export(PropertyHint.Dir)] public string PartsFolder { get; set; } = "res://data/parts";
     [Export(PropertyHint.Dir)] public string ModulesFolder { get; set; } = "res://data/modules";
+    /// <summary>Phase 2: hull materials (MaterialDefinition .tres, file name = MaterialId).</summary>
+    [Export(PropertyHint.Dir)] public string MaterialsFolder { get; set; } = "res://data/materials";
+
+    private readonly Dictionary<string, MaterialDefinition> _materials = new();
     /// <summary>Placeholder scenes named after the PartGroup in snake_case, plus decoupler.tscn.</summary>
     [Export(PropertyHint.Dir)] public string PlaceholderFolder { get; set; } = "res://assets/parts/_placeholder";
 
@@ -38,6 +42,7 @@ public partial class PartCatalog : Node
         _byId.Clear();
         LoadFolder(PartsFolder);
         LoadFolder(ModulesFolder);
+        LoadMaterials(MaterialsFolder);
         if (DebugLog) GD.Print($"[Building] PartCatalog: {_byId.Count} definitions loaded");
     }
 
@@ -86,6 +91,28 @@ public partial class PartCatalog : Node
     }
 
     /// <summary>Definition for a ModelId, or null.</summary>
+    /// <summary>Phase 2: the material with this id, or null.</summary>
+    public MaterialDefinition GetMaterial(string materialId) =>
+        materialId != null && _materials.TryGetValue(materialId, out MaterialDefinition m) ? m : null;
+
+    /// <summary>Phase 2: every loaded material.</summary>
+    public List<MaterialDefinition> GetAllMaterials() => new(_materials.Values);
+
+    private void LoadMaterials(string folder)
+    {
+        _materials.Clear();
+        if (string.IsNullOrEmpty(folder) || !DirAccess.DirExistsAbsolute(folder)) return; // folder arrives with A12
+        using DirAccess dir = DirAccess.Open(folder);
+        if (dir == null) return;
+        foreach (string file in dir.GetFiles())
+        {
+            string name = file.EndsWith(".remap") ? file[..^6] : file;
+            if (!name.EndsWith(".tres")) continue;
+            if (ResourceLoader.Load(folder + "/" + name) is MaterialDefinition m && !string.IsNullOrEmpty(m.MaterialId))
+                _materials[m.MaterialId] = m;
+        }
+    }
+
     public ComponentDefinition GetDefinition(string modelId)
     {
         if (string.IsNullOrEmpty(modelId)) return null;

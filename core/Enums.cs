@@ -6,14 +6,22 @@ public enum FuelType { Monopropellant, Kerolox, Hydrolox, Methalox }
 public enum ComponentState { Idle, Active, Overheated, Frozen, Broken }
 public enum PartGroup { CommandPod, Fairing, Parachute, HeatShield, CoreTank, LiquidEngine, SolidBooster, AeroSurface, Structural }
 public enum Side { Top, Bottom, Left, Right }
-public enum ModuleSlotType { Avionics, Thermal, Power }
+/// <summary>Group of a pod module (phase 2: a group, no longer a slot type; modules sit in the pod inventory grid).</summary>
+public enum ModuleSlotType { Avionics, Thermal, Power, Sensor, Comms }
+/// <summary>What an instrument module (Sensor or Comms group) does.</summary>
+public enum InstrumentKind { Comms, RadiationSensor, FuelSensor, PressureSensor }
 public enum AcsDeviceKind { Imu, StarTracker, ReactionWheel, RcsThruster }
 public enum ThermalDeviceKind { PassiveInsulation, ActiveRadiator, RadioisotopeHeater }
 public enum PowerDeviceKind { Battery, SolarArray, Rtg }
 public enum SasMode { Off, StabilityAssist, HoldPitch, Prograde, Retrograde }
 public enum SeverCause { Jettison, Break }
 public enum FailureCause { None, Shear, Bending, JointOverload, Thermal, Collision, TargetNotReached, InsufficientDeltaV, TippedOver, Aborted }
-public enum FlightEventType { LightningStrike, CryoLeak, DebrisWarning, SeuGlitch, WindShear, MaxQExceeded, GLimitExceeded, EngineFlameout, ComponentOverheat, PowerBrownout }
+public enum FlightEventType
+{
+    LightningStrike, CryoLeak, DebrisWarning, SeuGlitch, WindShear, MaxQExceeded, GLimitExceeded, EngineFlameout, ComponentOverheat, PowerBrownout,
+    // Phase 2 (PHASE2_PLAN.md 5.1): appended so stored integers stay valid.
+    SolarFlare, MeteorField, HullBreach, InstrumentFailure,
+}
 public enum FlightPhase { PreLaunch, PoweredAscent, Coast, OrbitReached, Entry, Descent, Landed, Failed }
 public enum GameState { Build, Flight, Debrief, Cruise, Victory, Research }
 public enum MissionOutcome { Success, Failed, Aborted }
@@ -38,6 +46,7 @@ public enum FlightEventMask
 {
     None = 0, LightningStrike = 1 << 0, CryoLeak = 1 << 1, DebrisWarning = 1 << 2, SeuGlitch = 1 << 3, WindShear = 1 << 4,
     MaxQExceeded = 1 << 5, GLimitExceeded = 1 << 6, EngineFlameout = 1 << 7, ComponentOverheat = 1 << 8, PowerBrownout = 1 << 9,
+    SolarFlare = 1 << 10, MeteorField = 1 << 11, HullBreach = 1 << 12, InstrumentFailure = 1 << 13,
 }
 
 public static class MaskExtensions

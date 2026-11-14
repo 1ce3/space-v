@@ -113,6 +113,12 @@ public class PowerSolver
         return stored;
     }
 
+    /// <summary>
+    /// Phase 2 (PHASE2_PLAN.md 5.7, owner B): takes wattHours from the pod batteries for a one-off action (module reboot,
+    /// auto-dodge pulse). False and nothing drawn when there is not enough. Stub from C9: always true, draws nothing.
+    /// </summary>
+    public static bool TryDrawEnergy(CommandPodPart pod, float wattHours) => true;
+
     /// <summary>Total battery charge 0..1 (0 when there is no battery).</summary>
     public static float BatteryFraction(CommandPodPart pod)
     {

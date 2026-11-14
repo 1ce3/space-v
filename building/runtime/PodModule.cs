@@ -48,6 +48,7 @@ public abstract class PodModule : IFlightComponent
                 PowerDeviceKind.SolarArray => new SolarArrayModule(),
                 _ => new RtgModule(),
             },
+            InstrumentModuleDefinition => new InstrumentModule(),
             _ => null,
         };
 
@@ -93,4 +94,13 @@ public abstract class PodModule : IFlightComponent
     public virtual bool CanOperate() => IsPowered && IsHealthy;
 
     public virtual void OnFixedTick(float deltaTime) { }
+
+    /// <summary>Phase 2: top-left cell in the pod inventory grid.</summary>
+    public Vector2I GridCell { get; set; }
+
+    /// <summary>
+    /// Phase 2 (PHASE2_PLAN.md 5.7): one reboot attempt of a Broken module; true when it works again.
+    /// Energy is drawn by the caller (PowerSolver.TryDrawEnergy). Stub until A13: always false.
+    /// </summary>
+    public virtual bool TryReboot(RandomNumberGenerator rng) => false;
 }
