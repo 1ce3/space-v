@@ -34,3 +34,5 @@ DebrisChancePerSec = 0.001
 DebrisWarningSeconds = 8.0
 DebrisChancePerDay = 0.005
 SeuChancePerDay = 0.003
+
+;https://ntrs.nasa.gov/citations/19770009539
