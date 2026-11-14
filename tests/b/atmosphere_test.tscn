@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/b/AtmosphereTest.cs" id="1_test"]
+[ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="2_earth"]
+[ext_resource type="Resource" path="res://data/bodies/mars_scaled.tres" id="3_mars"]
+
+[node name="AtmosphereTest" type="Node"]
+script = ExtResource("1_test")
+Earth = ExtResource("2_earth")
+Mars = ExtResource("3_mars")

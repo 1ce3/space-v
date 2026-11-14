@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3]
 
-[ext_resource type="Script" path="res://src/B_Physics_Research/research/MissionSegmentDefinition.cs" id="1_seg"]
-[ext_resource type="Resource" path="res://src/B_Physics_Research/data/bodies/mars_scaled.tres" id="2_body"]
+[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
+[ext_resource type="Resource" path="res://data/bodies/mars_scaled.tres" id="2_body"]
 
 [resource]
 script = ExtResource("1_seg")

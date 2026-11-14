@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="PhysicsSettings" format=3]
 
-[ext_resource type="Script" path="res://src/B_Physics_Research/physics/PhysicsSettings.cs" id="1_settings"]
+[ext_resource type="Script" path="res://physics/PhysicsSettings.cs" id="1_settings"]
 
 [sub_resource type="Curve" id="Curve_mach"]
 min_value = 0.0
