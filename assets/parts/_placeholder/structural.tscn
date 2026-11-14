@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://presentation/parts/PartVisual.cs" id="1_script"]
+
+[sub_resource type="BoxMesh" id="mesh_body"]
+size = Vector3(0.9, 0.9, 0.9)
+
+[node name="Structural" type="Node3D" node_paths=PackedStringArray("MeshRoot")]
+script = ExtResource("1_script")
+MeshRoot = NodePath("MeshRoot")
+GroupColor = Color(0.6, 0.6, 0.6, 1)
+
+[node name="MeshRoot" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="MeshRoot"]
+mesh = SubResource("mesh_body")

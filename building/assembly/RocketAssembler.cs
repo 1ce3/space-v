@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Godot;
 using RocketGame.Core;
-using RocketGame.Presentation;
 using RocketGame.Research;
 using Side = RocketGame.Core.Side;
 
@@ -337,8 +336,10 @@ public class RocketAssembler
             if (scene == null) continue;
 
             Node visual = scene.Instantiate();
+            visual.Name = "Visual";
             part.AddChild(visual);
-            if (visual is PartVisual partVisual) partVisual.Bind(part);
+            // Called by name: Building never references the presentation classes (AGENTS 1.5).
+            if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
             else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
         }
     }
