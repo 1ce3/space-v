@@ -15,4 +15,6 @@ public partial class StructuralPartDefinition : PartDefinition
     {
         PartGroup = PartGroup.Structural;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + (AttachmentStrength > 0f ? $"\nJoint strength: {N(AttachmentStrength / 1000f, "0")} kN" : "");
 }

@@ -31,6 +31,7 @@ public partial class BuildInfoPanel : VBoxContainer
     private const int NoModuleItemId = 10001;
     private RichTextLabel _errors;
     private Button _launch;
+    private Label _windTunnel;
 
     public override void _Ready()
     {
@@ -39,6 +40,7 @@ public partial class BuildInfoPanel : VBoxContainer
         BuildLayout();
         Building.DesignChanged += Refresh;
         Building.ConfirmRejected += OnConfirmRejected;
+        Building.WindTunnelUpdated += ShowWindTunnelReport;
         if (Cursor != null) Cursor.DecouplerModeChanged += _ => RefreshMode();
         Callable.From(Refresh).CallDeferred();
     }
@@ -63,12 +65,17 @@ public partial class BuildInfoPanel : VBoxContainer
         AddChild(new Label { Text = "Kiểm tra thiết kế" });
         AddChild(_errors);
 
+        AddChild(new HSeparator());
+        AddButton("Wind tunnel", () => Building.ShowWindTunnel());
+        _windTunnel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        AddChild(_windTunnel);
+
         _launch = AddButton("Phóng", () => Building.ConfirmDesign());
         AddButton("Nghiên cứu", () => Root.RequestResearch());
         AddButton("Xoá hết", () => Building.ClearAll());
         AddChild(new Label
         {
-            Text = "Chuột trái: đặt   Chuột phải: xoá\nTab: chế độ decoupler   Esc: bỏ chọn\nLăn chuột: zoom",
+            Text = "Chuột trái: đặt   Chuột phải: xoá\nTab: chế độ decoupler   Esc: bỏ chọn\nLăn chuột: zoom\nKhông chọn gì: kéo part để di chuyển, để chuột trên part để xem thông số",
             Modulate = new Color(1f, 1f, 1f, 0.6f),
         });
     }
@@ -100,6 +107,7 @@ public partial class BuildInfoPanel : VBoxContainer
 
         RebuildSlots();
         RefreshMode();
+        if (_windTunnel != null) _windTunnel.Text = ""; // stale after any change
 
         List<string> errors = Building.Validate();
         ShowErrors(errors);
@@ -109,6 +117,23 @@ public partial class BuildInfoPanel : VBoxContainer
     private void RefreshMode()
     {
         _mode.Text = Cursor != null && Cursor.DecouplerMode ? "Chế độ decoupler: trỏ vào cạnh giữa hai part" : "";
+    }
+
+    private void ShowWindTunnelReport()
+    {
+        AeroReport r = Building.LastAeroReport;
+        if (Building.Grid.Parts.Count == 0)
+        {
+            _windTunnel.Text = "Nothing to test.";
+            return;
+        }
+        _windTunnel.Text =
+            $"{Building.WindTunnelSpeedMps:0} m/s at {Building.WindTunnelAltitudeM / 1000f:0} km, {Building.WindTunnelAngleDeg:0.#}°\n" +
+            $"Drag {r.DragN / 1000f:0.0} kN, side force {r.LiftN / 1000f:0.0} kN\n" +
+            (r.IsStable
+                ? $"Stable (margin {r.StabilityMarginM:0.0} m): the nose turns back into the flow"
+                : $"Unstable (margin {r.StabilityMarginM:0.0} m): keep SAS on, add fins low or move mass up");
+        _windTunnel.Modulate = r.IsStable ? OkColor : ErrorColor;
     }
 
     private void OnConfirmRejected(string[] errors) => ShowErrors(new List<string>(errors));

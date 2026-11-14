@@ -26,4 +26,6 @@ public partial class CommandPodPartDefinition : PartDefinition
         ModuleSlotType.Thermal => ThermalSlots,
         _ => PowerSlots,
     };
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nSlots: {AvionicsSlots} avionics, {ThermalSlots} thermal, {PowerSlots} power\nMax load: {N(MaxGForce, "0.#")} G";
 }

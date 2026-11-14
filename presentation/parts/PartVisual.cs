@@ -64,6 +64,15 @@ public partial class PartVisual : Node3D
         IsGhost = true;
     }
 
+    /// <summary>Back to the normal look after SetGhost (build screen drag and drop).</summary>
+    public virtual void ClearGhost()
+    {
+        IsGhost = false;
+        if (_material == null) return;
+        _material.Transparency = BaseMaterial3D.TransparencyEnum.Disabled;
+        _material.AlbedoColor = _baseColor;
+    }
+
     /// <summary>Mirrors the visual for left/right side parts (flips MeshRoot along X).</summary>
     public virtual void SetMirrored(bool mirrored)
     {

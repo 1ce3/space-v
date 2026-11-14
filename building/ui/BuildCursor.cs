@@ -7,6 +7,8 @@ namespace RocketGame.Building;
 /// <summary>
 /// Mouse side of the build screen (A_BUILDING.md 5.5): ray onto z = 0, ghost of the selected part,
 /// decoupler mode with edge highlight, grid lines, CoM marker and camera zoom/pan.
+/// A9: with nothing selected, drag a placed part with the left button to move it (green/red ghost while dragging,
+/// Esc cancels); hovering a placed part shows its tooltip.
 /// </summary>
 public partial class BuildCursor : Node3D
 {
@@ -29,6 +31,16 @@ public partial class BuildCursor : Node3D
     /// <summary>CoM marker radius, in cells.</summary>
     [Export(PropertyHint.Range, "0.05,1,0.01")] public float ComMarkerRadius { get; set; } = 0.25f;
 
+    [ExportGroup("Tooltip")]
+    /// <summary>Seconds the mouse must rest on a part before its tooltip shows.</summary>
+    [Export(PropertyHint.Range, "0,2,0.05")] public float TooltipDelay { get; set; } = 0.4f;
+    [Export] public Color TooltipBackground { get; set; } = new(0.08f, 0.1f, 0.14f, 0.95f);
+    [Export] public Color TooltipTextColor { get; set; } = new(0.92f, 0.94f, 0.96f);
+    [Export(PropertyHint.Range, "8,32,1")] public int TooltipFontSize { get; set; } = 13;
+    [Export] public float TooltipMaxWidth { get; set; } = 300f;
+    /// <summary>Tooltip offset from the mouse (px).</summary>
+    [Export] public Vector2 TooltipOffset { get; set; } = new(18f, 18f);
+
     [ExportGroup("Camera")]
     /// <summary>Ortho size = grid height x this.</summary>
     [Export(PropertyHint.Range, "0.5,3,0.05")] public float FrameMargin { get; set; } = 1.15f;
@@ -50,6 +62,19 @@ public partial class BuildCursor : Node3D
     private MeshInstance3D _gridLines;
     private Edge? _hoverEdge;
     private string _decouplerId = SampleDesigns.DecouplerId;
+
+    /// <summary>Part being dragged (A9), or null.</summary>
+    public RocketPart DraggedPart => _dragPart;
+    private RocketPart _dragPart;
+    private Vector2I _dragFrom;
+    private Vector2I _dragOffset;
+    private Vector2I _dragTarget;
+
+    private CanvasLayer _tooltipLayer;
+    private PanelContainer _tooltip;
+    private Label _tooltipLabel;
+    private RocketPart _tooltipPart;
+    private float _hoverTime;
 
     public override void _Ready()
     {
@@ -75,6 +100,7 @@ public partial class BuildCursor : Node3D
         AddChild(_comMarker);
         Building.DesignChanged += UpdateComMarker;
         UpdateComMarker();
+        BuildTooltip();
     }
 
     /// <summary>Palette pick. Decoupler ids switch to decoupler mode.</summary>
@@ -134,12 +160,22 @@ public partial class BuildCursor : Node3D
         }
         else if (@event.IsActionPressed("build_cancel"))
         {
-            ClearSelection();
+            if (_dragPart != null) EndDrag(false);
+            else ClearSelection();
+            GetViewport().SetInputAsHandled();
+        }
+        else if (_dragPart != null && @event.IsActionReleased("build_place"))
+        {
+            EndDrag(true);
             GetViewport().SetInputAsHandled();
         }
         else if (@event.IsActionPressed("build_place"))
         {
-            if (DecouplerMode)
+            if (!DecouplerMode && SelectedModelId == null && HoverCell is Vector2I grab && Building.Grid.GetPartAt(grab) is RocketPart grabbed)
+            {
+                BeginDrag(grabbed, grab);
+            }
+            else if (DecouplerMode)
             {
                 if (_hoverEdge is Edge edge) Building.PlaceDecoupler(_decouplerId, edge);
             }
@@ -149,7 +185,7 @@ public partial class BuildCursor : Node3D
             }
             GetViewport().SetInputAsHandled();
         }
-        else if (@event.IsActionPressed("build_remove"))
+        else if (@event.IsActionPressed("build_remove") && _dragPart == null)
         {
             if (DecouplerMode)
             {
@@ -169,6 +205,122 @@ public partial class BuildCursor : Node3D
         UpdateHover();
         UpdateGhost();
         UpdateEdgeMarker();
+        UpdateDrag();
+        UpdateTooltip((float)delta);
+    }
+
+    // ------------------------------------------------------------------ A9: drag and drop
+
+    private void BeginDrag(RocketPart part, Vector2I grabCell)
+    {
+        _dragPart = part;
+        _dragFrom = part.Cell;
+        _dragOffset = grabCell - part.Cell;
+        _dragTarget = part.Cell;
+        HideTooltip();
+        CallVisual(part, "SetGhost", true);
+    }
+
+    private void UpdateDrag()
+    {
+        if (_dragPart == null) return;
+        if (!IsInstanceValid(_dragPart))
+        {
+            _dragPart = null;
+            return;
+        }
+        // The release can land on a UI panel (not seen by _UnhandledInput): drop where the part last was.
+        if (!Input.IsActionPressed("build_place"))
+        {
+            EndDrag(true);
+            return;
+        }
+        if (HoverCell is Vector2I cell) _dragTarget = cell - _dragOffset;
+        float size = Building.Grid.CellSize;
+        Vector2I fp = _dragPart.Footprint;
+        _dragPart.Position = new Vector3((_dragTarget.X + fp.X * 0.5f) * size, (_dragTarget.Y + fp.Y * 0.5f) * size, 0.1f);
+        CallVisual(_dragPart, "SetGhost", Building.CanMovePart(_dragFrom, _dragTarget));
+    }
+
+    /// <summary>Drops (apply = true) or cancels the drag; a refused move puts the part back.</summary>
+    private void EndDrag(bool apply)
+    {
+        RocketPart part = _dragPart;
+        _dragPart = null;
+        if (part == null || !IsInstanceValid(part)) return;
+        bool moved = apply && _dragTarget != _dragFrom && Building.MovePart(_dragFrom, _dragTarget);
+        if (!moved)
+        {
+            Vector2 local = part.GetLocalPosition();
+            part.Position = new Vector3(local.X, local.Y, 0f);
+        }
+        CallVisual(part, "ClearGhost");
+    }
+
+    private static void CallVisual(RocketPart part, string method, params Variant[] args)
+    {
+        Node visual = part.GetNodeOrNull("Visual");
+        if (visual != null && visual.HasMethod(method)) visual.Call(method, args);
+    }
+
+    // ------------------------------------------------------------------ A9: tooltip
+
+    private void BuildTooltip()
+    {
+        _tooltipLayer = new CanvasLayer { Name = "TooltipLayer", Layer = 10 };
+        AddChild(_tooltipLayer);
+        var style = new StyleBoxFlat { BgColor = TooltipBackground };
+        style.SetCornerRadiusAll(6);
+        style.SetContentMarginAll(8);
+        _tooltip = new PanelContainer { Visible = false, MouseFilter = Godot.Control.MouseFilterEnum.Ignore };
+        _tooltip.AddThemeStyleboxOverride("panel", style);
+        _tooltipLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(TooltipMaxWidth * 0.5f, 0f),
+            MouseFilter = Godot.Control.MouseFilterEnum.Ignore,
+        };
+        _tooltipLabel.AddThemeColorOverride("font_color", TooltipTextColor);
+        _tooltipLabel.AddThemeFontSizeOverride("font_size", TooltipFontSize);
+        _tooltip.AddChild(_tooltipLabel);
+        _tooltipLayer.AddChild(_tooltip);
+    }
+
+    /// <summary>Shows the tooltip of the placed part (or decoupler) under the mouse after TooltipDelay, when nothing is selected.</summary>
+    private void UpdateTooltip(float delta)
+    {
+        if (_tooltip == null) return;
+        RocketPart part = null;
+        if (_dragPart == null && SelectedModelId == null && HoverCell is Vector2I cell)
+        {
+            part = DecouplerMode && _hoverEdge is Edge edge ? Building.Grid.GetDecouplerAt(edge) : Building.Grid.GetPartAt(cell);
+        }
+        if (part == null || part != _tooltipPart)
+        {
+            _tooltipPart = part;
+            _hoverTime = 0f;
+            HideTooltip();
+            if (part == null) return;
+        }
+
+        _hoverTime += delta;
+        if (_hoverTime < TooltipDelay) return;
+        if (!_tooltip.Visible)
+        {
+            _tooltipLabel.Text = part.Definition?.GetFormattedTooltip() ?? part.ModelId;
+            _tooltip.Size = Vector2.Zero; // shrink to the new text
+            _tooltip.Visible = true;
+        }
+        Vector2 viewport = GetViewport().GetVisibleRect().Size;
+        Vector2 pos = GetViewport().GetMousePosition() + TooltipOffset;
+        pos.X = Mathf.Min(pos.X, viewport.X - _tooltip.Size.X - 4f);
+        pos.Y = Mathf.Min(pos.Y, viewport.Y - _tooltip.Size.Y - 4f);
+        _tooltip.Position = pos;
+    }
+
+    private void HideTooltip()
+    {
+        if (_tooltip != null) _tooltip.Visible = false;
     }
 
     private void UpdateHover()

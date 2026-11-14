@@ -21,4 +21,6 @@ public abstract partial class EnginePartDefinition : PartDefinition
 
     /// <summary>Propellant flow at full throttle (kg/s).</summary>
     public float GetMassFlowRate() => IspVacuum > 0f ? MaxThrustVac / (IspVacuum * FlightMath.G0) : 0f;
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nThrust: {N(MaxThrustVac / 1000f, "0")} kN vac, {N(GetMaxThrustSeaLevel() / 1000f, "0")} kN sea level\nIsp: {N(IspVacuum, "0")} s vac, {N(IspSeaLevel, "0")} s sea level" + (GimbalRangeDeg > 0f ? $"\nGimbal: ±{N(GimbalRangeDeg, "0.#")}°" : "");
 }

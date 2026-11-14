@@ -21,4 +21,6 @@ public partial class ParachutePartDefinition : PartDefinition
     {
         PartGroup = PartGroup.Parachute;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nDrag area: {N(DeployedDragArea, "0")} m²\nOpen below Mach {N(MaxDeployMach, "0.#")} and q {N(MaxDeployDynamicPressure, "0")} Pa, or it tears";
 }

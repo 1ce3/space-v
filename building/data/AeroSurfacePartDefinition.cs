@@ -21,4 +21,6 @@ public partial class AeroSurfacePartDefinition : PartDefinition
 
     /// <summary>True when the fin can be steered.</summary>
     public bool IsControlSurface => MaxDeflectionDeg > 0f;
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nLift: Cl {N(LiftCoefficient, "0.##")} × {N(PlanformArea, "0.#")} m²" + (MaxDeflectionDeg > 0f ? $", steers ±{N(MaxDeflectionDeg, "0")}°" : "");
 }

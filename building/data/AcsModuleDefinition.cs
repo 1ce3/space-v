@@ -31,4 +31,6 @@ public partial class AcsModuleDefinition : ModuleDefinition
 
     /// <summary>True for IMU and star tracker.</summary>
     public bool IsSensor => Kind == AcsDeviceKind.Imu || Kind == AcsDeviceKind.StarTracker;
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\n{Kind}" + (ControlAuthority > 0f ? $", authority {N(ControlAuthority, "0")}" : "") + (DriftRateDegPerMin > 0f ? $", drift {N(DriftRateDegPerMin, "0.###")}°/min" : "") + (MonopropCapacityKg > 0f ? $", {N(MonopropCapacityKg, "0")} kg monoprop" : "");
 }

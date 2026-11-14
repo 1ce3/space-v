@@ -18,4 +18,6 @@ public partial class FuelTankPartDefinition : PartDefinition
     {
         PartGroup = PartGroup.CoreTank;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nFuel: {N(FuelCapacity, "0")} kg {PropellantType}";
 }

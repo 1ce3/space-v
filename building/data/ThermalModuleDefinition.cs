@@ -21,4 +21,6 @@ public partial class ThermalModuleDefinition : ModuleDefinition
     {
         SlotType = ModuleSlotType.Thermal;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\n{Kind}" + (ReflectiveEfficiency > 0f ? $", reflects {N(ReflectiveEfficiency * 100f, "0")} %" : "") + (MaxHeatRejectionW > 0f ? $", rejects {N(MaxHeatRejectionW, "0")} W" : "") + (HeaterOutputW > 0f ? $", heats {N(HeaterOutputW, "0")} W" : "");
 }
