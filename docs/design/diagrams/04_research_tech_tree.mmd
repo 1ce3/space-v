@@ -1,0 +1,128 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% RESEARCH / TECH TREE: RP is the only currency
+    %% Tech tree hands out ModelIds, never definition objects
+    %% ==========================================
+    class ResearchCampaignEngine {
+        +int CurrentRP
+        +MissionDefinition CurrentMission
+        +IsCampaignComplete() bool
+        +GetSegment(int segmentIndex) MissionSegmentDefinition
+        +ProcessMissionEnd(FlightResult result) RewardBreakdown
+        +SpendRP(int amount) bool
+        +RPChanged(int newValue) signal
+    }
+
+    class MilestoneEvaluator {
+        +float BestAltitude
+        +float BestSpeed
+        +EvaluateAltRecords(FlightResult result) int
+        +EvaluateSpeedRecords(FlightResult result) int
+    }
+
+    class FailureAnalysisRegistry {
+        +HashSet~string~ DiscoveredFailures
+        +CalculateNoveltyBonus(FlightResult result) int
+    }
+
+    class TechTreeManager {
+        +HashSet~string~ UnlockedNodes
+        +List~string~ StarterModelIds
+        +int BaseBuildWeight
+        +GetNode(string nodeId) TechNode
+        +CanPurchase(string nodeId) bool
+        +PurchaseNode(string nodeId) bool
+        +GetUnlockedModels(category) List~string~
+        +IsUnlocked(string modelId) bool
+        +GetMaxBuildWeight() int
+        +NodeUnlocked(string nodeId) signal
+    }
+
+    class TechNode {
+        <<Resource>>
+        +string NodeId
+        +string DisplayName
+        +int Tier
+        +int CostRP
+        +string[] PrerequisiteNodeIds
+        +string[] UnlocksModelIds
+        +int BuildWeightBonus
+        +Texture2D Icon
+    }
+
+    class MissionSegmentDefinition {
+        <<Resource>>
+        +string SegmentId
+        +string DisplayName
+        +SegmentKind Kind
+        +CelestialBodyDefinition Body
+        +float TargetAltitudeM
+        +float TargetSpeedMps
+        +int RewardRP
+        +bool IsStormy
+        +float WindShearForceX
+        +FlightEventType[] EnabledHazards
+        +float RequiredDeltaVMps
+        +float DurationDays
+        +float EntryAltitudeM
+        +float EntrySpeedMps
+        +float EntryAngleDeg
+        +float MaxLandingTiltDeg
+    }
+
+    class MissionDefinition {
+        <<Resource>>
+        +string MissionId
+        +string DisplayName
+        +float PayloadMassKg
+        +PackedScene PayloadScene
+        +MissionSegmentDefinition[] Segments
+    }
+
+    class RewardBreakdown {
+        <<struct>>
+        +int SegmentRP
+        +int MilestoneRP
+        +int NoveltyRP
+        +int Total
+    }
+
+    class SaveGame {
+        <<Core>>
+        +int CurrentRP
+        +HashSet~string~ UnlockedNodes
+        +HashSet~string~ DiscoveredFailures
+        +HashSet~string~ CompletedSegments
+        +bool IsCampaignComplete
+        +float BestAltitude
+        +float BestSpeed
+        +string CurrentDesignJson
+        +Save()
+        +Load()
+    }
+
+    class PartCatalog {
+        <<Building>>
+    }
+    class BuildingSystem {
+        <<Building>>
+    }
+    class GameFlowManager {
+        <<Control>>
+    }
+
+    ResearchCampaignEngine *-- MilestoneEvaluator
+    ResearchCampaignEngine *-- FailureAnalysisRegistry
+    ResearchCampaignEngine *-- TechTreeManager
+    ResearchCampaignEngine --> MissionDefinition : CurrentMission
+    MissionDefinition "1" *-- "1..*" MissionSegmentDefinition : Segments
+    ResearchCampaignEngine ..> RewardBreakdown : returns
+    ResearchCampaignEngine ..> SaveGame : persists
+    TechTreeManager "1" *-- "0..*" TechNode : manages
+    TechTreeManager ..> ResearchCampaignEngine : SpendRP
+
+    GameFlowManager ..> ResearchCampaignEngine : ProcessMissionEnd
+    PartCatalog ..> TechTreeManager : GetUnlockedModels
+    BuildingSystem ..> TechTreeManager : IsUnlocked, GetMaxBuildWeight

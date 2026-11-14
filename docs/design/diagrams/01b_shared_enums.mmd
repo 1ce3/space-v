@@ -1,0 +1,192 @@
+classDiagram
+    direction LR
+
+    %% ==========================================
+    %% SHARED ENUMS AND VALUE TYPES
+    %% ==========================================
+    class FuelType {
+        <<enumeration>>
+        Monopropellant
+        Kerolox
+        Hydrolox
+        Methalox
+    }
+    class ComponentState {
+        <<enumeration>>
+        Idle
+        Active
+        Overheated
+        Frozen
+        Broken
+    }
+    class PartGroup {
+        <<enumeration>>
+        CommandPod
+        Fairing
+        CoreTank
+        HeatShield
+        Parachute
+        LiquidEngine
+        SolidBooster
+        AeroSurface
+        Structural
+    }
+    class Side {
+        <<enumeration>>
+        Top
+        Bottom
+        Left
+        Right
+    }
+    class ModuleSlotType {
+        <<enumeration>>
+        Avionics
+        Thermal
+        Power
+    }
+    class AcsDeviceKind {
+        <<enumeration>>
+        Imu
+        StarTracker
+        ReactionWheel
+        RcsThruster
+    }
+    class ThermalDeviceKind {
+        <<enumeration>>
+        PassiveInsulation
+        ActiveRadiator
+        RadioisotopeHeater
+    }
+    class PowerDeviceKind {
+        <<enumeration>>
+        Battery
+        SolarArray
+        Rtg
+    }
+    class SasMode {
+        <<enumeration>>
+        Off
+        StabilityAssist
+        HoldPitch
+        Prograde
+        Retrograde
+    }
+    class SeverCause {
+        <<enumeration>>
+        Jettison
+        Break
+    }
+    class FailureCause {
+        <<enumeration>>
+        None
+        Shear
+        Bending
+        JointOverload
+        Thermal
+        Collision
+        TargetNotReached
+        InsufficientDeltaV
+        TippedOver
+        Aborted
+    }
+    class FlightEventType {
+        <<enumeration>>
+        LightningStrike
+        CryoLeak
+        DebrisWarning
+        SeuGlitch
+        WindShear
+        MaxQExceeded
+        GLimitExceeded
+        EngineFlameout
+        ComponentOverheat
+        PowerBrownout
+    }
+    class FlightPhase {
+        <<enumeration>>
+        PreLaunch
+        PoweredAscent
+        Coast
+        OrbitReached
+        Entry
+        Descent
+        Landed
+        Failed
+    }
+    class GameState {
+        <<enumeration>>
+        Build
+        Flight
+        Debrief
+        Cruise
+        Victory
+        Research
+    }
+    class MissionOutcome {
+        <<enumeration>>
+        Success
+        Failed
+        Aborted
+    }
+
+    class SegmentKind {
+        <<enumeration>>
+        EarthAscent
+        Cruise
+        MarsEdl
+    }
+    class ParachuteState {
+        <<enumeration>>
+        Stowed
+        Deployed
+        Cut
+    }
+
+    class Edge {
+        <<struct>>
+        +Vector2I Cell
+        +Side Side
+    }
+    class MassProperties {
+        <<struct>>
+        +float TotalMass
+        +Vector2 CenterOfMass
+        +float MomentOfInertia
+    }
+    class AtmosphereSample {
+        <<struct>>
+        +float Density
+        +float Pressure
+        +float Temperature
+        +float SpeedOfSound
+    }
+    class FlightEvent {
+        <<struct>>
+        +FlightEventType Type
+        +float Severity
+        +string SourceId
+    }
+    class FlightResult {
+        <<struct>>
+        +string MissionId
+        +MissionOutcome Outcome
+        +float MaxAltitude
+        +float MaxSpeed
+        +float MaxQ
+        +float MaxG
+        +float FlightTime
+        +int SegmentsCompleted
+        +FailureCause FailureCause
+        +string FailedModelId
+    }
+
+    class StressReport {
+        <<struct>>
+        +float MaxStressRatio
+        +List Violations
+    }
+
+    Edge --> Side
+    FlightEvent --> FlightEventType
+    FlightResult --> MissionOutcome
+    FlightResult --> FailureCause

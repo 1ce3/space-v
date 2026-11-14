@@ -1,0 +1,107 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% POD MODULES: tech-tree devices that live in command-pod slots
+    %% Replaces SpaceComponent subsystems for ACS, TCS and Power
+    %% ==========================================
+    class PodModule {
+        <<abstract>>
+        +ModuleDefinition Definition
+        +ComponentState State
+        +float TempK
+        +bool IsPowered
+        +ApplyThermalLoad(float heatJoule)
+        +CanOperate() bool
+        +OnFixedTick(float deltaTime)
+    }
+
+    class AttitudeSensorModule {
+        <<abstract>>
+        +float CurrentNoiseDeg
+        +ReadPitch(float truePitchDeg) float
+    }
+    class GyroscopeImuModule {
+        +float AccumulatedDriftDeg
+        +CalibrateWithStarTracker()
+    }
+    class StarTrackerModule {
+        +bool IsBlinded
+        +SolveLostInSpace()
+    }
+
+    class AttitudeActuatorModule {
+        <<abstract>>
+        +float CommandedTorque
+        +GetMaxTorque() float
+        +CommandTorque(float normalized)
+    }
+    class ReactionWheelModule {
+        +float StoredMomentumNms
+        +bool IsSaturated
+        +DumpMomentum()
+    }
+    class RcsThrusterModule {
+        +float MonopropRemainingKg
+        +bool IsEnabled
+        +float TranslateCommand
+        +FireThrusterPulse(float duration)
+        +CommandTranslate(float axis)
+    }
+
+    class ThermalModule {
+        <<abstract>>
+        +GetHeatRejectionW() float
+        +GetAbsorptionFactor() float
+    }
+    class PassiveInsulationModule {
+        +float CurrentDegradation
+    }
+    class ActiveRadiatorModule {
+        +bool IsPanelExtended
+        +float CoolantPumpRate
+        +SetExtended(bool extended)
+    }
+
+    class RadioisotopeHeaterModule {
+        +EmitConstantDecayHeat() float
+    }
+
+    class PowerModule {
+        <<abstract>>
+        +GetOutputW(float dynamicPressure, float solarFluxWm2) float
+    }
+    class RtgModule {
+        +float MissionElapsedYears
+        +ConvertDecayToElectricity() float
+    }
+    class BatteryModule {
+        +float StoredEnergyWh
+        +Draw(float wattHours) float
+    }
+    class SolarArrayModule {
+        +bool IsDeployed
+        +bool IsBrokenByAero
+        +SetDeployed(bool deployed)
+    }
+
+    class ModuleDefinition {
+        <<Resource>>
+    }
+
+    PodModule --> ModuleDefinition : Definition
+    PodModule <|-- AttitudeSensorModule
+    PodModule <|-- AttitudeActuatorModule
+    PodModule <|-- ThermalModule
+    PodModule <|-- PowerModule
+
+    AttitudeSensorModule <|-- GyroscopeImuModule
+    AttitudeSensorModule <|-- StarTrackerModule
+    AttitudeActuatorModule <|-- ReactionWheelModule
+    AttitudeActuatorModule <|-- RcsThrusterModule
+    ThermalModule <|-- PassiveInsulationModule
+    ThermalModule <|-- ActiveRadiatorModule
+    PowerModule <|-- BatteryModule
+    PowerModule <|-- SolarArrayModule
+    ThermalModule <|-- RadioisotopeHeaterModule
+    PowerModule <|-- RtgModule

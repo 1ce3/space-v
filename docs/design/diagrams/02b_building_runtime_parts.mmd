@@ -1,0 +1,137 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% ROCKET BUILDING: runtime rocket (parts, joints, tree)
+    %% RocketPart now also carries SpaceComponent's runtime state
+    %% ==========================================
+    class IFlightComponent {
+        <<interface>>
+        +ComponentState State
+        +float TempK
+        +ApplyThermalLoad(float heatJoule)
+        +CanOperate() bool
+        +OnFixedTick(float deltaTime)
+    }
+
+    class RocketPart {
+        <<Node3D>>
+        +PartDefinition Definition
+        +Vector2I Cell
+        +RocketPart ParentPart
+        +List~RocketPart~ Children
+        +Joint ParentJoint
+        +ComponentState State
+        +float TempK
+        +bool IsShielded
+        +GetCurrentMass() float
+        +CalculateAero(Vector2 airVel, float rho, float mach) Vector2
+        +GetGridPosition() Vector2
+    }
+
+    class PartTree {
+        +RocketPart RootPart
+        +List~RocketPart~ ActiveParts
+        +GetParts~T~() List~T~
+        +SeverSubtree(RocketPart part, SeverCause cause)
+        +PartSevered(part, cause) signal
+    }
+
+    class Joint {
+        +RocketPart ParentPart
+        +RocketPart ChildPart
+        +List~Edge~ ContactEdges
+        +List~DecouplerPart~ Decouplers
+        +bool IsPermanent
+        +bool IsSelfSeparating
+        +float Strength
+        +CanJettison() bool
+    }
+
+    class StructuralPart
+    class DecouplerPart {
+        +Edge Edge
+        +Joint Joint
+        +TriggerSeparation()
+    }
+    class FuelTankPart {
+        +float CurrentFuel
+        +float LeakRateKgPerSec
+        +DrainFuel(float amount) float
+        +SealLeak()
+    }
+    class EnginePart {
+        <<abstract>>
+        +bool IsArmed
+        +bool IsIgnited
+        +float GimbalAngleDeg
+        +Arm()
+        +Ignite()
+        +Shutdown()
+        +ComputeThrust(float atmPressure) float
+        +GetMassFlowRate() float
+        +SetGimbal(float angleDeg)
+    }
+    class SolidBoosterPart {
+        +float BurnProgress
+        +float RemainingPropellant
+    }
+    class LiquidEnginePart {
+        +float Throttle
+        +int RemainingIgnitions
+        +List~FuelTankPart~ FeedTanks
+        +SetThrottle(float value)
+    }
+    class AeroSurfacePart
+    class ControlFinPart {
+        +float DeflectionAngleDeg
+        +SetDeflection(float angleDeg)
+    }
+    class CommandPodPart {
+        +List~PodModule~ Modules
+        +float PayloadMassKg
+        +GetModules~T~() List~T~
+    }
+    class HeatShieldPart {
+        +float AblatorRemainingKg
+        +List~RocketPart~ ShieldedParts
+        +Ablate(float heatJoule) float
+    }
+    class ParachutePart {
+        +ParachuteState ChuteState
+        +Deploy()
+        +Cut()
+    }
+    class FairingPart {
+        +List~RocketPart~ ShieldedParts
+        +Jettison()
+    }
+    class PartDefinition {
+        <<Resource>>
+    }
+    class PodModule {
+        <<abstract>>
+    }
+
+    IFlightComponent <|.. RocketPart
+    IFlightComponent <|.. PodModule
+    RocketPart --> PartDefinition : Definition
+    RocketPart --> Joint : ParentJoint
+    PartTree ..> RocketPart : view over
+    Joint --> DecouplerPart : Decouplers
+
+    RocketPart <|-- StructuralPart
+    StructuralPart <|-- DecouplerPart
+    RocketPart <|-- FuelTankPart
+    RocketPart <|-- EnginePart
+    EnginePart <|-- SolidBoosterPart
+    EnginePart <|-- LiquidEnginePart
+    RocketPart <|-- AeroSurfacePart
+    AeroSurfacePart <|-- ControlFinPart
+    RocketPart <|-- CommandPodPart
+    RocketPart <|-- FairingPart
+    RocketPart <|-- HeatShieldPart
+    RocketPart <|-- ParachutePart
+
+    LiquidEnginePart --> FuelTankPart : FeedTanks
+    CommandPodPart *-- PodModule : Modules
