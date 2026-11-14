@@ -63,7 +63,8 @@ public partial class FlightControlSubsystem : Node
         PilotInput input = InputHandler.Poll();
         LastInput = input;
 
-        // TODO(C7): Anomalies.HandleInput(input);
+        Anomalies?.HandleInput(input);
+        Anomalies?.Tick(deltaTime);
         if (input.StagePressed) Staging.ActivateNextStage();
         if (input.FairingPressed) Staging.JettisonFairing();
         if (input.ChutePressed) Staging.ToggleParachute();

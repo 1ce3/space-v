@@ -120,7 +120,9 @@ public partial class FlightDirector : Node
     public void OnTick(TelemetryFrame frame)
     {
         if (Run == null) return;
-        Hud.ShowTelemetry(frame, false);
+        AnomalyResponseHandler anomalies = Vehicle.FlightControl?.Anomalies;
+        Hud.ShowTelemetry(frame, anomalies?.IsTelemetryGlitched ?? false);
+        Hud.ShowAnomalies(anomalies?.ActiveAnomalies, Vehicle.FlightControl?.InputHandler?.AbortHoldProgress ?? 0f);
         Hud.ShowStageText(Vehicle.Staging.DescribeNextStage());
         FlightControlSubsystem control = Vehicle.FlightControl;
         if (control?.AttitudeController != null && control.Estimator != null)

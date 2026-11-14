@@ -93,6 +93,8 @@ public partial class ControlChainTest : Node
         imu.IsPowered = true;
         imu.AccumulatedDriftDeg = 0f;
 
+        CheckAnomalies();
+
         // Segment 1 thrust bookkeeping.
         Check("before launch: can still thrust (stage 0 left)", _scene.Director.CanStillThrust());
         Check("debrief text for TargetNotReached", DebriefScreen.CauseText(FailureCause.TargetNotReached) == "không đạt quỹ đạo");
@@ -151,6 +153,39 @@ public partial class ControlChainTest : Node
                 }
                 break;
         }
+    }
+
+    /// <summary>C7: anomaly keys and timers, fed with fake events.</summary>
+    private void CheckAnomalies()
+    {
+        AnomalyResponseHandler h = _control.Anomalies;
+        FuelTankPart tank = _vehicle.PartTree.GetParts<FuelTankPart>()[0];
+        tank.LeakRateKgPerSec = 3f;
+        h.OnFlightEvents(new List<FlightEvent> { new() { Type = FlightEventType.CryoLeak, SourceId = tank.ModelId } });
+        Check("CryoLeak raised", h.Has(FlightEventType.CryoLeak));
+        h.OnFlightEvents(new List<FlightEvent> { new() { Type = FlightEventType.CryoLeak } });
+        Check("same event twice: one anomaly", h.ActiveAnomalies.Count == 1);
+        h.HandleInput(new PilotInput { SealLeakPressed = true });
+        Check("V seals the leak", !h.Has(FlightEventType.CryoLeak) && tank.LeakRateKgPerSec == 0f);
+
+        h.OnFlightEvents(new List<FlightEvent> { new() { Type = FlightEventType.SeuGlitch } });
+        Check("SEU: safe mode, throttle frozen, SAS off",
+            h.IsSafeModeActive && _control.ThrottleController.IsFrozen && _control.AttitudeController.Mode == SasMode.Off);
+        h.HandleInput(new PilotInput { SasTogglePressed = true });
+        Check("T leaves safe mode", !h.IsSafeModeActive && !_control.ThrottleController.IsFrozen && !h.Has(FlightEventType.SeuGlitch));
+
+        h.OnFlightEvents(new List<FlightEvent> { new() { Type = FlightEventType.LightningStrike } });
+        var imu = ((CommandPodPart)_vehicle.PartTree.RootPart).GetModules<GyroscopeImuModule>()[0];
+        Check("lightning: telemetry glitched, IMU unpowered", h.IsTelemetryGlitched && !imu.IsPowered);
+        h.HandleInput(new PilotInput { SceToAuxPressed = true });
+        Check("C (SCE to AUX) restores power", !h.IsTelemetryGlitched && imu.IsPowered && h.IsSceToAuxActive);
+
+        h.OnFlightEvents(new List<FlightEvent> { new() { Type = FlightEventType.MaxQExceeded } });
+        h.Tick(1f);
+        Check("MaxQ warning still shown after 1 s", h.Has(FlightEventType.MaxQExceeded));
+        h.Tick(h.WarningSeconds);
+        Check("MaxQ warning gone after WarningSeconds", h.ActiveAnomalies.Count == 0);
+        h.Bind(_vehicle.PartTree);
     }
 
     private void Finish()

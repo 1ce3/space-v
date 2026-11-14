@@ -63,7 +63,23 @@ public partial class FlightHUD : CanvasLayer
     /// <summary>Shows an anomaly with its key hint and timer.</summary>
     public void ShowAnomaly(ActiveAnomaly anomaly)
     {
-        // TODO(C7)
+        if (AnomalyLabel != null) AnomalyLabel.Text = anomaly != null ? AnomalyResponseHandler.Describe(anomaly) : "";
+    }
+
+    /// <summary>Shows every waiting anomaly, one per line (red when it needs a key), plus the abort-hold hint.</summary>
+    public void ShowAnomalies(IReadOnlyList<ActiveAnomaly> anomalies, float abortHoldProgress)
+    {
+        if (AnomalyLabel == null) return;
+        var text = new System.Text.StringBuilder();
+        bool needsKey = false;
+        foreach (ActiveAnomaly a in anomalies ?? System.Array.Empty<ActiveAnomaly>())
+        {
+            text.AppendLine(AnomalyResponseHandler.Describe(a));
+            needsKey |= !AnomalyResponseHandler.IsWarningOnly(a.Type);
+        }
+        if (abortHoldProgress > 0f) text.AppendLine($"Giữ Backspace để hủy chuyến bay... {abortHoldProgress * 100f:0} %");
+        AnomalyLabel.Text = text.ToString().TrimEnd();
+        AnomalyLabel.AddThemeColorOverride("font_color", needsKey || abortHoldProgress > 0f ? new Color(1f, 0.35f, 0.3f) : new Color(1f, 0.8f, 0.3f));
     }
 
     /// <summary>Shows a short warning (staging, parachute...).</summary>
