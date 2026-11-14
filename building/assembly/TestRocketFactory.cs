@@ -43,8 +43,8 @@ public static class TestRocketFactory
         PartTree.Link(tank, engine, MakeJoint(new Edge(new Vector2I(ColumnX, 0), Side.Top), 2));
 
         pod.PayloadMassKg = DefaultPayloadMassKg;
-        InstallModule(pod, "imu_g1", 0);
-        InstallModule(pod, "battery_b1", 0);
+        InstallModule(pod, "imu_g1", new Vector2I(0, 0));
+        InstallModule(pod, "battery_b1", new Vector2I(1, 0));
 
         engine.FeedTanks.Add(tank);
 
@@ -81,11 +81,11 @@ public static class TestRocketFactory
         return joint;
     }
 
-    private static void InstallModule(CommandPodPart pod, string modelId, int slotIndex)
+    private static void InstallModule(CommandPodPart pod, string modelId, Vector2I cell)
     {
         PodModule module = PodModule.Create(GetModule(modelId));
         if (module == null) return;
-        module.SlotIndex = slotIndex;
+        module.GridCell = cell;
         pod.AddModule(module);
     }
 
@@ -100,7 +100,7 @@ public static class TestRocketFactory
                 return new CommandPodPartDefinition
                 {
                     ModelId = modelId, DisplayName = "Pod Mk1", BuildWeight = 1, DryMass = 600f, PowerDrawW = 40f,
-                    AvionicsSlots = 1, ThermalSlots = 0, PowerSlots = 1, MaxGForce = 8f,
+                    InventorySize = new Vector2I(2, 2), MaxGForce = 8f,
                     DragCoefficient = 0.4f, ImpactToleranceMps = 8f, SideArea = 4f,
                     AllowedTop = podTop, AllowedBottom = stackBelow,
                 };

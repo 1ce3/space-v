@@ -30,6 +30,22 @@ public partial class CommandPodPart : RocketPart
         Modules.Add(module);
     }
 
+    /// <summary>Size of the module grid (columns, rows).</summary>
+    public Vector2I InventorySize => PodDefinition?.InventorySize ?? Vector2I.Zero;
+
+    /// <summary>Rectangles taken by the installed modules.</summary>
+    public List<PodInventory.Item> GetOccupiedCells(PodModule except = null)
+    {
+        var items = new List<PodInventory.Item>();
+        foreach (PodModule m in Modules)
+            if (m != except) items.Add(new PodInventory.Item(m.GridCell, PodInventory.SizeOf(m.Definition)));
+        return items;
+    }
+
+    /// <summary>True when a module of this definition fits at cell (inside the grid, on free cells).</summary>
+    public bool CanPlaceModule(ModuleDefinition def, Vector2I cell) =>
+        def != null && PodInventory.Fits(InventorySize, GetOccupiedCells(), cell, PodInventory.SizeOf(def));
+
     /// <summary>Installed modules of type T.</summary>
     public List<T> GetModules<T>() where T : PodModule
     {

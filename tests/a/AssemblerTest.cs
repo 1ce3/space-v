@@ -67,7 +67,7 @@ public partial class AssemblerTest : Node
             fins.Count == 2 && fins.TrueForAll(f => f.ParentPart is SolidBoosterPart), $"{fins.Count} control, {fixedFins.Count} aero");
 
         Check("fairing joint self-separating, strength 100 000", fairing?.ParentJoint is { IsSelfSeparating: true } j1 && Near(j1.Strength, 100_000f));
-        Check("chute joint self-separating, strength 150 000", chute?.ParentJoint is { IsSelfSeparating: true } j2 && Near(j2.Strength, 150_000f));
+        Check("chute joint self-separating, strength 300 000 (B8)", chute?.ParentJoint is { IsSelfSeparating: true } j2 && Near(j2.Strength, 300_000f));
         Check("booster joints: 1 decoupler, 3 contact edges, strength 300 000",
             boosters.TrueForAll(b => b.ParentJoint.Decouplers.Count == 1 && b.ParentJoint.ContactEdges.Count == 3 && Near(b.ParentJoint.Strength, 300_000f)));
         Check("tank_m1 joint depth 6 with a decoupler", tankM?.ParentJoint is { Depth: 6 } j3 && j3.Decouplers.Count == 1);
@@ -107,7 +107,7 @@ public partial class AssemblerTest : Node
 
         // Mass: 21 990 (parts) + 125 (modules) + 300 (payload) + 150 (5 decouplers).
         MassProperties mp = rocket.MassProperties;
-        Check("total mass 22 565 kg", Near(mp.TotalMass, 22_565f, 0.5f), $"{mp.TotalMass}");
+        Check("total mass 26 665 kg (B7/B8 balance)", Near(mp.TotalMass, 26_665f, 0.5f), $"{mp.TotalMass}");
         Check("CoM x = 9 m (symmetric)", Near(mp.CenterOfMass.X, 9f, 0.01f), $"{mp.CenterOfMass}");
         Check("parts positioned in metres (pod at y = 21 m)", Near(pod.Position.Y, 21f) && Near(pod.Position.X, 9f), $"{pod.Position}");
         GD.Print($"[A test] Mars stack: {mp.TotalMass:0} kg, CoM {mp.CenterOfMass}, I {mp.MomentOfInertia:0} kg*m2");
@@ -172,13 +172,19 @@ public partial class AssemblerTest : Node
         ExpectError(assembler, badDecoupler, "decoupler on an empty edge", "Bộ tách tầng");
 
         var badModule = MinimalDesign();
-        badModule.AddModule("battery_b1", ModuleSlotType.Avionics, 0);
-        ExpectError(assembler, badModule, "battery in an avionics slot", "slot");
+        badModule.AddModule("battery_b1", new Vector2I(5, 5));
+        ExpectError(assembler, badModule, "module outside the pod grid", "không vừa lưới");
 
-        var tooMany = MinimalDesign();
-        tooMany.AddModule("imu_g1", ModuleSlotType.Avionics, 0);
-        tooMany.AddModule("imu_g1", ModuleSlotType.Avionics, 1);
-        ExpectError(assembler, tooMany, "2nd avionics module in pod_mk1 (1 slot)", "slot");
+        var stacked = MinimalDesign();
+        stacked.AddModule("imu_g1", new Vector2I(0, 0));
+        stacked.AddModule("battery_b1", new Vector2I(0, 0));
+        ExpectError(assembler, stacked, "two modules on one cell", "chồng lên");
+
+        var legacy = MinimalDesign();
+        legacy.AddModule("imu_g1", PodInventory.Unplaced);
+        legacy.AddModule("battery_b1", PodInventory.Unplaced);
+        Check("unplaced (version 1) modules are valid", assembler.ValidateConnections(legacy, RocketAssembler.NoWeightLimit).Count == 0,
+            string.Join(" | ", assembler.ValidateConnections(legacy, RocketAssembler.NoWeightLimit)));
 
         var overlap = MinimalDesign();
         overlap.AddPart("fin_f1", new Vector2I(4, 1));
