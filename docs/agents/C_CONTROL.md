@@ -267,10 +267,10 @@ Xử lý xong thì `Coordinator.Hazards.Acknowledge(type)` và phát `AnomalyRes
 
 ## 6. Chi tiết: chặng hành trình (`CruiseController`)
 
-- Node trong `flight.tscn`, `[Export] VehicleRoot Vehicle`, `CruiseHUD Hud`, `FlightHUD FlightHud`, `InputHandler Input`, `StagingManager Staging`, `float DaysPerSecond = 3.5`.
+- Node trong `flight.tscn`, `[Export] VehicleRoot Vehicle`, `CruiseHUD Hud`, `FlightHUD FlightHud`, `InputHandler InputHandler` (không đặt tên `Input` để khỏi che `Godot.Input`), `StagingManager Staging`, `float DaysPerSecond = 3.5`.
 - `StartCruise(run)`: `Vehicle.SetSimulationFrozen(true)`; ẩn `FlightHud`, hiện `Hud`; `_sim = new CruiseSimulator()`; `_sim.Begin(run.PartTree, run.CurrentSegment, mission.Segments[0].Body, mission.Segments[2].Body)`.
 - **Trước cú đốt:** HUD hiện `GetRemainingDeltaV()` cạnh `RequiredDeltaVMps`. Người chơi được bấm Stage (bỏ tầng cạn; tính lại delta-v), deploy (solar, radiator), và `flight_throttle_full` hoặc nút "Đốt chuyển quỹ đạo" → `ExecuteTransferBurn()`. `false` → `MissionEnded` với `InsufficientDeltaV`.
-- **Tua:** `_Process` đọc input qua `Input.Poll()`; cộng `delta × DaysPerSecond`, mỗi ngày nguyên gọi `StepDay()`, đưa kết quả cho `Hud.ShowResources`, cộng `run.ElapsedDays`.
+- **Tua:** `_Process` đọc input qua `InputHandler.Poll()`; cộng `delta × DaysPerSecond`, mỗi ngày nguyên gọi `StepDay()`, đưa kết quả cho `Hud.ShowResources`, cộng `run.ElapsedDays`.
 - **Sự cố:** `Events` không rỗng → `SetPaused(true)` và chuyển cho `AnomalyResponseHandler`; tiếp tục khi xử lý xong (P1). Pod `Broken` → `MissionEnded` (`Thermal`); va mảnh vỡ → `MissionEnded` (`Collision`).
 - **Xong:** `ElapsedDays ≥ DurationDays` → ghi `CruiseDaysSurvived`, phát `SegmentCompleted(run)`.
 - `CruiseHUD` (P0): thanh ngày, delta-v, công suất ròng, % pin, `LowestTempRatio`, nút "Đốt", "Tạm dừng", "×1 / ×4".
