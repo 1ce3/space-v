@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://presentation/parts/FinVisual.cs" id="1_script"]
+
+[sub_resource type="BoxMesh" id="mesh_blade"]
+size = Vector3(0.8, 0.8, 0.06)
+
+[node name="AeroSurface" type="Node3D" node_paths=PackedStringArray("MeshRoot")]
+script = ExtResource("1_script")
+MeshRoot = NodePath("MeshRoot")
+GroupColor = Color(0.75, 0.2, 0.2, 1)
+
+[node name="MeshRoot" type="Node3D" parent="."]
+
+[node name="FinHinge" type="Node3D" parent="MeshRoot"]
+
+[node name="Blade" type="MeshInstance3D" parent="MeshRoot/FinHinge"]
+mesh = SubResource("mesh_blade")
