@@ -155,6 +155,7 @@ Kiểu export được: số, bool, string, enum, `[Flags]` enum, `Vector2/3`, `
 ## 5. Quy tắc code Godot C#
 
 - Godot 4.7.2 .NET, C# của .NET 8. Mọi lớp kế thừa kiểu Godot phải là `partial`.
+- **Viết `Godot.Control`, không viết `Control` trần.** Vì có namespace `RocketGame.Control`, trong mọi namespace `RocketGame.*` tên `Control` trỏ tới namespace đó và gây lỗi CS0118. Ví dụ: `public partial class ResearchScreenRoot : Godot.Control`.
 - **Signal:** dùng `[Signal]` cho mọi signal trong diagram. Tham số signal phải là kiểu Variant: số, bool, string, enum, `GodotObject`. Vì vậy các kiểu dữ liệu đi qua signal là class kế thừa `RefCounted`: `AssembledRocket`, `MissionRun`, `FlightResult`, `ActiveAnomaly`. Struct thuần C# chỉ đi qua lời gọi hàm, không qua signal.
 - **Nối signal** bằng C# event (`part.PartSevered += OnPartSevered;`), tháo ra trong `_ExitTree()`. Phát bằng `EmitSignal(SignalName.PartSevered, part, (int)cause, impulse)`; tham số enum truyền thẳng được.
 - **Solver và logic thuần** là class C# thường (không kế thừa Node), được node chủ khởi tạo và truyền settings vào. Chỉ thứ cần sống trong scene tree mới là Node.
