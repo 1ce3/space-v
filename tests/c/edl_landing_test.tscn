@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://tests/c/EdlLandingTest.cs" id="1_test"]
+[ext_resource type="Resource" path="res://data/missions/mars_mission.tres" id="2_mission"]
+
+[node name="EdlLandingTest" type="Node"]
+script = ExtResource("1_test")
+FallbackMission = ExtResource("2_mission")

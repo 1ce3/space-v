@@ -29,8 +29,11 @@ public class AerodynamicSolver
     /// <summary>
     /// Aero force and torque on the parts. airVelBody = air velocity relative to the vehicle in the vehicle-local frame (= -velocity), m/s.
     /// com is the local center of mass (m). partLoads (optional) receives the aero force of each part.
+    /// angularVelRad (rad/s, + = pitch angle increasing) adds the rotation speed of each part to its local flow, which
+    /// damps tumbling (a spinning part meets extra air against its motion) and lets a chute settle the vehicle under it.
     /// </summary>
-    public AeroResult Solve(PartTree parts, Vector2 airVelBody, AtmosphereSample air, Vector2 com, List<PartLoad> partLoads = null, float deltaTime = 0f)
+    public AeroResult Solve(PartTree parts, Vector2 airVelBody, AtmosphereSample air, Vector2 com, List<PartLoad> partLoads = null,
+        float deltaTime = 0f, float angularVelRad = 0f)
     {
         float speed = airVelBody.Length();
         float q = CalculateDynamicPressure(air.Density, speed);
@@ -48,18 +51,35 @@ public class AerodynamicSolver
 
         bool onlyExposed = _settings?.FrontalDragOnlyExposed ?? false;
         bool noseFirst = velDir.Y >= 0f;
+        HeatShieldPart leadingShield = noseFirst ? null : FindLeadingShield(parts);
+        float wakeFactor = _settings?.HeatShieldWakeFactor ?? 0.15f;
         float weight = 0f;
         Vector2 weightedPos = Vector2.Zero;
         foreach (RocketPart part in parts.ActiveParts)
         {
             if (part.IsShielded) continue;
-            float frontal = !onlyExposed || IsLeadingFaceExposed(part, parts, noseFirst) ? part.FrontalArea * part.DragCoefficient * cosA : 0f;
-            Vector2 force = -velDir * (q * (frontal + part.SideArea * sideCd * sinA) * machMult);
-
-            if (part is AeroSurfacePart fin) force += FinForce(fin, flowDir, q, stallSin);
-            else if (part is ParachutePart chute) force += ChuteForce(chute, velDir, q, mach, deltaTime);
-
             Vector2 r = part.GetLocalPosition() - com;
+            // Local flow: vehicle flow minus the part's own rotation speed (omega x r).
+            Vector2 localAir = airVelBody - new Vector2(-angularVelRad * r.Y, angularVelRad * r.X);
+            float localSpeed = localAir.Length();
+            float qPart = q, cosPart = cosA, sinPart = sinA;
+            Vector2 velDirPart = velDir, flowDirPart = flowDir;
+            if (angularVelRad != 0f && localSpeed > 0.001f)
+            {
+                flowDirPart = localAir / localSpeed;
+                velDirPart = -flowDirPart;
+                qPart = CalculateDynamicPressure(air.Density, localSpeed);
+                cosPart = Mathf.Abs(velDirPart.Y);
+                sinPart = Mathf.Abs(velDirPart.X);
+            }
+            float frontal = !onlyExposed || IsLeadingFaceExposed(part, parts, noseFirst) ? part.FrontalArea * part.DragCoefficient * cosPart : 0f;
+            float side = part.SideArea * sideCd * sinPart;
+            if (leadingShield != null && part != leadingShield && leadingShield.ShieldedParts.Contains(part)) side *= wakeFactor;
+            Vector2 force = -velDirPart * (qPart * (frontal + side) * machMult);
+
+            if (part is AeroSurfacePart fin) force += FinForce(fin, flowDirPart, qPart, stallSin);
+            else if (part is ParachutePart chute) force += ChuteForce(chute, velDirPart, qPart, q, mach, deltaTime);
+
             result.Force += force;
             result.TorqueZ += FlightMath.Cross(r, force);
             partLoads?.Add(new PartLoad { Part = part, Force = force });
@@ -68,7 +88,27 @@ public class AerodynamicSolver
             weightedPos += part.GetLocalPosition() * magnitude;
         }
         if (weight > 0f) result.CenterOfPressure = weightedPos / weight;
+        if (leadingShield != null) result.TorqueZ += AeroshellTorque(leadingShield, velDir, q, com);
         return result;
+    }
+
+    /// <summary>The attached heat shield whose base faces the flow (bottom-first flight), or null.</summary>
+    private static HeatShieldPart FindLeadingShield(PartTree parts)
+    {
+        foreach (RocketPart part in parts.ActiveParts)
+            if (part is HeatShieldPart shield && shield.IsAttached && shield.State != ComponentState.Broken) return shield;
+        return null;
+    }
+
+    /// <summary>
+    /// Restoring moment of a leading heat shield (capsule-like aeroshell): turns the body so its down axis (0, -1) points
+    /// along the velocity. velDir.X &gt; 0 needs a positive (CCW) turn.
+    /// </summary>
+    private float AeroshellTorque(HeatShieldPart shield, Vector2 velDir, float q, Vector2 com)
+    {
+        float coeff = _settings?.HeatShieldStabilityCoefficient ?? 1.5f;
+        float arm = Mathf.Max((shield.GetLocalPosition() - com).Length(), 1f);
+        return coeff * q * shield.FrontalArea * arm * velDir.X;
     }
 
     /// <summary>q = 0.5 rho v^2 (Pa).</summary>
@@ -112,7 +152,7 @@ public class AerodynamicSolver
     /// Drag of an open chute; a chute opened above its q or Mach limit tears (Broken) on its first open tick.
     /// The canopy opens over InflationTimeS (deltaTime 0 = already open, e.g. the wind tunnel); drag grows with the fraction squared.
     /// </summary>
-    private Vector2 ChuteForce(ParachutePart chute, Vector2 velDir, float q, float mach, float deltaTime)
+    private Vector2 ChuteForce(ParachutePart chute, Vector2 velDir, float qLocal, float q, float mach, float deltaTime)
     {
         if (chute.ChuteState != ParachuteState.Deployed || chute.State == ComponentState.Broken) return Vector2.Zero;
         ParachutePartDefinition def = chute.ChuteDefinition;
@@ -127,6 +167,6 @@ public class AerodynamicSolver
         float inflation = def.InflationTimeS > 0f && deltaTime > 0f ? deltaTime / def.InflationTimeS : 1f;
         chute.InflationFraction = Mathf.Min(1f, chute.InflationFraction + inflation);
         float open = chute.InflationFraction * chute.InflationFraction;
-        return -velDir * (q * def.DeployedDragArea * open);
+        return -velDir * (qLocal * def.DeployedDragArea * open);
     }
 }

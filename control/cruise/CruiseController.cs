@@ -44,6 +44,7 @@ public partial class CruiseController : Node
     private MissionRun _run;
     private CruiseSimulator _sim;
     private float _dayAccumulator;
+    private bool _solarWarned;
 
     public override void _Ready()
     {
@@ -66,6 +67,7 @@ public partial class CruiseController : Node
         IsPaused = false;
         TimeScale = 1f;
         _dayAccumulator = 0f;
+        _solarWarned = false;
 
         Vehicle.SetSimulationFrozen(true);
         InputHandler.SetInputEnabled(true);
@@ -90,6 +92,13 @@ public partial class CruiseController : Node
     public void RequestTransferBurn()
     {
         if (!IsActive || HasBurned || _sim == null) return;
+        // B5: arrays only make power when deployed. Warn once; a second press burns anyway.
+        if (!_solarWarned && CountSolarArrays(deployed: false) > 0)
+        {
+            _solarWarned = true;
+            Hud.ShowMessage("Pin mặt trời chưa mở, sẽ cạn điện giữa đường. Bấm G để mở rồi đốt; bấm đốt lần nữa để bỏ qua.");
+            return;
+        }
         float before = _sim.GetRemainingDeltaV();
         if (!_sim.ExecuteTransferBurn())
         {
@@ -149,7 +158,12 @@ public partial class CruiseController : Node
             Staging.ActivateNextStage();
             Callable.From(RefreshDeltaV).CallDeferred(); // cuts are processed deferred
         }
-        if (input.DeployTogglePressed) Vehicle.FlightControl?.ToggleDeployables();
+        if (input.DeployTogglePressed)
+        {
+            Vehicle.FlightControl?.ToggleDeployables();
+            int open = CountSolarArrays(deployed: true), closed = CountSolarArrays(deployed: false);
+            if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"Đã mở {open} pin mặt trời." : "Đã gập pin mặt trời.");
+        }
         if (input.ThrottleFull) RequestTransferBurn();
         if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
         if (!IsPaused) Advance((float)delta);
@@ -169,11 +183,34 @@ public partial class CruiseController : Node
         if (step.Events == null) return;
         foreach (FlightEvent e in step.Events)
         {
-            Hud.ShowMessage($"Ngày {step.Day}: {e.Type}");
+            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e.Type)}");
             _sim.Acknowledge(e.Type);
             if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
         }
     }
+
+    /// <summary>Solar arrays on attached pods that are (or are not) deployed.</summary>
+    private int CountSolarArrays(bool deployed)
+    {
+        int count = 0;
+        foreach (CommandPodPart pod in Vehicle?.PartTree?.GetParts<CommandPodPart>() ?? new())
+        {
+            if (!pod.IsAttached) continue;
+            foreach (SolarArrayModule solar in pod.GetModules<SolarArrayModule>())
+                if (solar.IsDeployed == deployed && solar.IsHealthy) count++;
+        }
+        return count;
+    }
+
+    /// <summary>Player-facing text for a cruise event.</summary>
+    public static string EventText(FlightEventType type) => type switch
+    {
+        FlightEventType.PowerBrownout => "mất điện, pin cạn (mở pin mặt trời bằng G)",
+        FlightEventType.ComponentOverheat => "linh kiện quá nhiệt",
+        FlightEventType.DebrisWarning => "cảnh báo mảnh vỡ",
+        FlightEventType.SeuGlitch => "lỗi bức xạ trong máy tính",
+        _ => type.ToString(),
+    };
 
     private void OnTimeScaleRequested(float scale) => TimeScale = Mathf.Max(scale, 0.1f);
 

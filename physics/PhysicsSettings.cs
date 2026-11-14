@@ -80,6 +80,16 @@ public partial class PhysicsSettings : Resource
     /// <summary>Share of a compressive load a decoupler joint counts against its strength (tension counts fully).</summary>
     [Export(PropertyHint.Range, "0,1,0.05")] public float JointCompressionFactor { get; set; } = 0.25f;
 
+    /// <summary>
+    /// Aeroshell (C6): while a heat shield leads, the parts it shields sit in its wake and get only this share of their cross-flow drag.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float HeatShieldWakeFactor { get; set; } = 0.15f;
+    /// <summary>
+    /// Aeroshell (C6): restoring moment coefficient of a leading heat shield. Torque = coeff * q * shield frontal area *
+    /// shield-to-CoM distance * sin(angle off base-first), turning the shield back into the flow like a real capsule.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,5,0.05")] public float HeatShieldStabilityCoefficient { get; set; } = 1.5f;
+
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;
     private const float DragSubsonic = 1.0f;

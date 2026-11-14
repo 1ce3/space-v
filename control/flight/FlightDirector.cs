@@ -48,6 +48,10 @@ public partial class FlightDirector : Node
     /// <summary>True between SegmentCompleted and the next StartSegment (segment ended well, run continues).</summary>
     private bool _segmentDone;
     private float _outOfThrustTimer;
+    private bool _chuteHintShown;
+
+    /// <summary>The EDL chute hint waits until the vehicle is below this radar altitude (Mars 2020 opened at ~11 km).</summary>
+    [Export] public float ChuteHintAltitudeM { get; set; } = 12000f;
 
     public override void _Ready()
     {
@@ -75,6 +79,7 @@ public partial class FlightDirector : Node
         _hasEnded = false;
         _segmentDone = false;
         _outOfThrustTimer = 0f;
+        _chuteHintShown = false;
         if (run == null) return;
         MissionSegmentDefinition segment = run.CurrentSegment;
         if (segment == null)
@@ -128,8 +133,25 @@ public partial class FlightDirector : Node
 
         Environment?.UpdateSky(frame.AltitudeM, Vehicle.LastOutput.Air.Density);
         if (Run.CurrentKind == SegmentKind.EarthAscent) CheckAscent(frame);
-        else if (Run.CurrentKind == SegmentKind.MarsEdl && Phase == FlightPhase.Entry && (AnyChuteDeployed() || AnyEngineIgnited()))
-            SetPhase(FlightPhase.Descent);
+        else if (Run.CurrentKind == SegmentKind.MarsEdl)
+        {
+            if (Phase == FlightPhase.Entry && (AnyChuteDeployed() || AnyEngineIgnited())) SetPhase(FlightPhase.Descent);
+            CheckChuteHint(frame);
+        }
+    }
+
+    /// <summary>Once per EDL: tells the player when the stowed chute can open (B8 limits), and to drop the fairing first.</summary>
+    private void CheckChuteHint(TelemetryFrame frame)
+    {
+        if (_chuteHintShown) return;
+        ParachutePart chute = Vehicle.PartTree.GetParts<ParachutePart>().Find(c => c.IsAttached && c.ChuteState == ParachuteState.Stowed);
+        ParachutePartDefinition def = chute?.ChuteDefinition;
+        if (def == null) return;
+        if (frame.RadarAltitudeM > ChuteHintAltitudeM) return;
+        if (frame.MachNumber >= def.MaxDeployMach || frame.DynamicPressure >= def.MaxDeployDynamicPressure) return;
+        _chuteHintShown = true;
+        bool fairing = Vehicle.PartTree.GetParts<FairingPart>().Exists(f => f.IsAttached);
+        Hud.ShowWarning(fairing ? "Có thể bung dù: tách fairing (F) rồi bấm P" : "Có thể bung dù: bấm P");
     }
 
     private bool AnyChuteDeployed()

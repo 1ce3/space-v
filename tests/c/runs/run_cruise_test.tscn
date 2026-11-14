@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/b/CruiseTest.cs" id="1_test"]
+[ext_resource type="Resource" path="res://data/missions/seg_cruise.tres" id="2_segment"]
+[ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="3_origin"]
+[ext_resource type="Resource" path="res://data/bodies/mars_scaled.tres" id="4_destination"]
+[ext_resource type="Resource" path="res://data/settings/physics_settings.tres" id="5_settings"]
+
+[node name="CruiseTest" type="Node"]
+script = ExtResource("1_test")
+QuitWhenDone = false
+Segment = ExtResource("2_segment")
+Origin = ExtResource("3_origin")
+Destination = ExtResource("4_destination")
+Settings = ExtResource("5_settings")
