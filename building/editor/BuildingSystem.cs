@@ -164,6 +164,7 @@ public partial class BuildingSystem : Node
         _modules[key] = def;
         Design.AddModule(modelId, def.SlotType, slotIndex);
         Budget.Add(def);
+        if (DebugLog) GD.Print($"[Building] Installed {modelId} in {def.SlotType} {slotIndex + 1} ({Budget.CurrentWeight}/{Budget.MaxWeight})");
         EmitSignal(SignalName.ModuleChanged, Variant.From(def.SlotType), slotIndex);
         EmitSignal(SignalName.DesignChanged);
         return true;
@@ -238,6 +239,9 @@ public partial class BuildingSystem : Node
         // TODO(A9, P2)
     }
 
+    /// <summary>Writes the current design to user://current_design.json (also done by ConfirmDesign).</summary>
+    public void SaveDesign() => Design.SaveCurrent();
+
     /// <summary>Restores user://current_design.json onto the grid (unknown or locked parts are skipped).</summary>
     public void LoadSavedDesign()
     {
@@ -259,6 +263,8 @@ public partial class BuildingSystem : Node
         foreach (RocketDesign.ModuleEntry e in design.ModuleEntries)
             if (!IsUnlocked(e.ModelId) || !InstallModule(e.ModelId, e.SlotIndex)) skipped++;
         if (skipped > 0) GD.PushWarning($"[Building] LoadDesign: {skipped} entries could not be restored");
+        if (DebugLog)
+            GD.Print($"[Building] Loaded design: {Grid.Parts.Count} parts, {Grid.Decouplers.Count} decouplers, {_modules.Count} modules");
     }
 
     private static bool IsUnlocked(string modelId)
