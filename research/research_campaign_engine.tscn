@@ -18,6 +18,10 @@
 [ext_resource type="Resource" path="res://data/tech/t3_navigation.tres" id="t11_t3_navigation"]
 [ext_resource type="Resource" path="res://data/tech/t3_frame.tres" id="t12_t3_frame"]
 [ext_resource type="Resource" path="res://data/tech/t4_rtg.tres" id="t13_t4_rtg"]
+[ext_resource type="Resource" path="res://data/tech/fuel_kerolox.tres" id="f0_fuel_kerolox"]
+[ext_resource type="Resource" path="res://data/tech/fuel_monoprop.tres" id="f1_fuel_monoprop"]
+[ext_resource type="Resource" path="res://data/tech/fuel_hydrolox.tres" id="f2_fuel_hydrolox"]
+[ext_resource type="Resource" path="res://data/tech/fuel_methalox.tres" id="f3_fuel_methalox"]
 
 [node name="ResearchCampaignEngine" type="Node" node_paths=PackedStringArray("TechTree")]
 script = ExtResource("1_engine")
@@ -26,6 +30,7 @@ Mission = ExtResource("4_mission")
 
 [node name="TechTreeManager" type="Node" parent="."]
 script = ExtResource("2_tree")
-AllNodes = Array[ExtResource("3_nodescript")]([ExtResource("t0_t1_heavy"), ExtResource("t1_t1_avionics"), ExtResource("t2_t1_frame"), ExtResource("t3_t2_main_engine"), ExtResource("t4_t2_upper_stage"), ExtResource("t5_t2_pod"), ExtResource("t6_t2_power"), ExtResource("t7_t2_frame"), ExtResource("t8_t3_thermal"), ExtResource("t9_t3_edl"), ExtResource("t10_t3_lander"), ExtResource("t11_t3_navigation"), ExtResource("t12_t3_frame"), ExtResource("t13_t4_rtg")])
+AllNodes = Array[ExtResource("3_nodescript")]([ExtResource("t0_t1_heavy"), ExtResource("t1_t1_avionics"), ExtResource("t2_t1_frame"), ExtResource("t3_t2_main_engine"), ExtResource("t4_t2_upper_stage"), ExtResource("t5_t2_pod"), ExtResource("t6_t2_power"), ExtResource("t7_t2_frame"), ExtResource("t8_t3_thermal"), ExtResource("t9_t3_edl"), ExtResource("t10_t3_lander"), ExtResource("t11_t3_navigation"), ExtResource("t12_t3_frame"), ExtResource("t13_t4_rtg"), ExtResource("f0_fuel_kerolox"), ExtResource("f1_fuel_monoprop"), ExtResource("f2_fuel_hydrolox"), ExtResource("f3_fuel_methalox")])
 StarterModelIds = PackedStringArray("pod_mk1", "tank_s1", "engine_lv1", "booster_s1", "decoupler_d1", "fairing_n1", "fin_f1", "structural_s1", "imu_g1", "battery_b1")
+StarterNodeIds = PackedStringArray("fuel_kerolox")
 BaseBuildWeight = 20

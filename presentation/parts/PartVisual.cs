@@ -98,7 +98,7 @@ public partial class PartVisual : Node3D
     /// <summary>Per-frame refresh from Part state. Subclasses call base.</summary>
     protected virtual void UpdateVisual(float deltaTime)
     {
-        float max = Part.Definition?.MaxSafeTempK ?? 0f;
+        float max = Part.GetEffectiveMaxSafeTempK();
         ApplyThermalOverlay(max > 0f ? Part.TempK / max : 0f, Part.State);
     }
 

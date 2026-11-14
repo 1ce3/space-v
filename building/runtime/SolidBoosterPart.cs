@@ -20,7 +20,7 @@ public partial class SolidBoosterPart : EnginePart
         RemainingPropellant = BoosterDefinition?.PropellantMass ?? 0f;
     }
 
-    public override float GetCurrentMass() => DryMass + RemainingPropellant;
+    public override float GetCurrentMass() => GetEffectiveDryMass() + RemainingPropellant;
 
     /// <summary>Arming a solid booster lights it.</summary>
     public override void Arm()

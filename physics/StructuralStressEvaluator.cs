@@ -64,12 +64,12 @@ public class StructuralStressEvaluator
 
             bool separable = joint.Decouplers.Count > 0 || joint.IsSelfSeparating;
             if (separable && joint.Strength > 0f) Check(child, FailureCause.JointOverload, JointLoad(transmitted, input.BodyRotationRad, joint, child) / joint.Strength);
-            if (child.MaxShear > 0f) Check(child, FailureCause.Shear, lateral / child.MaxShear);
-            if (child.MaxBending > 0f && _subtreeMass[child] > 0f)
+            if (child.GetEffectiveMaxShear() > 0f) Check(child, FailureCause.Shear, lateral / child.GetEffectiveMaxShear());
+            if (child.GetEffectiveMaxBending() > 0f && _subtreeMass[child] > 0f)
             {
                 Vector2 subtreeCom = _subtreeMoment[child] / _subtreeMass[child];
                 float arm = JointPosition(joint, child).DistanceTo(subtreeCom);
-                Check(child, FailureCause.Bending, lateral * arm / child.MaxBending);
+                Check(child, FailureCause.Bending, lateral * arm / child.GetEffectiveMaxBending());
             }
         }
 

@@ -17,7 +17,7 @@ public partial class CommandPodPart : RocketPart
     /// <summary>Dry + payload + modules (kg).</summary>
     public override float GetCurrentMass()
     {
-        float mass = DryMass + PayloadMassKg;
+        float mass = GetEffectiveDryMass() + PayloadMassKg;
         foreach (PodModule module in Modules) mass += module.GetCurrentMass();
         return mass;
     }
