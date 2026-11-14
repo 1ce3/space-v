@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://cf4n57t07n7b4"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,4 +10,3 @@ Tier = 3
 CostRP = 70
 PrerequisiteNodeIds = PackedStringArray("t2_power", "t2_pod")
 UnlocksModelIds = PackedStringArray("insulation_i1", "radiator_a1", "rhu_h1", "rad_x2", "mat_titanium", "mat_whipple")
-BuildWeightBonus = 0

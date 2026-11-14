@@ -26,10 +26,10 @@ public partial class InstrumentModuleDefinition : ModuleDefinition
     public override string GetFormattedTooltip()
     {
         string t = base.GetFormattedTooltip();
-        if (WarningLeadSeconds > 0f) t += $"\nCảnh báo thiên thạch trước {WarningLeadSeconds:0} s";
-        if (AllowsAutoDodge) t += "\nTự né (cần RCS)";
-        if (FlareWarningDays > 0f) t += $"\nBáo bão mặt trời trước {FlareWarningDays:0} ngày";
-        if (LeakReduction > 0f) t += $"\nGiảm rò rỉ {LeakReduction:P0}";
+        if (WarningLeadSeconds > 0f) t += $"\nMeteor warning {N(WarningLeadSeconds, "0")} s ahead";
+        if (AllowsAutoDodge) t += "\nAuto-dodge (needs RCS)";
+        if (FlareWarningDays > 0f) t += $"\nSolar flare warning {N(FlareWarningDays, "0")} day(s) ahead";
+        if (LeakReduction > 0f) t += $"\nLeak rate -{N(LeakReduction * 100f, "0")} %";
         return t;
     }
 }

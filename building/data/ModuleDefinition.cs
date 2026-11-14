@@ -27,4 +27,10 @@ public abstract partial class ModuleDefinition : ComponentDefinition
         MaxSafeTempK = 350f;
         MinSafeTempK = 230f;
     }
+
+    /// <summary>Adds grid size and fault stats (PHASE2 2.3).</summary>
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip()
+        + $"\nSize: {GridSize.X} x {GridSize.Y} cells"
+        + $"\nRadiation resistance: {N(RadiationResistance * 100f, "0")} %"
+        + $"\nReboot: {N(RebootSuccessChance * 100f, "0")} % per try, {N(RebootEnergyWh, "0")} Wh";
 }
