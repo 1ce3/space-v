@@ -237,6 +237,30 @@ public partial class BuildingSystem : Node
         return cell != null && InstallModule(modelId, cell.Value);
     }
 
+    /// <summary>Definition of a ModelId from the catalog (null when unknown).</summary>
+    public ComponentDefinition GetDefinitionOf(string modelId) => Catalog?.GetDefinition(modelId);
+
+    /// <summary>True when the module anchored at from can move so its top-left is at to (its own cells count as free).</summary>
+    public bool CanMoveModule(Vector2I from, Vector2I to) =>
+        _modules.TryGetValue(from, out ModuleDefinition def) &&
+        PodInventory.Fits(InventorySize, GetOccupiedCells(from), to, PodInventory.SizeOf(def));
+
+    /// <summary>Moves the module anchored at from to to. Weight does not change.</summary>
+    public bool MoveModule(Vector2I from, Vector2I to)
+    {
+        if (from == to || !CanMoveModule(from, to)) return false;
+        ModuleDefinition def = _modules[from];
+        _modules.Remove(from);
+        _modules[to] = def;
+        foreach (RocketDesign.ModuleEntry e in Design.ModuleEntries)
+            if (e.Cell == from) { e.Cell = to; break; }
+        if (DebugLog) GD.Print($"[Building] Moved {def.ModelId} ({from.X}, {from.Y}) -> ({to.X}, {to.Y})");
+        EmitSignal(SignalName.ModuleChanged, from);
+        EmitSignal(SignalName.ModuleChanged, to);
+        EmitSignal(SignalName.DesignChanged);
+        return true;
+    }
+
     /// <summary>Removes the module covering cell (any of its cells).</summary>
     public void RemoveModule(Vector2I cell)
     {
