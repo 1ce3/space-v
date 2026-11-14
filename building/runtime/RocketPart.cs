@@ -47,8 +47,27 @@ public partial class RocketPart : Node3D, IFlightComponent
     /// <summary>Creates the runtime class that matches the definition type (A_BUILDING.md 4.2).</summary>
     public static RocketPart Create(PartDefinition def)
     {
-        // TODO(A1): map definition type -> runtime class (Decoupler before Structural; fin by MaxDeflectionDeg).
-        var part = new RocketPart();
+        RocketPart part = def switch
+        {
+            DecouplerPartDefinition => new DecouplerPart(),
+            StructuralPartDefinition => new StructuralPart(),
+            FuelTankPartDefinition => new FuelTankPart(),
+            LiquidEnginePartDefinition => new LiquidEnginePart(),
+            SolidBoosterPartDefinition => new SolidBoosterPart(),
+            AeroSurfacePartDefinition aero => aero.IsControlSurface ? new ControlFinPart() : new AeroSurfacePart(),
+            CommandPodPartDefinition => new CommandPodPart(),
+            FairingPartDefinition => new FairingPart(),
+            HeatShieldPartDefinition => new HeatShieldPart(),
+            ParachutePartDefinition => new ParachutePart(),
+            _ => null,
+        };
+
+        if (part == null)
+        {
+            GD.PushError($"[Building] RocketPart.Create: unsupported definition '{def?.ModelId ?? "null"}' ({def?.GetType().Name ?? "null"})");
+            return null;
+        }
+
         part.Initialize(def);
         return part;
     }
@@ -71,6 +90,9 @@ public partial class RocketPart : Node3D, IFlightComponent
 
     /// <summary>Dry mass plus fuel or propellant (kg).</summary>
     public virtual float GetCurrentMass() => DryMass;
+
+    /// <summary>True while this part is still attached to its tree.</summary>
+    public bool IsAttached => Tree != null && Tree.ActiveParts.Contains(this);
 
     /// <summary>Kept for the contract; physics computes aero itself. Always zero.</summary>
     public Vector2 CalculateAero(Vector2 airVel, float rho, float mach) => Vector2.Zero;

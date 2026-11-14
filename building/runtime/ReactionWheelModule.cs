@@ -18,9 +18,13 @@ public class ReactionWheelModule : AttitudeActuatorModule
         IsSaturated = false;
     }
 
+    /// <summary>Wheel capacity (N*m*s).</summary>
+    public float MaxMomentumStorageNms => AcsDefinition?.MaxMomentumStorageNms ?? 0f;
+
     /// <summary>Unloads stored momentum (needs RCS to counter it).</summary>
     public void DumpMomentum()
     {
-        // TODO(A1): StoredMomentumNms = 0; IsSaturated = false.
+        StoredMomentumNms = 0f;
+        IsSaturated = false;
     }
 }

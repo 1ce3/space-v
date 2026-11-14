@@ -27,10 +27,38 @@ public abstract class PodModule : IFlightComponent
     /// <summary>Creates the runtime class that matches the definition Kind.</summary>
     public static PodModule Create(ModuleDefinition def)
     {
-        // TODO(A1): AcsModuleDefinition.Kind -> GyroscopeImuModule / StarTrackerModule / ReactionWheelModule / RcsThrusterModule;
-        //           ThermalModuleDefinition.Kind -> PassiveInsulation / ActiveRadiator / RadioisotopeHeater;
-        //           PowerModuleDefinition.Kind -> Battery / SolarArray / Rtg. Then Initialize(def).
-        return null;
+        PodModule module = def switch
+        {
+            AcsModuleDefinition acs => acs.Kind switch
+            {
+                AcsDeviceKind.Imu => new GyroscopeImuModule(),
+                AcsDeviceKind.StarTracker => new StarTrackerModule(),
+                AcsDeviceKind.ReactionWheel => new ReactionWheelModule(),
+                _ => new RcsThrusterModule(),
+            },
+            ThermalModuleDefinition thermal => thermal.Kind switch
+            {
+                ThermalDeviceKind.PassiveInsulation => new PassiveInsulationModule(),
+                ThermalDeviceKind.ActiveRadiator => new ActiveRadiatorModule(),
+                _ => new RadioisotopeHeaterModule(),
+            },
+            PowerModuleDefinition power => power.Kind switch
+            {
+                PowerDeviceKind.Battery => new BatteryModule(),
+                PowerDeviceKind.SolarArray => new SolarArrayModule(),
+                _ => new RtgModule(),
+            },
+            _ => null,
+        };
+
+        if (module == null)
+        {
+            GD.PushError($"[Building] PodModule.Create: unsupported definition '{def?.ModelId ?? "null"}'");
+            return null;
+        }
+
+        module.Initialize(def);
+        return module;
     }
 
     /// <summary>Sets the definition and resets runtime state.</summary>
@@ -58,8 +86,11 @@ public abstract class PodModule : IFlightComponent
         ThermalStateRules.Evaluate(this);
     }
 
-    public virtual bool CanOperate() =>
-        IsPowered && State != ComponentState.Broken && State != ComponentState.Overheated && State != ComponentState.Frozen;
+    /// <summary>Not Broken, Overheated or Frozen (power is not considered).</summary>
+    public bool IsHealthy =>
+        State != ComponentState.Broken && State != ComponentState.Overheated && State != ComponentState.Frozen;
+
+    public virtual bool CanOperate() => IsPowered && IsHealthy;
 
     public virtual void OnFixedTick(float deltaTime) { }
 }
