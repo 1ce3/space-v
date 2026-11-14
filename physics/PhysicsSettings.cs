@@ -60,14 +60,22 @@ public partial class PhysicsSettings : Resource
     /// <summary>Chance per second of a cryo leak while a Hydrolox or Methalox tank is attached. P1.</summary>
     [ExportGroup("Hazards")]
     [Export(PropertyHint.Range, "0,1,0.0001")] public float CryoLeakChancePerSec { get; set; } = 0.002f;
-    /// <summary>Chance per second of a debris warning above 80 km. P1.</summary>
+    /// <summary>Fuel lost by a leaking tank until SealLeak (kg/s). P1.</summary>
+    [Export] public float CryoLeakRateKgPerSec { get; set; } = 3f;
+    /// <summary>Chance per second of a debris warning above DebrisMinAltitudeM. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float DebrisChancePerSec { get; set; } = 0.001f;
+    /// <summary>Debris warnings only roll above this altitude (m). P1.</summary>
+    [Export] public float DebrisMinAltitudeM { get; set; } = 80000f;
+    /// <summary>Change of horizontal speed that counts as dodging the debris (m/s). P1.</summary>
+    [Export] public float DebrisDodgeSpeedMps { get; set; } = 5f;
     /// <summary>Time the player has to dodge a debris warning (s). P1.</summary>
     [Export] public float DebrisWarningSeconds { get; set; } = 8f;
     /// <summary>Chance per cruise day of a debris warning. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float DebrisChancePerDay { get; set; } = 0.005f;
     /// <summary>Chance per cruise day of a single-event upset. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float SeuChancePerDay { get; set; } = 0.003f;
+    /// <summary>The command pod breaks (JointOverload) above MaxGForce times this factor. P1.</summary>
+    [Export(PropertyHint.Range, "1,5,0.05")] public float PodBreakGFactor { get; set; } = 1.5f;
 
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;
