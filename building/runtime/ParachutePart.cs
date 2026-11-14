@@ -9,6 +9,8 @@ public partial class ParachutePart : RocketPart
 {
     /// <summary>Stowed, Deployed or Cut. Physics may set Broken in State when opened too fast.</summary>
     public ParachuteState ChuteState { get; set; }
+    /// <summary>0..1 how far the deployed canopy has opened (physics advances it over InflationTimeS).</summary>
+    public float InflationFraction { get; set; }
 
     public ParachutePartDefinition ChuteDefinition => Definition as ParachutePartDefinition;
 
@@ -16,6 +18,7 @@ public partial class ParachutePart : RocketPart
     {
         base.ResetRuntimeState();
         ChuteState = ParachuteState.Stowed;
+        InflationFraction = 0f;
     }
 
     /// <summary>Opens if Stowed and no fairing is left in the tree.</summary>
