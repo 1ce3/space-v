@@ -108,7 +108,8 @@ public partial class PhysicsCoordinator : Node
 
         // 7-8. Heating, hazards (P1).
         output.HeatFlux = _thermal.CalculateHeatFlux(output.Air.Density, speed);
-        output.Thermal = _thermal.Step(input.Parts, output.HeatFlux, input.DeltaTime);
+        Vector2 velDirBody = speed > 0.01f ? velBody / speed : Vector2.Zero;
+        output.Thermal = _thermal.Step(input.Parts, output.HeatFlux, input.DeltaTime, velDirBody, com, output.Air.Temperature);
         _events.AddRange(Hazards.Evaluate(input, output));
 
         // 9. Totals.
