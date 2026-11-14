@@ -36,8 +36,9 @@ public class FailureDetector
     /// <summary>Breaks part when contactSpeed is above its ImpactToleranceMps. Returns true when it broke.</summary>
     public bool MonitorImpact(RocketPart part, float contactSpeed)
     {
-        // TODO(B3): compare with part.ImpactToleranceMps once A's RocketPart is on main.
-        return false;
+        if (part == null || contactSpeed <= part.ImpactToleranceMps) return false;
+        TriggerBreak(part, FailureCause.Collision);
+        return true;
     }
 
     /// <summary>Raises BreakTriggered, then asks StructuralBreakHandler to cut the part. At most one Break per tick.</summary>
