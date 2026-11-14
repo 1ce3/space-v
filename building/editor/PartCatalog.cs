@@ -98,6 +98,24 @@ public partial class PartCatalog : Node
     /// <summary>Phase 2: every loaded material.</summary>
     public List<MaterialDefinition> GetAllMaterials() => new(_materials.Values);
 
+    /// <summary>A12: materials the player may use: tier 0, or listed in an unlocked tech node. Sorted by tier.</summary>
+    public List<MaterialDefinition> GetUnlockedMaterials()
+    {
+        TechTreeManager tree = ResearchCampaignEngine.Instance?.TechTree;
+        var result = new List<MaterialDefinition>();
+        foreach (MaterialDefinition m in _materials.Values)
+            if (m.Tier <= 0 || tree == null || tree.IsUnlocked(m.MaterialId)) result.Add(m);
+        result.Sort((a, b) => a.Tier != b.Tier ? a.Tier.CompareTo(b.Tier) : string.CompareOrdinal(a.MaterialId, b.MaterialId));
+        return result;
+    }
+
+    /// <summary>A12: the material a part of this definition gets for materialId (empty = its default); null when it takes none.</summary>
+    public MaterialDefinition ResolveMaterial(PartDefinition def, string materialId)
+    {
+        if (def == null || !def.AcceptsMaterial) return null;
+        return GetMaterial(string.IsNullOrEmpty(materialId) ? def.DefaultMaterialId : materialId) ?? GetMaterial(def.DefaultMaterialId);
+    }
+
     private void LoadMaterials(string folder)
     {
         _materials.Clear();
@@ -152,7 +170,7 @@ public partial class PartCatalog : Node
         }
 
         foreach (string id in known)
-            if (!_byId.ContainsKey(id)) problems.Add($"tech tree unlocks '{id}' but there is no .tres for it");
+            if (!_byId.ContainsKey(id) && GetMaterial(id) == null) problems.Add($"tech tree unlocks '{id}' but there is no .tres for it");
         foreach (string id in _byId.Keys)
             if (!known.Contains(id)) problems.Add($"'{id}' has a .tres but no starter entry or tech node unlocks it");
         return problems;

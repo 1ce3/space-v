@@ -9,5 +9,5 @@ DisplayName = "Frame III"
 Tier = 3
 CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_frame")
-UnlocksModelIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("mat_cfrp", "pod_mk3")
 BuildWeightBonus = 10

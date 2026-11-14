@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/MaterialDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+MaterialId = "mat_titanium"
+DisplayName = "Titan"
+Tier = 3
+BuildWeightCost = 2
+MassMultiplier = 0.95
+MaxTempBonusK = 400.0
+RadiationShielding = 0.2
+ImpactToleranceMultiplier = 1.4
+StrengthMultiplier = 1.2
+Tint = Color(0.75, 0.78, 0.85, 1)

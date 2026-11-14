@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/MaterialDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+MaterialId = "mat_alli2195"
+DisplayName = "Nhôm-Liti 2195"
+Tier = 1
+BuildWeightCost = 1
+MassMultiplier = 0.85
+MaxTempBonusK = 0.0
+RadiationShielding = 0.1
+ImpactToleranceMultiplier = 1.0
+StrengthMultiplier = 1.0
+Tint = Color(0.9, 0.92, 1.0, 1)

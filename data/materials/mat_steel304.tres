@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/MaterialDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+MaterialId = "mat_steel304"
+DisplayName = "Thép 304"
+Tier = 1
+BuildWeightCost = 0
+MassMultiplier = 1.4
+MaxTempBonusK = 300.0
+RadiationShielding = 0.25
+ImpactToleranceMultiplier = 1.5
+StrengthMultiplier = 1.3
+Tint = Color(0.7, 0.72, 0.75, 1)

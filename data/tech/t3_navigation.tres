@@ -9,5 +9,5 @@ DisplayName = "Navigation"
 Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t1_avionics")
-UnlocksModelIds = PackedStringArray("startracker_st1", "rcs_r1")
+UnlocksModelIds = PackedStringArray("startracker_st1", "rcs_r1", "comms_c2")
 BuildWeightBonus = 0

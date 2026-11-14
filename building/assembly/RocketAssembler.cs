@@ -51,7 +51,7 @@ public class RocketAssembler
                     errors.Add($"Không có part '{entry.ModelId}'.");
                     continue;
                 }
-                weight += def.BuildWeight;
+                weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlace(def, entry.Cell))
                 {
                     errors.Add($"{Name(def)} ở ô {CellText(entry.Cell)} đặt sai chỗ (chồng ô, ra ngoài lưới hoặc hàng xóm không hợp lệ).");
@@ -101,7 +101,7 @@ public class RocketAssembler
                     errors.Add($"Không có bộ tách tầng '{entry.ModelId}'.");
                     continue;
                 }
-                weight += def.BuildWeight;
+                weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlaceDecoupler(def, entry.Edge))
                 {
                     errors.Add($"Bộ tách tầng ở cạnh {EdgeText(entry.Edge)} không nằm giữa hai part tiếp xúc (hoặc bị trùng).");
@@ -176,6 +176,7 @@ public class RocketAssembler
                 continue;
             }
             RocketPart part = RocketPart.Create(def);
+            part.Material = PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId);
             part.Cell = entry.Cell;
             grid.Occupy(part);
             parts.Add(part);
@@ -188,6 +189,7 @@ public class RocketAssembler
                 continue;
             }
             var decoupler = (DecouplerPart)RocketPart.Create(def);
+            decoupler.Material = PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId);
             if (!grid.AddDecoupler(decoupler, entry.Edge))
             {
                 GD.PushWarning($"[Building] RocketAssembler: second decoupler on edge {entry.Edge} ignored");
@@ -465,7 +467,7 @@ public class RocketAssembler
             joint.Decouplers.Add(decoupler);
             decoupler.Joint = joint;
             tree.Add(decoupler);
-            joint.Strength += decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f;
+            joint.Strength += (decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f) * (decoupler.Material?.StrengthMultiplier ?? 1f);
         }
         if (joint.Decouplers.Count == 0)
         {

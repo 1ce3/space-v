@@ -28,11 +28,49 @@ public partial class DecouplerVisual : PartVisual
         if (MeshRoot != null && part is DecouplerPart decoupler && (decoupler.Edge.Side == Side.Right || decoupler.Edge.Side == Side.Left))
             MeshRoot.RotationDegrees = new Vector3(0f, 0f, 90f);
         HasSeparated = part is DecouplerPart { Joint.IsSeparated: true };
+        if (part is DecouplerPart { Edge.Side: Side.Top }) EnsureShell();
+    }
+
+    // ------------------------------------------------------------------ A12: interstage shell
+
+    /// <summary>Interstage shell around a stacked decoupler: width of the stage, this share of a cell tall.</summary>
+    [Export(PropertyHint.Range, "0.1,1,0.05")] public float ShellHeightCells { get; set; } = 0.5f;
+    /// <summary>Shell radius as a share of half a cell (slightly wider than the tanks).</summary>
+    [Export(PropertyHint.Range, "0.8,1.3,0.01")] public float ShellRadiusFactor { get; set; } = 1.06f;
+    [Export] public Color ShellDefaultColor { get; set; } = new(0.75f, 0.77f, 0.8f);
+
+    private MeshInstance3D _shell;
+    private StandardMaterial3D _shellMaterial;
+    private RocketGame.Building.MaterialDefinition _shellMaterialDef;
+
+    private void EnsureShell()
+    {
+        if (_shell != null) return;
+        float cell = RocketPart.GetCellSize();
+        float r = 0.5f * cell * ShellRadiusFactor;
+        _shellMaterial = new StandardMaterial3D { AlbedoColor = ShellDefaultColor, Roughness = 0.6f };
+        // Children of the root (not MeshRoot): sizes are in meters.
+        _shell = new MeshInstance3D
+        {
+            Name = "InterstageShell",
+            Mesh = new CylinderMesh { TopRadius = r, BottomRadius = r, Height = ShellHeightCells * cell, RadialSegments = 24 },
+            MaterialOverride = _shellMaterial,
+        };
+        AddChild(_shell);
+        UpdateShellColor();
+    }
+
+    private void UpdateShellColor()
+    {
+        if (_shell == null || Part == null) return;
+        _shellMaterialDef = Part.Material;
+        _shellMaterial.AlbedoColor = _shellMaterialDef != null ? ShellDefaultColor * _shellMaterialDef.Tint : ShellDefaultColor;
     }
 
     protected override void UpdateVisual(float deltaTime)
     {
         base.UpdateVisual(deltaTime);
+        if (_shell != null && Part.Material != _shellMaterialDef) UpdateShellColor();
         if (!HasSeparated && Part is DecouplerPart { Joint.IsSeparated: true }) PlaySeparation();
         if (_flashT < 0f) return;
 

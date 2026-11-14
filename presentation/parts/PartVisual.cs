@@ -98,7 +98,13 @@ public partial class PartVisual : Node3D
     /// <summary>Per-frame refresh from Part state. Subclasses call base.</summary>
     protected virtual void UpdateVisual(float deltaTime)
     {
-        float max = Part.Definition?.MaxSafeTempK ?? 0f;
+        // A12: hull material tint (tanks, pod, decouplers); repainting on the build screen updates it live.
+        if (Part.Material != _appliedMaterial)
+        {
+            _appliedMaterial = Part.Material;
+            SetBaseColor(_appliedMaterial != null ? GroupColor * _appliedMaterial.Tint : GroupColor);
+        }
+        float max = Part.GetEffectiveMaxSafeTempK();
         ApplyThermalOverlay(max > 0f ? Part.TempK / max : 0f, Part.State);
     }
 
@@ -106,6 +112,8 @@ public partial class PartVisual : Node3D
     protected Color BaseColor => _baseColor;
 
     /// <summary>Changes the base color (e.g. heat shield charring); the thermal overlay is applied on top.</summary>
+    private RocketGame.Building.MaterialDefinition _appliedMaterial;
+
     protected void SetBaseColor(Color color)
     {
         _baseColor = color;

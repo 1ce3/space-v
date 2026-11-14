@@ -87,6 +87,7 @@ public partial class BuildingSystem : Node
         Grid.Occupy(part);
         Design.AddPart(modelId, cell);
         Budget.Add(def);
+        Budget.AddWeight(part.MaterialWeight);
         if (DebugLog) GD.Print($"[Building] Placed {modelId} at {cell} ({Budget.CurrentWeight}/{Budget.MaxWeight})");
         EmitSignal(SignalName.PartPlaced, part);
         EmitSignal(SignalName.DesignChanged);
@@ -102,6 +103,7 @@ public partial class BuildingSystem : Node
         Grid.Vacate(part);
         Design.PartEntries.RemoveAll(e => e.ModelId == part.ModelId && e.Cell == part.Cell);
         Budget.Remove(part.Definition);
+        Budget.AddWeight(-part.MaterialWeight);
         if (part is CommandPodPart) ClearModules();
         RemoveOrphanDecouplers();
 
@@ -148,6 +150,77 @@ public partial class BuildingSystem : Node
         return true;
     }
 
+    // ------------------------------------------------------------------ A12: hull materials
+
+    /// <summary>Signal-free check: the part covering cell takes a material, the material is unlocked and the budget allows it.</summary>
+    public bool CanSetPartMaterial(Vector2I cell, string materialId) => CanSetMaterial(Grid.GetPartAt(cell), materialId);
+
+    /// <summary>Gives the part covering cell this material (weight difference charged). False when not allowed.</summary>
+    public bool SetPartMaterial(Vector2I cell, string materialId)
+    {
+        RocketPart part = Grid.GetPartAt(cell);
+        if (!CanSetMaterial(part, materialId)) return false;
+        ApplyMaterial(part, materialId);
+        RocketDesign.PartEntry entry = Design.PartEntries.Find(e => e.ModelId == part.ModelId && e.Cell == part.Cell);
+        if (entry != null) entry.MaterialId = materialId;
+        EmitSignal(SignalName.DesignChanged);
+        return true;
+    }
+
+    /// <summary>Gives the decoupler on edge (its interstage shell) this material.</summary>
+    public bool SetDecouplerMaterial(Edge edge, string materialId)
+    {
+        DecouplerPart decoupler = Grid.GetDecouplerAt(edge);
+        if (!CanSetMaterial(decoupler, materialId)) return false;
+        ApplyMaterial(decoupler, materialId);
+        Edge normalized = BuildGrid.Normalize(edge);
+        RocketDesign.DecouplerEntry entry = Design.DecouplerEntries.Find(e => e.Edge == normalized);
+        if (entry != null) entry.MaterialId = materialId;
+        EmitSignal(SignalName.DesignChanged);
+        return true;
+    }
+
+    /// <summary>Gives every hull part and decoupler this material when the whole change fits the budget. Returns how many changed.</summary>
+    public int ApplyMaterialToAll(string materialId)
+    {
+        MaterialDefinition material = Catalog?.GetMaterial(materialId);
+        if (material == null || !IsMaterialUnlocked(materialId)) return 0;
+        var targets = new List<RocketPart>();
+        foreach (RocketPart p in Grid.Parts) if ((p.Definition as PartDefinition)?.AcceptsMaterial == true) targets.Add(p);
+        foreach (DecouplerPart d in Grid.Decouplers) if ((d.Definition as PartDefinition)?.AcceptsMaterial == true) targets.Add(d);
+        int extra = 0;
+        foreach (RocketPart p in targets) extra += material.BuildWeightCost - p.MaterialWeight;
+        if (extra > Budget.Remaining) return 0;
+        int changed = 0;
+        foreach (RocketPart p in targets)
+        {
+            if (p.Material == material) continue;
+            if (p is DecouplerPart d) SetDecouplerMaterial(d.Edge, materialId);
+            else SetPartMaterial(p.Cell, materialId);
+            changed++;
+        }
+        return changed;
+    }
+
+    /// <summary>True when the player may use this material (tier 0 or unlocked by research).</summary>
+    public bool IsMaterialUnlocked(string materialId) => Catalog?.GetUnlockedMaterials().Exists(m => m.MaterialId == materialId) == true;
+
+    private bool CanSetMaterial(RocketPart part, string materialId)
+    {
+        if (part == null || (part.Definition as PartDefinition)?.AcceptsMaterial != true) return false;
+        MaterialDefinition material = Catalog?.GetMaterial(materialId);
+        if (material == null || !IsMaterialUnlocked(materialId)) return false;
+        return material.BuildWeightCost - part.MaterialWeight <= Budget.Remaining;
+    }
+
+    private void ApplyMaterial(RocketPart part, string materialId)
+    {
+        Budget.AddWeight(-part.MaterialWeight);
+        part.Material = Catalog.GetMaterial(materialId);
+        Budget.AddWeight(part.MaterialWeight);
+        if (DebugLog) GD.Print($"[Building] {part.ModelId} at {part.Cell}: material {materialId} ({Budget.CurrentWeight}/{Budget.MaxWeight})");
+    }
+
     /// <summary>True when the edge can take a decoupler and the budget allows it.</summary>
     public bool CanPlaceDecoupler(string modelId, Edge edge) =>
         Catalog?.GetDefinition(modelId) is DecouplerPartDefinition def && Grid.CanPlaceDecoupler(def, edge) && Budget.CanAfford(def);
@@ -157,11 +230,13 @@ public partial class BuildingSystem : Node
         if (!CanPlaceDecoupler(modelId, edge)) return false;
         var def = (DecouplerPartDefinition)Catalog.GetDefinition(modelId);
         var decoupler = (DecouplerPart)RocketPart.Create(def);
+        decoupler.Material = Catalog?.ResolveMaterial(def, "");
         Grid.AddDecoupler(decoupler, edge);
         decoupler.Cell = decoupler.Edge.Cell;
         AddPreviewNode(decoupler);
         Design.AddDecoupler(modelId, edge);
         Budget.Add(def);
+        Budget.AddWeight(decoupler.MaterialWeight);
         EmitSignal(SignalName.PartPlaced, decoupler);
         EmitSignal(SignalName.DesignChanged);
         return true;
@@ -174,6 +249,7 @@ public partial class BuildingSystem : Node
         Edge normalized = BuildGrid.Normalize(edge);
         Design.DecouplerEntries.RemoveAll(e => e.Edge == normalized);
         Budget.Remove(decoupler.Definition);
+        Budget.AddWeight(-decoupler.MaterialWeight);
         EmitSignal(SignalName.PartRemoved, decoupler);
         decoupler.QueueFree();
         EmitSignal(SignalName.DesignChanged);
@@ -372,9 +448,15 @@ public partial class BuildingSystem : Node
         if (design == null) return;
         int skipped = 0;
         foreach (RocketDesign.PartEntry e in design.PartEntries)
+        {
             if (!IsUnlocked(e.ModelId) || !PlacePart(e.ModelId, e.Cell)) skipped++;
+            else if (!string.IsNullOrEmpty(e.MaterialId) && !SetPartMaterial(e.Cell, e.MaterialId)) skipped++;
+        }
         foreach (RocketDesign.DecouplerEntry e in design.DecouplerEntries)
+        {
             if (!IsUnlocked(e.ModelId) || !PlaceDecoupler(e.ModelId, e.Edge)) skipped++;
+            else if (!string.IsNullOrEmpty(e.MaterialId) && !SetDecouplerMaterial(e.Edge, e.MaterialId)) skipped++;
+        }
         foreach (RocketDesign.ModuleEntry e in design.ModuleEntries)
             if (!IsUnlocked(e.ModelId) || !(e.Cell == PodInventory.Unplaced ? InstallModule(e.ModelId) : InstallModule(e.ModelId, e.Cell))) skipped++;
         if (skipped > 0) GD.PushWarning($"[Building] LoadDesign: {skipped} entries could not be restored");
@@ -391,6 +473,7 @@ public partial class BuildingSystem : Node
     private RocketPart CreatePreview(PartDefinition def, Vector2I cell)
     {
         RocketPart part = RocketPart.Create(def);
+        part.Material = Catalog?.ResolveMaterial(def, "");
         part.Cell = cell;
         AddPreviewNode(part);
         return part;

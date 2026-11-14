@@ -53,6 +53,22 @@ public partial class BuildCursor : Node3D
     /// <summary>Palette selection (part or decoupler ModelId), or null.</summary>
     public string SelectedModelId { get; private set; }
     public bool DecouplerMode { get; private set; }
+    /// <summary>A12: hull material brush. Set: left click paints the part under the mouse (Tab mode: the decoupler on the hovered edge).</summary>
+    public string MaterialBrushId { get; private set; }
+    [Signal] public delegate void MaterialBrushChangedEventHandler(string materialId);
+
+    public void SetMaterialBrush(string materialId)
+    {
+        materialId = string.IsNullOrEmpty(materialId) ? null : materialId;
+        if (MaterialBrushId == materialId) return;
+        MaterialBrushId = materialId;
+        if (materialId != null)
+        {
+            SelectedModelId = null;
+            RebuildGhost();
+        }
+        EmitSignal(SignalName.MaterialBrushChanged, materialId ?? "");
+    }
     /// <summary>Cell under the mouse, if any.</summary>
     public Vector2I? HoverCell { get; private set; }
 
@@ -114,6 +130,7 @@ public partial class BuildCursor : Node3D
             return;
         }
         SetDecouplerMode(false);
+        SetMaterialBrush(null);
         SelectedModelId = modelId;
         RebuildGhost();
         EmitSignal(SignalName.SelectionChanged, modelId ?? "");
@@ -124,6 +141,7 @@ public partial class BuildCursor : Node3D
         SelectedModelId = null;
         RebuildGhost();
         SetDecouplerMode(false);
+        SetMaterialBrush(null);
         EmitSignal(SignalName.SelectionChanged, "");
     }
 
@@ -171,7 +189,12 @@ public partial class BuildCursor : Node3D
         }
         else if (@event.IsActionPressed("build_place"))
         {
-            if (!DecouplerMode && SelectedModelId == null && HoverCell is Vector2I grab && Building.Grid.GetPartAt(grab) is RocketPart grabbed)
+            if (MaterialBrushId != null)
+            {
+                if (DecouplerMode) { if (_hoverEdge is Edge e) Building.SetDecouplerMaterial(e, MaterialBrushId); }
+                else if (HoverCell is Vector2I paint) Building.SetPartMaterial(paint, MaterialBrushId);
+            }
+            else if (!DecouplerMode && SelectedModelId == null && HoverCell is Vector2I grab && Building.Grid.GetPartAt(grab) is RocketPart grabbed)
             {
                 BeginDrag(grabbed, grab);
             }
@@ -307,7 +330,8 @@ public partial class BuildCursor : Node3D
         if (_hoverTime < TooltipDelay) return;
         if (!_tooltip.Visible)
         {
-            _tooltipLabel.Text = part.Definition?.GetFormattedTooltip() ?? part.ModelId;
+            _tooltipLabel.Text = (part.Definition?.GetFormattedTooltip() ?? part.ModelId) +
+                (part.Material != null ? $"\nVật liệu: {part.Material.DisplayName}" : "");
             _tooltip.Size = Vector2.Zero; // shrink to the new text
             _tooltip.Visible = true;
         }

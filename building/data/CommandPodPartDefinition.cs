@@ -16,6 +16,7 @@ public partial class CommandPodPartDefinition : PartDefinition
     public CommandPodPartDefinition()
     {
         PartGroup = PartGroup.CommandPod;
+        AcceptsMaterial = true;
     }
 
 

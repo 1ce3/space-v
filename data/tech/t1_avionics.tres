@@ -9,5 +9,5 @@ DisplayName = "Basic Avionics"
 Tier = 1
 CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
-UnlocksModelIds = PackedStringArray("imu_g2", "wheel_rw1")
+UnlocksModelIds = PackedStringArray("imu_g2", "wheel_rw1", "comms_c1", "fuel_f1")
 BuildWeightBonus = 0

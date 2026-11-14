@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/MaterialDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+MaterialId = "mat_cfrp"
+DisplayName = "Sợi carbon CFRP"
+Tier = 2
+BuildWeightCost = 1
+MassMultiplier = 0.7
+MaxTempBonusK = -100.0
+RadiationShielding = 0.05
+ImpactToleranceMultiplier = 0.8
+StrengthMultiplier = 1.1
+Tint = Color(0.35, 0.36, 0.4, 1)

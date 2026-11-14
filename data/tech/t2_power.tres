@@ -9,5 +9,5 @@ DisplayName = "Power Systems"
 Tier = 2
 CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_avionics")
-UnlocksModelIds = PackedStringArray("solar_s1", "battery_b2")
+UnlocksModelIds = PackedStringArray("solar_s1", "battery_b2", "rad_x1")
 BuildWeightBonus = 0

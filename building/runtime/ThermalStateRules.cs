@@ -22,7 +22,7 @@ public static class ThermalStateRules
         if (def == null || c.State == ComponentState.Broken) return;
 
         float t = c.TempK;
-        float max = def.MaxSafeTempK;
+        float max = c is RocketPart part ? part.GetEffectiveMaxSafeTempK() : def.MaxSafeTempK; // A12: hull material bonus
         float min = def.MinSafeTempK;
 
         if (t > BreakFactor * max) c.State = ComponentState.Broken;

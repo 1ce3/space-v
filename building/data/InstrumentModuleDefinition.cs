@@ -22,4 +22,14 @@ public partial class InstrumentModuleDefinition : ModuleDefinition
     {
         SlotType = ModuleSlotType.Comms;
     }
+
+    public override string GetFormattedTooltip()
+    {
+        string t = base.GetFormattedTooltip();
+        if (WarningLeadSeconds > 0f) t += $"\nCảnh báo thiên thạch trước {WarningLeadSeconds:0} s";
+        if (AllowsAutoDodge) t += "\nTự né (cần RCS)";
+        if (FlareWarningDays > 0f) t += $"\nBáo bão mặt trời trước {FlareWarningDays:0} ngày";
+        if (LeakReduction > 0f) t += $"\nGiảm rò rỉ {LeakReduction:P0}";
+        return t;
+    }
 }
