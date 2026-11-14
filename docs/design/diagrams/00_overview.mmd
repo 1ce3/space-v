@@ -1,0 +1,17 @@
+flowchart LR
+    RES["Research / Tech tree<br/>ResearchCampaignEngine<br/>TechTreeManager"]
+    BLD["Rocket building<br/>BuildingSystem<br/>RocketAssembler"]
+    CTL["Control system<br/>GameFlowManager, FlightDirector<br/>VehicleRoot, FlightControlSubsystem"]
+    PHY["Physics engine<br/>PhysicsCoordinator<br/>solvers, FailureDetector"]
+    CORE[("Shared data<br/>ComponentDefinition .tres<br/>enums, SaveGame")]
+
+    RES -- "ModelId unlocked, MaxBuildWeight, MissionDefinition" --> BLD
+    BLD -- "AssembledRocket" --> CTL
+    CTL -- "PhysicsStepInput" --> PHY
+    PHY -- "PhysicsStepOutput: forces, PartLoads, FlightEvents" --> CTL
+    CTL -- "FlightResult" --> RES
+
+    CORE -.-> RES
+    CORE -.-> BLD
+    CORE -.-> CTL
+    CORE -.-> PHY

@@ -1,0 +1,135 @@
+classDiagram
+    direction TB
+
+    %% ==========================================
+    %% SHARED DATA: one definition tree for parts and modules
+    %% Replaces ComponentStats (tech tree) + PartDefinition (building)
+    %% ==========================================
+    class ComponentDefinition {
+        <<abstract Resource>>
+        +string ModelId
+        +string DisplayName
+        +int Tier
+        +int BuildWeight
+        +float DryMass
+        +float PowerDrawW
+        +float MaxSafeTempK
+        +float MinSafeTempK
+        +Texture2D Icon
+        +GetFormattedTooltip() string
+    }
+
+    class PartDefinition {
+        <<abstract>>
+        +PartGroup PartGroup
+        +Vector2I Footprint
+        +Dictionary AllowedNeighbors
+        +float FrontalArea
+        +float SideArea
+        +float DragCoefficient
+        +float MaxShear
+        +float MaxBending
+        +float ImpactToleranceMps
+        +PackedScene Scene
+    }
+
+    class StructuralPartDefinition {
+        +float AttachmentStrength
+    }
+    class DecouplerPartDefinition {
+        +float EjectionImpulse
+    }
+    class FuelTankPartDefinition {
+        +FuelType PropellantType
+        +float FuelCapacity
+        +float FuelDensity
+    }
+    class EnginePartDefinition {
+        <<abstract>>
+        +float MaxThrustVac
+        +float IspVacuum
+        +float IspSeaLevel
+        +float GimbalRangeDeg
+        +GetMaxThrustSeaLevel() float
+        +GetMassFlowRate() float
+    }
+    class LiquidEnginePartDefinition {
+        +FuelType PropellantType
+        +float MinThrottle
+        +int MaxIgnitions
+    }
+    class SolidBoosterPartDefinition {
+        +float PropellantMass
+        +Curve BurnCurve
+    }
+    class AeroSurfacePartDefinition {
+        +float LiftCoefficient
+        +float PlanformArea
+        +float MaxDeflectionDeg
+    }
+    class CommandPodPartDefinition {
+        +Dictionary ModuleSlots
+        +float MaxGForce
+    }
+    class FairingPartDefinition {
+        +float AttachmentStrength
+        +float MaxDynamicPressure
+    }
+
+    class HeatShieldPartDefinition {
+        +float MaxAblatorKg
+        +float HeatOfAblationJPerKg
+    }
+    class ParachutePartDefinition {
+        +float DeployedDragArea
+        +float MaxDeployDynamicPressure
+        +float MaxDeployMach
+    }
+
+    class ModuleDefinition {
+        <<abstract>>
+        +ModuleSlotType SlotType
+    }
+    class AcsModuleDefinition {
+        +AcsDeviceKind Kind
+        +float ControlAuthority
+        +float ResponseLatencyMs
+        +float SensorAccuracyArcsec
+        +float MaxMomentumStorageNms
+        +float DriftRateDegPerMin
+        +float MonopropCapacityKg
+        +SasMode[] EnabledSasModes
+    }
+    class ThermalModuleDefinition {
+        +ThermalDeviceKind Kind
+        +float ThermalConductivity
+        +float MaxHeatRejectionW
+        +float ReflectiveEfficiency
+        +float HeaterOutputW
+    }
+    class PowerModuleDefinition {
+        +PowerDeviceKind Kind
+        +float NominalOutputW
+        +float EnergyStorageWh
+        +float WasteHeatW
+        +float DegradationRatePerYear
+    }
+
+    ComponentDefinition <|-- PartDefinition
+    ComponentDefinition <|-- ModuleDefinition
+
+    PartDefinition <|-- StructuralPartDefinition
+    StructuralPartDefinition <|-- DecouplerPartDefinition
+    PartDefinition <|-- FuelTankPartDefinition
+    PartDefinition <|-- EnginePartDefinition
+    EnginePartDefinition <|-- LiquidEnginePartDefinition
+    EnginePartDefinition <|-- SolidBoosterPartDefinition
+    PartDefinition <|-- AeroSurfacePartDefinition
+    PartDefinition <|-- CommandPodPartDefinition
+    PartDefinition <|-- FairingPartDefinition
+    PartDefinition <|-- HeatShieldPartDefinition
+    PartDefinition <|-- ParachutePartDefinition
+
+    ModuleDefinition <|-- AcsModuleDefinition
+    ModuleDefinition <|-- ThermalModuleDefinition
+    ModuleDefinition <|-- PowerModuleDefinition
