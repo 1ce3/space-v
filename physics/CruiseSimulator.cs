@@ -22,6 +22,8 @@ public class CruiseSimulator
     public bool HasTransferBurned { get; private set; }
     /// <summary>Solar flux of the last StepDay (W/m^2).</summary>
     public float CurrentSolarFluxWm2 { get; private set; }
+    /// <summary>Seed of the daily hazard dice, to replay a bug.</summary>
+    public ulong HazardSeed { get; set; } = 54321;
 
     private PartTree _parts;
     private MissionSegmentDefinition _segment;
@@ -34,6 +36,8 @@ public class CruiseSimulator
     private readonly List<string> _frozen = new();
     private readonly List<LiquidEnginePart> _engines = new();
     private readonly HashSet<FuelTankPart> _tanks = new();
+    private readonly HashSet<FlightEventType> _activeHazards = new();
+    private readonly RandomNumberGenerator _rng = new();
 
     /// <summary>Starts the cruise with the vehicle as it is now.</summary>
     public void Begin(PartTree parts, MissionSegmentDefinition segment, CelestialBodyDefinition origin, CelestialBodyDefinition destination)
@@ -49,6 +53,8 @@ public class CruiseSimulator
             : new PhysicsSettings();
         _power = new PowerSolver(Settings);
         _thermal = new ThermalSolver(Settings);
+        _activeHazards.Clear();
+        _rng.Seed = HazardSeed;
         CurrentSolarFluxWm2 = _origin?.SolarFluxWm2 ?? FallbackSolarFluxWm2;
     }
 
@@ -109,7 +115,7 @@ public class CruiseSimulator
         if (thermal.FrozenComponents != null) _frozen.AddRange(thermal.FrozenComponents);
 
         AdvanceModules();
-        // TODO(B6): DebrisWarning and SeuGlitch rolls with DebrisChancePerDay / SeuChancePerDay when the segment enables them.
+        RollDailyHazards(power, thermal);
 
         return new CruiseStepResult
         {
@@ -123,6 +129,38 @@ public class CruiseSimulator
             BrokenComponents = _broken,
             FrozenComponents = _frozen,
         };
+    }
+
+    /// <summary>Control has handled this hazard; it may fire again.</summary>
+    public void Acknowledge(FlightEventType type) => _activeHazards.Remove(type);
+
+    /// <summary>
+    /// Daily incidents, only for types the segment enables and each once until Acknowledge (guide B 5 step 5):
+    /// PowerBrownout and ComponentOverheat from today's result, DebrisWarning and SeuGlitch by chance per day.
+    /// The simulator only reports them; CruiseController (C) decides what the player must do.
+    /// </summary>
+    private void RollDailyHazards(PowerStepResult power, ThermalStepResult thermal)
+    {
+        CommandPodPart pod = PowerSolver.FindPod(_parts);
+        if (power.IsBrownout) AddHazard(FlightEventType.PowerBrownout, 1f, pod?.ModelId);
+        if (thermal.OverheatedComponents is { Count: > 0 }) AddHazard(FlightEventType.ComponentOverheat, 0.5f, thermal.OverheatedComponents[0]);
+        if (_rng.Randf() < (Settings?.DebrisChancePerDay ?? 0f)) AddHazard(FlightEventType.DebrisWarning, 1f, "");
+        if (_rng.Randf() < (Settings?.SeuChancePerDay ?? 0f)) AddHazard(FlightEventType.SeuGlitch, 0.5f, RandomAvionicsId(pod));
+    }
+
+    private void AddHazard(FlightEventType type, float severity, string sourceId)
+    {
+        FlightEventMask enabled = _segment?.EnabledHazards ?? FlightEventMask.None;
+        if ((enabled & HazardMonitor.ToMask(type)) == 0 || _activeHazards.Contains(type)) return;
+        _activeHazards.Add(type);
+        _events.Add(new FlightEvent { Type = type, Severity = severity, SourceId = sourceId ?? "" });
+    }
+
+    private string RandomAvionicsId(CommandPodPart pod)
+    {
+        if (pod == null) return "";
+        var avionics = pod.Modules.FindAll(m => m.Definition?.SlotType == ModuleSlotType.Avionics);
+        return avionics.Count > 0 ? avionics[_rng.RandiRange(0, avionics.Count - 1)].ModelId : pod.ModelId;
     }
 
     /// <summary>IMU drift (reset by a working star tracker) and RTG ageing.</summary>

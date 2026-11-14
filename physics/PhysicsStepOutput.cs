@@ -33,4 +33,6 @@ public struct PhysicsStepOutput
     public List<FlightEvent> Events;
     /// <summary>Thermal summary of this tick.</summary>
     public ThermalStepResult Thermal;
+    /// <summary>Electric balance of this tick (P1): supply, demand, battery, brownout.</summary>
+    public PowerStepResult Power;
 }
