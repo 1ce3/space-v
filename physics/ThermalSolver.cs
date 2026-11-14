@@ -16,6 +16,7 @@ public class ThermalSolver
     private readonly PhysicsSettings _settings;
     private readonly List<string> _overheated = new();
     private readonly List<string> _broken = new();
+    private readonly List<string> _frozen = new();
     private readonly List<RocketPart> _brokenParts = new();
     private readonly Dictionary<RocketPart, ComponentState> _stateBefore = new();
 
@@ -70,11 +71,78 @@ public class ThermalSolver
         return result;
     }
 
-    /// <summary>One cruise day: equilibrium temperature of the pod and its modules.</summary>
-    public ThermalStepResult SolveSteadyState(PartTree parts, float solarFluxWm2)
+    /// <summary>
+    /// One cruise day (guide B 5 step 3): equilibrium temperature of the pod and its modules.
+    /// Q_in = flux * Absorptivity * PodCrossAreaM2 + RTG WasteHeatW + RHU HeaterOutputW + electricLoadW;
+    /// eps = BaseEmissivity * (1 - best working insulation efficiency); extended radiators reject MaxHeatRejectionW on top;
+    /// T = ((Q_in - rejected) / (eps * sigma * PodRadiatingAreaM2))^(1/4). The pod and every module get T, then ThermalStateRules.
+    /// electricLoadW = power actually used that day (PowerStepResult.ConsumedW).
+    /// </summary>
+    public ThermalStepResult SolveSteadyState(PartTree parts, float solarFluxWm2, float electricLoadW = 0f)
     {
-        // TODO(B5): Q_in / (eps sigma A) ^ 1/4, insulation, RHU, radiator, ThermalStateRules.
-        return NewResult();
+        ThermalStepResult result = NewResult();
+        CommandPodPart pod = PowerSolver.FindPod(parts);
+        if (pod == null)
+        {
+            result.LowestTempRatio = 1f;
+            return result;
+        }
+
+        float heatIn = Mathf.Max(0f, solarFluxWm2) * (_settings?.Absorptivity ?? 0.5f) * (_settings?.PodCrossAreaM2 ?? 3.1f)
+            + Mathf.Max(0f, electricLoadW);
+        float insulation = 0f;
+        float rejected = 0f;
+        foreach (PodModule module in pod.Modules)
+        {
+            switch (module)
+            {
+                case RtgModule rtg when rtg.State != ComponentState.Broken:
+                    heatIn += rtg.PowerDefinition?.WasteHeatW ?? 0f;
+                    break;
+                case RadioisotopeHeaterModule rhu when rhu.State != ComponentState.Broken:
+                    heatIn += rhu.EmitConstantDecayHeat();
+                    break;
+                case PassiveInsulationModule mli when mli.IsHealthy:
+                    float efficiency = (mli.ThermalDefinition?.ReflectiveEfficiency ?? 0f) * (1f - Mathf.Clamp(mli.CurrentDegradation, 0f, 1f));
+                    insulation = Mathf.Max(insulation, efficiency);
+                    break;
+                case ActiveRadiatorModule radiator:
+                    rejected += radiator.GetHeatRejectionW();
+                    break;
+            }
+        }
+
+        float emissivity = Mathf.Max(0.01f, (_settings?.BaseEmissivity ?? 0.8f) * (1f - Mathf.Clamp(insulation, 0f, 1f)));
+        float area = Mathf.Max(0.01f, _settings?.PodRadiatingAreaM2 ?? 12f);
+        float net = Mathf.Max(1f, heatIn - rejected);
+        float temp = Mathf.Pow(net / (emissivity * FlightMath.StefanBoltzmann * area), 0.25f);
+
+        SetSteadyTemp(pod, temp, ref result);
+        foreach (PodModule module in pod.Modules) SetSteadyTemp(module, temp, ref result);
+        if (result.LowestTempRatio == float.MaxValue) result.LowestTempRatio = 1f;
+        return result;
+    }
+
+    private void SetSteadyTemp(IFlightComponent c, float temp, ref ThermalStepResult result)
+    {
+        ComponentState before = c.State;
+        c.TempK = temp;
+        ThermalStateRules.Evaluate(c);
+
+        float max = c.BaseDefinition?.MaxSafeTempK ?? 0f;
+        float min = c.BaseDefinition?.MinSafeTempK ?? 0f;
+        if (max > 0f) result.MaxTempRatio = Mathf.Max(result.MaxTempRatio, temp / max);
+        if (min > 0f) result.LowestTempRatio = Mathf.Min(result.LowestTempRatio, temp / min);
+
+        if (c.State == before) return;
+        string id = c.BaseDefinition?.ModelId ?? "";
+        if (c.State == ComponentState.Overheated) _overheated.Add(id);
+        if (c.State == ComponentState.Frozen) _frozen.Add(id);
+        if (c.State == ComponentState.Broken)
+        {
+            _broken.Add(id);
+            if (c is RocketPart part) _brokenParts.Add(part);
+        }
     }
 
     private bool BaseFirst(Vector2 velDirBody)
@@ -172,9 +240,11 @@ public class ThermalSolver
     {
         _overheated.Clear();
         _broken.Clear();
+        _frozen.Clear();
         _brokenParts.Clear();
         return new ThermalStepResult
         {
+            FrozenComponents = _frozen,
             LowestTempRatio = float.MaxValue,
             OverheatedComponents = _overheated,
             BrokenComponents = _broken,

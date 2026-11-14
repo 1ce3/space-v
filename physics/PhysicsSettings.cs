@@ -46,8 +46,8 @@ public partial class PhysicsSettings : Resource
     /// <summary>Fraction of the pod PowerDrawW used during cruise (0..1).</summary>
     [ExportGroup("Cruise")]
     [Export(PropertyHint.Range, "0,1,0.01")] public float CruiseDutyFactor { get; set; } = 0.3f;
-    /// <summary>Solar absorptivity of the pod surface (0..1).</summary>
-    [Export(PropertyHint.Range, "0,1,0.01")] public float Absorptivity { get; set; } = 0.3f;
+    /// <summary>Solar absorptivity of the pod surface (0..1). 0.5 makes an uninsulated pod freeze in the second half of the cruise (guide B 5 goal).</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float Absorptivity { get; set; } = 0.5f;
     /// <summary>Emissivity of the pod before insulation (0..1).</summary>
     [Export(PropertyHint.Range, "0,1,0.01")] public float BaseEmissivity { get; set; } = 0.8f;
     /// <summary>Pod area facing the Sun (m^2).</summary>
