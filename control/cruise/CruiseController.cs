@@ -188,11 +188,26 @@ public partial class CruiseController : Node
         if (step.Events == null) return;
         foreach (FlightEvent e in step.Events)
         {
-            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e.Type)}");
+            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e)}");
             _sim.Acknowledge(e.Type);
             if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
         }
+        if (step.DamagedModules is { Count: > 0 })
+            Hud.ShowMessage($"Ngày {step.Day}: thiết bị hỏng: {string.Join(", ", step.DamagedModules)}");
     }
+
+    /// <summary>B11/B12: text of a cruise event, with the flare warning (Severity 0) and the damaged parts.</summary>
+    public static string EventText(FlightEvent e) => e.Type switch
+    {
+        FlightEventType.SolarFlare when e.Severity < 1f => $"cảm biến {e.SourceId} báo bão mặt trời sắp tới",
+        FlightEventType.SolarFlare => "bão mặt trời" + (string.IsNullOrEmpty(e.SourceId) ? ", không thiết bị nào hỏng" : ""),
+        FlightEventType.InstrumentFailure => $"lỗi thiết bị {e.SourceId}",
+        FlightEventType.CryoLeak => $"bình {e.SourceId} bị rò (bấm V để bịt)",
+        FlightEventType.HullBreach => "thủng vỏ khoang lái (bấm V để bịt)",
+        FlightEventType.EngineFlameout => $"động cơ {e.SourceId} tắt giữa chừng, đã đốt lại",
+        FlightEventType.MeteorField => "phía trước có bãi thiên thạch",
+        _ => EventText(e.Type),
+    };
 
     /// <summary>Solar arrays on attached pods that are (or are not) deployed.</summary>
     private int CountSolarArrays(bool deployed)
