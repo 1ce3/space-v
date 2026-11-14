@@ -17,3 +17,5 @@ SpeedOfSoundMps = 230.0
 AtmosphereTopM = 120000.0
 SuttonGravesConstant = 0.00019
 SolarFluxWm2 = 590.0
+
+;https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html

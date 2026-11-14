@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AcsModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/AcsModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "imu_g1"
+DisplayName = "IMU G1"
+Tier = 0
+BuildWeight = 1
+DryMass = 15.0
+PowerDrawW = 20.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 0
+Kind = 0
+SensorAccuracyArcsec = 1800.0
+DriftRateDegPerMin = 0.2
+ResponseLatencyMs = 80.0
+EnabledSasModes = 1

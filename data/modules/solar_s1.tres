@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PowerModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/PowerModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "solar_s1"
+DisplayName = "Pin mặt trời S1"
+Tier = 2
+BuildWeight = 1
+DryMass = 25.0
+PowerDrawW = 0.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 2
+Kind = 1
+NominalOutputW = 300.0

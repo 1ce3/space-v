@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BuildSettings" format=3]
+
+[ext_resource type="Script" path="res://building/data/BuildSettings.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+CellSize = 2.0
+GridWidth = 9
+GridHeight = 16
+GhostValidColor = Color(0.3, 1, 0.4, 0.5)
+GhostInvalidColor = Color(1, 0.3, 0.3, 0.5)

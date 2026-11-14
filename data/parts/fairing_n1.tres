@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="FairingPartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/FairingPartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "fairing_n1"
+DisplayName = "Chóp bảo vệ N1"
+Tier = 0
+BuildWeight = 1
+DryMass = 120.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1500.0
+MinSafeTempK = 200.0
+PartGroup = 1
+Footprint = Vector2i(1, 1)
+AllowedTop = 0
+AllowedBottom = 5
+AllowedSides = 0
+FrontalArea = 3.1
+SideArea = 4.0
+DragCoefficient = 0.25
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+AttachmentStrength = 100000.0
+MaxDynamicPressure = 60000.0

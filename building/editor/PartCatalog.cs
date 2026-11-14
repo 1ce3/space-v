@@ -13,6 +13,7 @@ public partial class PartCatalog : Node
     public static PartCatalog Instance { get; private set; }
 
     [Export] public BuildSettings Settings { get; set; }
+    [Export] public bool DebugLog { get; set; }
 
     [ExportGroup("Folders")]
     [Export(PropertyHint.Dir)] public string PartsFolder { get; set; } = "res://data/parts";
@@ -25,7 +26,48 @@ public partial class PartCatalog : Node
     public override void _EnterTree()
     {
         Instance = this;
-        // TODO(A5): load every .tres in PartsFolder and ModulesFolder into _byId.
+        if (Settings == null)
+        {
+            GD.PushWarning("[Building] PartCatalog: Settings not set, using BuildSettings defaults");
+            Settings = new BuildSettings();
+        }
+        _byId.Clear();
+        LoadFolder(PartsFolder);
+        LoadFolder(ModulesFolder);
+        if (DebugLog) GD.Print($"[Building] PartCatalog: {_byId.Count} definitions loaded");
+    }
+
+    /// <summary>Loads every .tres of a folder whose resource is a ComponentDefinition.</summary>
+    private void LoadFolder(string folder)
+    {
+        using DirAccess dir = DirAccess.Open(folder);
+        if (dir == null)
+        {
+            GD.PushError($"[Building] PartCatalog: cannot open {folder}");
+            return;
+        }
+
+        foreach (string rawName in dir.GetFiles())
+        {
+            // Exported builds list "x.tres.remap"; the loader resolves the original path.
+            string fileName = rawName.EndsWith(".remap") ? rawName[..^".remap".Length] : rawName;
+            if (!fileName.EndsWith(".tres")) continue;
+
+            string path = folder.TrimEnd('/') + "/" + fileName;
+            if (ResourceLoader.Load(path) is not ComponentDefinition def)
+            {
+                GD.PushError($"[Building] PartCatalog: {path} is not a ComponentDefinition");
+                continue;
+            }
+
+            string expectedId = fileName[..^".tres".Length];
+            if (def.ModelId != expectedId)
+                GD.PushWarning($"[Building] PartCatalog: {path} has ModelId '{def.ModelId}' (expected '{expectedId}')");
+            if (string.IsNullOrEmpty(def.ModelId)) continue;
+            if (_byId.ContainsKey(def.ModelId))
+                GD.PushError($"[Building] PartCatalog: duplicate ModelId '{def.ModelId}' ({path})");
+            _byId[def.ModelId] = def;
+        }
     }
 
     public override void _ExitTree()

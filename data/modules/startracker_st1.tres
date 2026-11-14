@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AcsModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/AcsModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "startracker_st1"
+DisplayName = "Cảm biến sao ST1"
+Tier = 3
+BuildWeight = 1
+DryMass = 10.0
+PowerDrawW = 15.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 0
+Kind = 1
+SensorAccuracyArcsec = 5.0
+DriftRateDegPerMin = 0.0
+ResponseLatencyMs = 200.0
+EnabledSasModes = 15
