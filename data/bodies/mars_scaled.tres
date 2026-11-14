@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_body")
 BodyId = "mars_scaled"
-DisplayName = "Sao Hỏa"
+DisplayName = "Mars"
 Mass = 5.692e+21
 Radius = 320000.0
 UsesLayerTable = false

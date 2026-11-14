@@ -46,6 +46,14 @@ public partial class ResearchTest : Node
 		GD.Print($"[Research] Flight 2 (same): {campaign.ProcessMissionEnd(failed)} (expect 60 + 0 + 0 = 60)");
 		GD.Print($"[Research] RP now {campaign.CurrentRP} (expect 205), complete = {campaign.IsCampaignComplete()}");
 
+		// Simulate a restart: read user://save.json with a fresh SaveGame, as the autoload does in _Ready.
+		var reloaded = new SaveGame();
+		Check("save file loads", reloaded.Load(), true);
+		Check($"saved RP = {reloaded.CurrentRP} (expect {campaign.CurrentRP})", reloaded.CurrentRP == campaign.CurrentRP, true);
+		Check("saved nodes keep t1_heavy and t2_main_engine",
+			reloaded.UnlockedNodes.Contains("t1_heavy") && reloaded.UnlockedNodes.Contains("t2_main_engine"), true);
+		Check("saved failure Thermal:HeatShield", reloaded.DiscoveredFailures.Count == 1, true);
+
 		if (ResetSaveAfter) campaign.ResetSave();
 	}
 

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "t3_edl"
-DisplayName = "Vào khí quyển và hạ cánh"
+DisplayName = "Entry, Descent and Landing"
 Tier = 3
 CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_upper_stage")

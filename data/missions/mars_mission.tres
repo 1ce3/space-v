@@ -9,6 +9,6 @@
 [resource]
 script = ExtResource("1_mission")
 MissionId = "mars_mission"
-DisplayName = "Đưa robot lên sao Hỏa"
+DisplayName = "Robot to Mars"
 PayloadMassKg = 300.0
 Segments = Array[ExtResource("2_segscript")]([ExtResource("3_seg1"), ExtResource("4_seg2"), ExtResource("5_seg3")])

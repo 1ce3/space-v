@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_seg")
 SegmentId = "seg_mars_edl"
-DisplayName = "Vào khí quyển và đáp sao Hỏa"
+DisplayName = "Mars Entry and Landing"
 Kind = 2
 Body = ExtResource("2_body")
 RewardRP = 0

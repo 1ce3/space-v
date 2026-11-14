@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/b/ResearchScreenTest.cs" id="1_test"]
+[ext_resource type="PackedScene" path="res://scenes/research_screen.tscn" id="2_screen"]
+
+[node name="ResearchScreenTest" type="Node"]
+script = ExtResource("1_test")
+Screen = ExtResource("2_screen")

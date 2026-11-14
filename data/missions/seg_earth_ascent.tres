@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_seg")
 SegmentId = "seg_earth_ascent"
-DisplayName = "Phóng từ Trái Đất"
+DisplayName = "Earth Ascent"
 Kind = 0
 Body = ExtResource("2_body")
 RewardRP = 60
