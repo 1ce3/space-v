@@ -20,7 +20,7 @@ public partial class HeatShieldPart : RocketPart
         AblatorRemainingKg = ShieldDefinition?.MaxAblatorKg ?? 0f;
     }
 
-    public override float GetCurrentMass() => DryMass + AblatorRemainingKg;
+    public override float GetCurrentMass() => GetEffectiveDryMass() + AblatorRemainingKg;
 
     /// <summary>Ablator fraction left, 0..1.</summary>
     public float GetAblatorFraction()

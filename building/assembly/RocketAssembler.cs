@@ -465,16 +465,13 @@ public class RocketAssembler
             joint.Decouplers.Add(decoupler);
             decoupler.Joint = joint;
             tree.Add(decoupler);
-            joint.Strength += decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f;
+            joint.Strength += decoupler.GetEffectiveAttachmentStrength();
         }
         if (joint.Decouplers.Count == 0)
         {
-            joint.Strength = child.Definition switch
-            {
-                FairingPartDefinition f => f.AttachmentStrength,
-                ParachutePartDefinition c => c.AttachmentStrength,
-                _ => 0f,
-            };
+            joint.Strength = child.Definition is FairingPartDefinition or ParachutePartDefinition
+                ? child.GetEffectiveAttachmentStrength()
+                : 0f;
         }
         return joint;
     }
