@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Research;
 
@@ -34,6 +35,8 @@ public partial class PhysicsCoordinator : Node
     private ThermalSolver _thermal;
     private PowerSolver _power;
     private readonly List<PartLoad> _partLoads = new();
+    private readonly List<PartLoad> _bodyLoads = new();
+    private readonly Dictionary<RocketPart, Vector2> _loadByPart = new();
     private readonly List<FlightEvent> _events = new();
 
     public override void _Ready()
@@ -64,6 +67,7 @@ public partial class PhysicsCoordinator : Node
             : new ExponentialAtmosphereModel(CurrentBody);
         _gravity.Configure(CurrentBody);
         _thermal.Configure(CurrentBody);
+        _aerodynamics.Reset();
         Hazards.Configure(segment);
         GD.Print($"[Physics] Initialized for {segment.SegmentId} on {CurrentBody.BodyId}");
     }
@@ -72,38 +76,139 @@ public partial class PhysicsCoordinator : Node
     public PhysicsStepOutput ExecutePhysicsStep(PhysicsStepInput input)
     {
         _partLoads.Clear();
+        _bodyLoads.Clear();
+        _loadByPart.Clear();
         _events.Clear();
         var output = new PhysicsStepOutput { PartLoads = _partLoads, Events = _events };
         if (_atmosphere == null || input.Mass.TotalMass <= 0f) return output;
 
         Failures.BeginTick();
         float rot = input.BodyRotationRad;
+        Vector2 com = input.Mass.CenterOfMass;
         float speed = input.LinearVelocity.Length();
         output.AltitudeMeters = _gravity.GetAltitude(input.Position);
         output.Air = _atmosphere.Sample(output.AltitudeMeters);
 
-        // TODO(B2): shielding (step 2).
-        ThrustStepResult thrust = _propulsion.Solve(input.Parts, output.Air.Pressure, input.Mass.CenterOfMass, input.DeltaTime);
-        Vector2 airVelBody = FlightMath.BodyToWorld(-input.LinearVelocity, -rot);
-        AeroResult aero = _aerodynamics.Solve(input.Parts, airVelBody, output.Air, input.Mass.CenterOfMass);
-        output.GravityForce = _gravity.CalculateGravityForce(input.Position, input.Mass.TotalMass);
-        // TODO(B2): reaction wheel and RCS torque (step 6).
+        // 1-2. Shielding from the flow direction.
+        Vector2 velBody = FlightMath.BodyToWorld(input.LinearVelocity, -rot);
+        UpdateShielding(input.Parts, velBody, speed);
 
+        // 3-4. Thrust and aero, vehicle-local frame.
+        ThrustStepResult thrust = _propulsion.Solve(input.Parts, output.Air.Pressure, com, input.DeltaTime, _bodyLoads, _events);
+        AeroResult aero = _aerodynamics.Solve(input.Parts, -velBody, output.Air, com, _bodyLoads);
+
+        // 5. Gravity at the center of mass, world frame.
+        output.GravityForce = _gravity.CalculateGravityForce(input.Position, input.Mass.TotalMass);
+
+        // 6. Reaction wheels and RCS.
+        Vector2 rcsForceBody = Vector2.Zero;
+        float moduleTorque = 0f;
+        float monopropUsed = 0f;
+        if (input.Parts != null) SolveAttitudeModules(input.Parts, input.DeltaTime, ref moduleTorque, ref rcsForceBody, ref monopropUsed);
+
+        // 7-8. Heating, hazards (P1).
         output.HeatFlux = _thermal.CalculateHeatFlux(output.Air.Density, speed);
         output.Thermal = _thermal.Step(input.Parts, output.HeatFlux, input.DeltaTime);
         _events.AddRange(Hazards.Evaluate(input, output));
 
-        output.NetForce = FlightMath.BodyToWorld(thrust.ThrustForceVector + aero.Force, rot) + output.GravityForce;
-        output.NetTorqueZ = thrust.TorqueZ + aero.TorqueZ;
-        output.ConsumedMass = thrust.MassBurnedKg + thrust.MassLeakedKg;
-        output.DynamicPressure = _aerodynamics.CalculateDynamicPressure(output.Air.Density, speed);
-        output.MachNumber = output.Air.SpeedOfSound > 0f ? speed / output.Air.SpeedOfSound : 0f;
+        // 9. Totals.
+        output.NetForce = FlightMath.BodyToWorld(thrust.ThrustForceVector + aero.Force + rcsForceBody, rot) + output.GravityForce;
+        output.NetTorqueZ = thrust.TorqueZ + aero.TorqueZ + moduleTorque;
+        output.ConsumedMass = thrust.MassBurnedKg + thrust.MassLeakedKg + monopropUsed;
+        output.DynamicPressure = aero.DynamicPressure;
+        output.MachNumber = aero.MachNumber;
         output.CurrentGForce = (output.NetForce - output.GravityForce).Length() / (input.Mass.TotalMass * FlightMath.G0);
+        CollectPartLoads(rot);
 
         if (DebugLog)
         {
-            GD.Print($"[Physics] alt {output.AltitudeMeters:F0} m, q {output.DynamicPressure:F0} Pa, F {output.NetForce}");
+            GD.Print($"[Physics] alt {output.AltitudeMeters:F0} m, q {output.DynamicPressure:F0} Pa, F {output.NetForce}, tau {output.NetTorqueZ:F0}");
         }
         return output;
+    }
+
+    /// <summary>Fairing shields its parts when flying nose first; heat shield when flying base first (guide B 4.3 step 2).</summary>
+    private void UpdateShielding(PartTree parts, Vector2 velBody, float speed)
+    {
+        if (parts == null) return;
+        foreach (RocketPart part in parts.ActiveParts) part.IsShielded = false;
+        if (speed <= 1f) return;
+
+        float cone = Mathf.DegToRad(Settings.ShieldingConeDeg);
+        float angleFromUp = new Vector2(0f, 1f).AngleTo(velBody);
+        bool noseFirst = Mathf.Abs(angleFromUp) < cone;
+        bool baseFirst = Mathf.Pi - Mathf.Abs(angleFromUp) < cone;
+
+        foreach (RocketPart part in parts.ActiveParts)
+        {
+            if (noseFirst && part is FairingPart fairing) ShieldAll(fairing.ShieldedParts, parts);
+            else if (baseFirst && part is HeatShieldPart shield) ShieldAll(shield.ShieldedParts, parts);
+        }
+    }
+
+    private static void ShieldAll(List<RocketPart> shielded, PartTree parts)
+    {
+        foreach (RocketPart part in shielded)
+        {
+            if (parts.ActiveParts.Contains(part)) part.IsShielded = true;
+        }
+    }
+
+    /// <summary>Reaction wheel and RCS torque, RCS side force and monopropellant use (guide B 4.3.3). Body frame.</summary>
+    private void SolveAttitudeModules(PartTree parts, float dt, ref float torque, ref Vector2 sideForce, ref float monopropUsed)
+    {
+        float rcsExhaustSpeed = Settings.RcsIsp * FlightMath.G0;
+        foreach (CommandPodPart pod in parts.GetParts<CommandPodPart>())
+        {
+            foreach (ReactionWheelModule wheel in pod.GetModules<ReactionWheelModule>())
+            {
+                if (!wheel.CanOperate()) continue;
+                torque += WheelTorque(wheel, dt);
+            }
+            foreach (RcsThrusterModule rcs in pod.GetModules<RcsThrusterModule>())
+            {
+                if (!rcs.IsEnabled || !rcs.CanOperate() || rcs.MonopropRemainingKg <= 0f) continue;
+                float authority = rcs.GetMaxTorque();
+                float tau = rcs.CommandedTorque * authority;
+                float side = rcs.TranslateCommand * authority;
+                float lever = Mathf.Max(Settings.RcsLeverArmM, 0.01f);
+                float used = Mathf.Min((Mathf.Abs(tau) / lever + Mathf.Abs(side)) / rcsExhaustSpeed * dt, rcs.MonopropRemainingKg);
+                rcs.MonopropRemainingKg -= used;
+                monopropUsed += used;
+                torque += tau;
+                sideForce += new Vector2(side, 0f);
+            }
+        }
+    }
+
+    /// <summary>Wheel torque; momentum builds up and torque in the saturated direction is dropped.</summary>
+    private static float WheelTorque(ReactionWheelModule wheel, float dt)
+    {
+        float max = wheel.AcsDefinition?.MaxMomentumStorageNms ?? 0f;
+        float tau = wheel.CommandedTorque * wheel.GetMaxTorque();
+        if (max <= 0f) return tau;
+        bool sameDirection = Mathf.Sign(tau) == Mathf.Sign(wheel.StoredMomentumNms) && tau != 0f;
+        if (Mathf.Abs(wheel.StoredMomentumNms) >= max && sameDirection)
+        {
+            wheel.IsSaturated = true;
+            return 0f;
+        }
+        wheel.StoredMomentumNms = Mathf.Clamp(wheel.StoredMomentumNms + tau * dt, -max, max);
+        wheel.IsSaturated = Mathf.Abs(wheel.StoredMomentumNms) >= max;
+        return tau;
+    }
+
+    /// <summary>Thrust + aero per part, rotated to world, one entry per part.</summary>
+    private void CollectPartLoads(float rot)
+    {
+        foreach (PartLoad load in _bodyLoads)
+        {
+            _loadByPart.TryGetValue(load.Part, out Vector2 sum);
+            _loadByPart[load.Part] = sum + load.Force;
+        }
+        foreach (KeyValuePair<RocketPart, Vector2> pair in _loadByPart)
+        {
+            _partLoads.Add(new PartLoad { Part = pair.Key, Force = FlightMath.BodyToWorld(pair.Value, rot) });
+        }
     }
 }
