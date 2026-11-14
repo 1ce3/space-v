@@ -15,6 +15,10 @@ public static class ThermalStateRules
     /// <summary>J/(kg*K) used for HeatCapacityJPerK = DryMass * this.</summary>
     public const float SpecificHeat = 900f;
 
+    /// <summary>MaxSafeTempK with the hull material of a part (B9); modules use the definition value.</summary>
+    public static float MaxSafeTemp(IFlightComponent c) =>
+        c is RocketPart part ? part.GetEffectiveMaxSafeTempK() : c?.BaseDefinition?.MaxSafeTempK ?? 0f;
+
     /// <summary>Updates c.State from c.TempK.</summary>
     public static void Evaluate(IFlightComponent c)
     {
@@ -23,6 +27,7 @@ public static class ThermalStateRules
 
         float t = c.TempK;
         float max = c is RocketPart part ? part.GetEffectiveMaxSafeTempK() : def.MaxSafeTempK; // A12: hull material bonus
+        float max = MaxSafeTemp(c);
         float min = def.MinSafeTempK;
 
         if (t > BreakFactor * max) c.State = ComponentState.Broken;

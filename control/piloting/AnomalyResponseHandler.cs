@@ -80,6 +80,13 @@ public partial class AnomalyResponseHandler : Node
                 if (tank.LeakRateKgPerSec > 0f) tank.SealLeak();
             Resolve(leak);
         }
+        if (input.SealLeakPressed)
+        {
+            // B12: V also seals a hull breach left by a meteor hit.
+            foreach (CommandPodPart pod in _tree?.GetParts<CommandPodPart>() ?? new())
+                if (pod.IsHullBreached) pod.SealHullBreach();
+            if (Find(FlightEventType.HullBreach) is ActiveAnomaly breach) Resolve(breach);
+        }
         if (input.SasTogglePressed && Find(FlightEventType.SeuGlitch) is ActiveAnomaly seu)
         {
             IsSafeModeActive = false;

@@ -34,6 +34,9 @@ public partial class ResearchTest : Node
 		Check("buy t2_upper_stage (80, only 10 RP left)", tree.PurchaseNode("t2_upper_stage"), false);
 		Check("buy t3_edl (prerequisite missing)", tree.CanPurchase("t3_edl"), false);
 		Check("engine_lv2 unlocked", tree.IsUnlocked("engine_lv2"), true);
+		Check("fuel_kerolox owned from the start (B10)", tree.UnlockedNodes.Contains("fuel_kerolox"), true);
+		Check("t2_upper_stage also needs fuel_hydrolox (B10)", System.Array.IndexOf(tree.GetNode("t2_upper_stage").PrerequisiteNodeIds, "fuel_hydrolox") >= 0, true);
+		Check("t3_lander needs fuel_methalox, t3_navigation needs fuel_monoprop (B10)", System.Array.IndexOf(tree.GetNode("t3_lander").PrerequisiteNodeIds, "fuel_methalox") >= 0 && System.Array.IndexOf(tree.GetNode("t3_navigation").PrerequisiteNodeIds, "fuel_monoprop") >= 0, true);
 		GD.Print($"[Research] RP now {campaign.CurrentRP} (expect 10)");
 
 		var failed = new FlightResult

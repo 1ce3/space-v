@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "fuel_hydrolox"
+DisplayName = "Hydrolox Propellant"
+Tier = 2
+CostRP = 40
+PrerequisiteNodeIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray()
+BuildWeightBonus = 0

@@ -10,6 +10,6 @@ DisplayName = "Cruise to Mars"
 Kind = 1
 Body = ExtResource("2_body")
 RewardRP = 80
-EnabledHazards = 768
+EnabledHazards = 16258
 RequiredDeltaVMps = 800.0
 DurationDays = 210.0

@@ -8,5 +8,5 @@ NodeId = "t3_lander"
 DisplayName = "Lander"
 Tier = 3
 CostRP = 100
-PrerequisiteNodeIds = PackedStringArray("t3_edl")
+PrerequisiteNodeIds = PackedStringArray("t3_edl", "fuel_methalox")
 UnlocksModelIds = PackedStringArray("engine_land1", "tank_lm1")

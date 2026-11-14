@@ -29,7 +29,7 @@ public partial class RocketPart : Node3D, IFlightComponent
     public bool IsShielded { get; set; }
 
     public ComponentDefinition BaseDefinition => Definition;
-    public float HeatCapacityJPerK => DryMass * ThermalStateRules.SpecificHeat;
+    public float HeatCapacityJPerK => GetEffectiveDryMass() * ThermalStateRules.SpecificHeat;
 
     // Read-only forwards to Definition.
     public string ModelId => Definition?.ModelId ?? "";
@@ -58,6 +58,18 @@ public partial class RocketPart : Node3D, IFlightComponent
     /// <summary>Extra build weight of the material.</summary>
     public int MaterialWeight => Material?.BuildWeightCost ?? 0;
     public float GetRadiationShielding() => Material?.RadiationShielding ?? 0f;
+    /// <summary>B9: joint strength this part brings (decoupler, fairing, parachute) with the material, 0 for other parts.</summary>
+    public float GetEffectiveAttachmentStrength()
+    {
+        float baseStrength = Definition switch
+        {
+            DecouplerPartDefinition d => d.AttachmentStrength,
+            FairingPartDefinition f => f.AttachmentStrength,
+            ParachutePartDefinition c => c.AttachmentStrength,
+            _ => 0f,
+        };
+        return baseStrength * (Material?.StrengthMultiplier ?? 1f);
+    }
 
     /// <summary>Creates the runtime class that matches the definition type (A_BUILDING.md 4.2).</summary>
     public static RocketPart Create(PartDefinition def)
@@ -104,7 +116,7 @@ public partial class RocketPart : Node3D, IFlightComponent
     }
 
     /// <summary>Dry mass plus fuel or propellant (kg).</summary>
-    public virtual float GetCurrentMass() => DryMass;
+    public virtual float GetCurrentMass() => GetEffectiveDryMass();
 
     /// <summary>True while this part is still attached to its tree.</summary>
     public bool IsAttached => Tree != null && Tree.ActiveParts.Contains(this);

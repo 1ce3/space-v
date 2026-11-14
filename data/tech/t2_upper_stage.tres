@@ -8,5 +8,5 @@ NodeId = "t2_upper_stage"
 DisplayName = "Upper Stage"
 Tier = 2
 CostRP = 80
-PrerequisiteNodeIds = PackedStringArray("t2_main_engine")
+PrerequisiteNodeIds = PackedStringArray("t2_main_engine", "fuel_hydrolox")
 UnlocksModelIds = PackedStringArray("engine_vac1", "tank_h1")
