@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_hall_xenon"
+DisplayName = "High-Power Hall Xenon (12.5 kW)"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t3_ionized_xenon")
+UnlocksModelIds = PackedStringArray("eng_aeps")
+BuildWeightBonus = 0
+Category = "Nhiên liệu"

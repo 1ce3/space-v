@@ -9,4 +9,4 @@ DisplayName = "Thermal Control"
 Tier = 3
 CostRP = 70
 PrerequisiteNodeIds = PackedStringArray("t2_power", "t2_pod")
-UnlocksModelIds = PackedStringArray("insulation_i1", "radiator_a1", "rhu_h1", "rad_x2", "mat_titanium", "mat_whipple")
+UnlocksModelIds = PackedStringArray("insulation_i1", "radiator_a1", "rhu_h1")

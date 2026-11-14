@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t5_rf_mass_gauge"
+DisplayName = "Radio Frequency Mass Gauge (RFMG)"
+Tier = 5
+CostRP = 200
+PrerequisiteNodeIds = PackedStringArray("t4_gamma_ray_gauge", "t4_thermal_propellant_gauging")
+UnlocksModelIds = PackedStringArray("mod_rf_mass_gauge")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiên liệu"

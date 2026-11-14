@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_nstar_ion"
+DisplayName = "NSTAR (Ion Thruster)"
+Tier = 3
+CostRP = 90
+PrerequisiteNodeIds = PackedStringArray("t2_rl10")
+UnlocksModelIds = PackedStringArray("eng_nstar_ion")
+BuildWeightBonus = 0
+Category = "Động cơ"

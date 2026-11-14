@@ -22,4 +22,8 @@ public partial class TechNode : Resource
     [Export(PropertyHint.Range, "0,100,1")] public int BuildWeightBonus { get; set; }
     /// <summary>Optional icon for the research screen.</summary>
     [Export] public Texture2D Icon { get; set; }
+    /// <summary>Research screen tab (War Thunder style tree). Empty = ResearchScreenRoot.DefaultCategory(NodeId).</summary>
+    [Export] public string Category { get; set; } = "";
+    /// <summary>Branch inside the tab (e.g. engine stage). Empty = ResearchScreenRoot.DefaultSubCategory(NodeId).</summary>
+    [Export] public string SubCategory { get; set; } = "";
 }

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="InstrumentModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/InstrumentModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "mod_vaisala_barocap"
+DisplayName = "Vaisala Barocap MEMS"
+Tier = 4
+BuildWeight = 1
+DryMass = 3.0
+PowerDrawW = 10.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 220.0
+SlotType = 3
+GridSize = Vector2i(1, 1)
+RadiationResistance = 0.65
+RebootSuccessChance = 0.75
+RebootEnergyWh = 20.0
+Kind = 3
+LeakReduction = 0.7

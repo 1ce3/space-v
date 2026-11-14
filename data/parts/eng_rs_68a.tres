@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "eng_rs_68a"
+DisplayName = "RS-68A"
+Tier = 2
+BuildWeight = 4
+DryMass = 1011.0
+PowerDrawW = 0.0
+MaxSafeTempK = 1200.0
+MinSafeTempK = 200.0
+PartGroup = 5
+Footprint = Vector2i(1, 1)
+AllowedTop = 16
+AllowedBottom = 280
+AllowedSides = 0
+FrontalArea = 3.1
+SideArea = 4.0
+DragCoefficient = 0.3
+MaxShear = 2000000.0
+MaxBending = 2000000.0
+ImpactToleranceMps = 10.0
+PropellantType = 2
+MaxThrustVac = 534000.0
+IspSeaLevel = 362.0
+IspVacuum = 414.0
+GimbalRangeDeg = 6.0
+MinThrottle = 0.55
+MaxIgnitions = 1

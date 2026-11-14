@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t1_rp1_lox"
+DisplayName = "RP-1 + LOX (Kerolox)"
+Tier = 1
+CostRP = 30
+PrerequisiteNodeIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("eng_rd_107", "eng_rd_108", "eng_lr79", "eng_rocketdyne_f1")
+BuildWeightBonus = 0
+Category = "Nhiên liệu"

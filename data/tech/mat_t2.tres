@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "mat_t2"
+DisplayName = "Sợi carbon CFRP"
+Tier = 2
+CostRP = 50
+PrerequisiteNodeIds = PackedStringArray("mat_t1")
+UnlocksModelIds = PackedStringArray("mat_cfrp")
+BuildWeightBonus = 0
+Category = "Vật liệu"

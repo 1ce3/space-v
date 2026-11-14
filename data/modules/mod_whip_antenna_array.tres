@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="InstrumentModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/InstrumentModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "mod_whip_antenna_array"
+DisplayName = "Whip Antenna Array"
+Tier = 1
+BuildWeight = 1
+DryMass = 16.0
+PowerDrawW = 8.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 220.0
+SlotType = 4
+GridSize = Vector2i(1, 2)
+RadiationResistance = 0.1
+RebootSuccessChance = 0.35
+RebootEnergyWh = 20.0
+Kind = 0
+WarningLeadSeconds = 6.0
+AllowsAutoDodge = false

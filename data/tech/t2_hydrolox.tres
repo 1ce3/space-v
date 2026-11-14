@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t2_hydrolox"
+DisplayName = "Hydrolox (LH2 + LOX)"
+Tier = 2
+CostRP = 50
+PrerequisiteNodeIds = PackedStringArray("t1_rp1_lox")
+UnlocksModelIds = PackedStringArray("eng_rocketdyne_j2", "eng_rl10", "eng_rs25_ssme", "eng_vulcain_2", "eng_rs_68a")
+BuildWeightBonus = 0
+Category = "Nhiên liệu"

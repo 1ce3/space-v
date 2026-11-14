@@ -467,7 +467,6 @@ public class RocketAssembler
             joint.Decouplers.Add(decoupler);
             decoupler.Joint = joint;
             tree.Add(decoupler);
-            joint.Strength += (decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f) * (decoupler.Material?.StrengthMultiplier ?? 1f);
             joint.Strength += decoupler.GetEffectiveAttachmentStrength();
         }
         if (joint.Decouplers.Count == 0)

@@ -4,18 +4,18 @@
 
 [resource]
 script = ExtResource("1_script")
-ModelId = "rad_x2"
-DisplayName = "Máy dò hạt X2"
-Tier = 3
+ModelId = "mod_flow_burn_integrator"
+DisplayName = "Flow Rate & Burn Time Integrator"
+Tier = 2
 BuildWeight = 1
-DryMass = 12.0
-PowerDrawW = 8.0
+DryMass = 6.0
+PowerDrawW = 6.0
 MaxSafeTempK = 350.0
 MinSafeTempK = 220.0
 SlotType = 3
-GridSize = Vector2i(1, 2)
-RadiationResistance = 0.6
-RebootSuccessChance = 0.7
+GridSize = Vector2i(1, 1)
+RadiationResistance = 0.25
+RebootSuccessChance = 0.45
 RebootEnergyWh = 20.0
-Kind = 1
-FlareWarningDays = 3.0
+Kind = 2
+LeakReduction = 0.5

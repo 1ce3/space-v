@@ -4,18 +4,18 @@
 
 [resource]
 script = ExtResource("1_script")
-ModelId = "pressure_p1"
-DisplayName = "Cảm biến áp suất P1"
-Tier = 2
+ModelId = "mod_resistive_float_sensor"
+DisplayName = "Resistive Float Sensor"
+Tier = 1
 BuildWeight = 1
-DryMass = 4.0
-PowerDrawW = 2.0
+DryMass = 8.0
+PowerDrawW = 4.0
 MaxSafeTempK = 350.0
 MinSafeTempK = 220.0
 SlotType = 3
 GridSize = Vector2i(1, 1)
-RadiationResistance = 0.25
-RebootSuccessChance = 0.55
+RadiationResistance = 0.1
+RebootSuccessChance = 0.35
 RebootEnergyWh = 20.0
-Kind = 3
-LeakReduction = 0.3
+Kind = 2
+LeakReduction = 0.15

@@ -4,18 +4,19 @@
 
 [resource]
 script = ExtResource("1_script")
-ModelId = "rad_x1"
-DisplayName = "Cảm biến bức xạ X1"
-Tier = 2
+ModelId = "mod_ku_band_tdrs"
+DisplayName = "Ku-Band / TDRS Terminal"
+Tier = 3
 BuildWeight = 1
-DryMass = 5.0
-PowerDrawW = 3.0
+DryMass = 8.0
+PowerDrawW = 16.0
 MaxSafeTempK = 350.0
 MinSafeTempK = 220.0
-SlotType = 3
-GridSize = Vector2i(1, 1)
-RadiationResistance = 0.4
-RebootSuccessChance = 0.55
+SlotType = 4
+GridSize = Vector2i(2, 1)
+RadiationResistance = 0.45
+RebootSuccessChance = 0.6
 RebootEnergyWh = 20.0
-Kind = 1
-FlareWarningDays = 1.0
+Kind = 0
+WarningLeadSeconds = 18.0
+AllowsAutoDodge = false

@@ -163,7 +163,8 @@ public partial class PartRuntimeTest : Node
         tree.PartSevered += (part, cause, impulse) => { severedPart = part; severedCause = cause; severedImpulse = impulse; calls++; };
 
         Check("subtree of tank = tank + engine", tree.GetSubtree(tank).Count == 2);
-        Check("subtree mass of tank = 1450 kg", Near(tree.GetSubtreeMass(tank), 1450f), $"{tree.GetSubtreeMass(tank)}");
+        float expected = tank.GetCurrentMass() + engine.GetCurrentMass();
+        Check($"subtree mass of tank = tank + engine ({expected:0} kg)", Near(tree.GetSubtreeMass(tank), expected), $"{tree.GetSubtreeMass(tank)}");
 
         tree.SeverSubtree(engine, SeverCause.Jettison, 1234f);
         Check("PartSevered emitted once with args", calls == 1 && severedPart == engine && severedCause == SeverCause.Jettison && Near(severedImpulse, 1234f));

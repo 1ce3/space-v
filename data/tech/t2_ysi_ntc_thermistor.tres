@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t2_ysi_ntc_thermistor"
+DisplayName = "YSI 44900 NTC Thermistor"
+Tier = 2
+CostRP = 50
+PrerequisiteNodeIds = PackedStringArray("t1_type_k_thermocouple")
+UnlocksModelIds = PackedStringArray("mod_ysi_ntc_thermistor")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiệt"

@@ -4,19 +4,18 @@
 
 [resource]
 script = ExtResource("1_script")
-ModelId = "comms_c2"
-DisplayName = "Ăng-ten băng X C2"
-Tier = 3
+ModelId = "mod_gamma_ray_gauge"
+DisplayName = "Gamma-Ray Nuclear Gauge"
+Tier = 4
 BuildWeight = 1
-DryMass = 15.0
-PowerDrawW = 15.0
+DryMass = 3.0
+PowerDrawW = 10.0
 MaxSafeTempK = 350.0
 MinSafeTempK = 220.0
-SlotType = 4
-GridSize = Vector2i(2, 1)
-RadiationResistance = 0.3
-RebootSuccessChance = 0.7
+SlotType = 3
+GridSize = Vector2i(1, 1)
+RadiationResistance = 0.65
+RebootSuccessChance = 0.75
 RebootEnergyWh = 20.0
-Kind = 0
-WarningLeadSeconds = 20.0
-AllowsAutoDodge = true
+Kind = 2
+LeakReduction = 0.9
