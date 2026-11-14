@@ -4,7 +4,7 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Throttleable liquid engine fed by FeedTanks.</summary>
+/// <summary>Throttleable, restartable liquid engine fed by FeedTanks.</summary>
 public partial class LiquidEnginePart : EnginePart
 {
     /// <summary>Throttle command 0..1 (Control writes it).</summary>
@@ -29,11 +29,36 @@ public partial class LiquidEnginePart : EnginePart
         Throttle = Mathf.Clamp(value, 0f, 1f);
     }
 
-    /// <summary>Total propellant left in the feed tanks (kg).</summary>
+    /// <summary>Stops burning; the engine can relight while RemainingIgnitions > 0.</summary>
+    public override void Shutdown()
+    {
+        IsIgnited = false;
+    }
+
+    /// <summary>Total propellant left in the attached feed tanks (kg).</summary>
     public float GetAvailableFuel()
     {
         float sum = 0f;
-        foreach (FuelTankPart tank in FeedTanks) sum += tank.CurrentFuel;
+        foreach (FuelTankPart tank in FeedTanks)
+            if (tank.IsAttached) sum += tank.CurrentFuel;
         return sum;
+    }
+
+    /// <summary>True when it could still burn: armed, not broken, ignitions and fuel left.</summary>
+    public bool CanStillFire() =>
+        IsArmed && State != ComponentState.Broken && (IsIgnited || RemainingIgnitions > 0) && GetAvailableFuel() > 0f;
+
+    protected override bool TryConsumeIgnition()
+    {
+        if (RemainingIgnitions <= 0 || GetAvailableFuel() <= 0f) return false;
+        RemainingIgnitions--;
+        return true;
+    }
+
+    /// <summary>Lerp(MinThrottle, 1, Throttle) when Throttle > 0, else 0 (B_PHYSICS_RESEARCH.md 4.3.1).</summary>
+    protected override float GetThrottleFactor()
+    {
+        if (Throttle <= 0f) return 0f;
+        return Mathf.Lerp(LiquidDefinition?.MinThrottle ?? 0f, 1f, Throttle);
     }
 }

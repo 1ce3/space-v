@@ -21,13 +21,18 @@ public partial class ParachutePart : RocketPart
     /// <summary>Opens if Stowed and no fairing is left in the tree.</summary>
     public bool Deploy()
     {
-        // TODO(A1)
-        return false;
+        if (ChuteState != ParachuteState.Stowed || State == ComponentState.Broken) return false;
+        if (Tree != null && Tree.GetParts<FairingPart>().Count > 0) return false;
+        ChuteState = ParachuteState.Deployed;
+        if (State == ComponentState.Idle) State = ComponentState.Active;
+        return true;
     }
 
     /// <summary>Cuts the chute: Cut state, then severs itself (Jettison).</summary>
     public void Cut()
     {
-        // TODO(A1)
+        if (ChuteState == ParachuteState.Cut) return;
+        ChuteState = ParachuteState.Cut;
+        if (IsAttached) Tree.SeverSubtree(this, SeverCause.Jettison);
     }
 }

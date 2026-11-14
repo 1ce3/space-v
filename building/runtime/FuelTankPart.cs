@@ -24,11 +24,20 @@ public partial class FuelTankPart : RocketPart
 
     public override float GetCurrentMass() => DryMass + CurrentFuel;
 
+    /// <summary>Fuel left, 0..1.</summary>
+    public float GetFuelFraction()
+    {
+        float capacity = TankDefinition?.FuelCapacity ?? 0f;
+        return capacity > 0f ? CurrentFuel / capacity : 0f;
+    }
+
     /// <summary>Removes up to amount kg; returns what was actually removed.</summary>
     public float DrainFuel(float amount)
     {
-        // TODO(A1)
-        return 0f;
+        if (amount <= 0f || CurrentFuel <= 0f) return 0f;
+        float drained = Mathf.Min(amount, CurrentFuel);
+        CurrentFuel -= drained;
+        return drained;
     }
 
     /// <summary>Stops the leak.</summary>

@@ -32,7 +32,10 @@ public partial class HeatShieldPart : RocketPart
     /// <summary>Burns ablator to absorb heat; returns the heat that gets through (J).</summary>
     public float Ablate(float heatJoule)
     {
-        // TODO(A1): burn min(heat / HeatOfAblationJPerKg, AblatorRemainingKg); return leftover heat.
-        return heatJoule;
+        float heatPerKg = ShieldDefinition?.HeatOfAblationJPerKg ?? 0f;
+        if (heatJoule <= 0f || heatPerKg <= 0f || AblatorRemainingKg <= 0f) return heatJoule;
+        float burnedKg = Mathf.Min(heatJoule / heatPerKg, AblatorRemainingKg);
+        AblatorRemainingKg -= burnedKg;
+        return heatJoule - burnedKg * heatPerKg;
     }
 }

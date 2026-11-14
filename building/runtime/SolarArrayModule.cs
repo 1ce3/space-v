@@ -6,6 +6,9 @@ namespace RocketGame.Building;
 /// <summary>Deployable solar array; breaks if deployed in dense air.</summary>
 public class SolarArrayModule : PowerModule
 {
+    /// <summary>Flux at which NominalOutputW is rated (W/m^2, Earth orbit).</summary>
+    public const float ReferenceSolarFluxWm2 = 1361f;
+
     public bool IsDeployed { get; private set; }
     /// <summary>Set by physics when deployed above a q limit.</summary>
     public bool IsBrokenByAero { get; set; }
@@ -25,7 +28,7 @@ public class SolarArrayModule : PowerModule
 
     public override float GetOutputW(float dynamicPressure, float solarFluxWm2)
     {
-        // TODO(A1): NominalOutputW * solarFluxWm2 / 1361 when deployed, not broken, operating.
-        return 0f;
+        if (!IsDeployed || IsBrokenByAero || !IsHealthy) return 0f;
+        return (PowerDefinition?.NominalOutputW ?? 0f) * solarFluxWm2 / ReferenceSolarFluxWm2;
     }
 }

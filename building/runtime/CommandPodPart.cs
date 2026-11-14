@@ -22,6 +22,14 @@ public partial class CommandPodPart : RocketPart
         return mass;
     }
 
+    /// <summary>Installs a module (sets its Pod back-reference).</summary>
+    public void AddModule(PodModule module)
+    {
+        if (module == null || Modules.Contains(module)) return;
+        module.Pod = this;
+        Modules.Add(module);
+    }
+
     /// <summary>Installed modules of type T.</summary>
     public List<T> GetModules<T>() where T : PodModule
     {

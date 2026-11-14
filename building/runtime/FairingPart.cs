@@ -15,6 +15,8 @@ public partial class FairingPart : RocketPart
     /// <summary>Unshields ShieldedParts and severs itself (Jettison).</summary>
     public void Jettison()
     {
-        // TODO(A1)
+        if (!IsAttached) return;
+        foreach (RocketPart part in ShieldedParts) part.IsShielded = false;
+        Tree.SeverSubtree(this, SeverCause.Jettison);
     }
 }

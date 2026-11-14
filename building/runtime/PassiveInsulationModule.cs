@@ -11,7 +11,8 @@ public class PassiveInsulationModule : ThermalModule
 
     public override float GetAbsorptionFactor()
     {
-        // TODO(A1): 1 - ReflectiveEfficiency * (1 - CurrentDegradation) when operating.
-        return 1f;
+        if (!IsHealthy) return 1f;
+        float efficiency = ThermalDefinition?.ReflectiveEfficiency ?? 0f;
+        return 1f - efficiency * (1f - Mathf.Clamp(CurrentDegradation, 0f, 1f));
     }
 }

@@ -27,6 +27,12 @@ public partial class DecouplerPart : StructuralPart
     /// <summary>Cuts Joint.ChildPart with the summed EjectionImpulse of the joint's decouplers.</summary>
     public void TriggerSeparation()
     {
-        // TODO(A1): if Joint.CanJettison(): Tree.SeverSubtree(Joint.ChildPart, SeverCause.Jettison, sum of EjectionImpulse).
+        if (Joint == null || Tree == null || !Joint.CanJettison() || Joint.ChildPart == null) return;
+
+        float impulseNs = 0f;
+        foreach (DecouplerPart decoupler in Joint.Decouplers)
+            impulseNs += decoupler.DecouplerDefinition?.EjectionImpulse ?? 0f;
+
+        Tree.SeverSubtree(Joint.ChildPart, SeverCause.Jettison, impulseNs);
     }
 }
