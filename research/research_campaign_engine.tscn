@@ -1,6 +1,31 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://research/ResearchCampaignEngine.cs" id="1"]
+[ext_resource type="Script" path="res://research/ResearchCampaignEngine.cs" id="1_engine"]
+[ext_resource type="Script" path="res://research/TechTreeManager.cs" id="2_tree"]
+[ext_resource type="Script" path="res://research/TechNode.cs" id="3_nodescript"]
+[ext_resource type="Resource" path="res://data/missions/mars_mission.tres" id="4_mission"]
+[ext_resource type="Resource" path="res://data/tech/t1_heavy.tres" id="t0_t1_heavy"]
+[ext_resource type="Resource" path="res://data/tech/t1_avionics.tres" id="t1_t1_avionics"]
+[ext_resource type="Resource" path="res://data/tech/t1_frame.tres" id="t2_t1_frame"]
+[ext_resource type="Resource" path="res://data/tech/t2_main_engine.tres" id="t3_t2_main_engine"]
+[ext_resource type="Resource" path="res://data/tech/t2_upper_stage.tres" id="t4_t2_upper_stage"]
+[ext_resource type="Resource" path="res://data/tech/t2_pod.tres" id="t5_t2_pod"]
+[ext_resource type="Resource" path="res://data/tech/t2_power.tres" id="t6_t2_power"]
+[ext_resource type="Resource" path="res://data/tech/t2_frame.tres" id="t7_t2_frame"]
+[ext_resource type="Resource" path="res://data/tech/t3_thermal.tres" id="t8_t3_thermal"]
+[ext_resource type="Resource" path="res://data/tech/t3_edl.tres" id="t9_t3_edl"]
+[ext_resource type="Resource" path="res://data/tech/t3_lander.tres" id="t10_t3_lander"]
+[ext_resource type="Resource" path="res://data/tech/t3_navigation.tres" id="t11_t3_navigation"]
+[ext_resource type="Resource" path="res://data/tech/t3_frame.tres" id="t12_t3_frame"]
+[ext_resource type="Resource" path="res://data/tech/t4_rtg.tres" id="t13_t4_rtg"]
 
-[node name="ResearchCampaignEngine" type="Node"]
-script = ExtResource("1")
+[node name="ResearchCampaignEngine" type="Node" node_paths=PackedStringArray("TechTree")]
+script = ExtResource("1_engine")
+TechTree = NodePath("TechTreeManager")
+Mission = ExtResource("4_mission")
+
+[node name="TechTreeManager" type="Node" parent="."]
+script = ExtResource("2_tree")
+AllNodes = Array[ExtResource("3_nodescript")]([ExtResource("t0_t1_heavy"), ExtResource("t1_t1_avionics"), ExtResource("t2_t1_frame"), ExtResource("t3_t2_main_engine"), ExtResource("t4_t2_upper_stage"), ExtResource("t5_t2_pod"), ExtResource("t6_t2_power"), ExtResource("t7_t2_frame"), ExtResource("t8_t3_thermal"), ExtResource("t9_t3_edl"), ExtResource("t10_t3_lander"), ExtResource("t11_t3_navigation"), ExtResource("t12_t3_frame"), ExtResource("t13_t4_rtg")])
+StarterModelIds = PackedStringArray("pod_mk1", "tank_s1", "engine_lv1", "booster_s1", "decoupler_d1", "fairing_n1", "fin_f1", "structural_s1", "imu_g1", "battery_b1")
+BaseBuildWeight = 20
