@@ -8,6 +8,7 @@ public partial class DebrisBody : RigidBody3D
     private CelestialBodyDefinition _body;
     private PhysicsSettings _settings;
     private readonly OrbitalGravitySolver _gravity = new();
+    private float _age;
 
     /// <summary>Runtime setup (debris is created in code, so it cannot use exports).</summary>
     public void Initialize(CelestialBodyDefinition body, PhysicsSettings settings)
@@ -34,7 +35,14 @@ public partial class DebrisBody : RigidBody3D
         Vector2 force = _gravity.CalculateGravityForce(position, Mass);
         state.ApplyCentralForce(new Vector3(force.X, force.Y, 0f));
 
-        if (_gravity.GetAltitude(position) < 0f || IsFarFromCamera(origin)) QueueFree();
+        float altitude = _gravity.GetAltitude(position);
+        bool far = IsFarFromCamera(origin);
+        if ((altitude < 0f || far) && !IsQueuedForDeletion())
+        {
+            GD.Print($"[Physics] Debris {Name} removed: {(altitude < 0f ? "below ground" : "far from camera")} (alt {altitude:0} m, age {_age:0.0} s)");
+            QueueFree();
+        }
+        _age += state.Step;
     }
 
     private bool IsFarFromCamera(Vector3 origin)

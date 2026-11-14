@@ -48,6 +48,7 @@ public partial class PhysicsCoordinator : Node
         StressEvaluator = new StructuralStressEvaluator();
         Hazards = new HazardMonitor(Settings, HazardSeed);
         StressEvaluator.PodBreakGFactor = Settings.PodBreakGFactor;
+        StressEvaluator.JointCompressionFactor = Settings.JointCompressionFactor;
         _aerodynamics = new AerodynamicSolver(Settings);
         _gravity = new OrbitalGravitySolver();
         _propulsion = new PropulsionSolver();

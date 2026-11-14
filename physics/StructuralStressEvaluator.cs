@@ -20,6 +20,13 @@ public class StructuralStressEvaluator
     private readonly Dictionary<RocketPart, Vector2> _subtreeLoad = new();
     private readonly Dictionary<RocketPart, Vector2> _subtreeMoment = new();
 
+    /// <summary>
+    /// Share of a compressive joint load counted against joint strength (PhysicsSettings.JointCompressionFactor).
+    /// A joint pushed together (lower stage thrusting into the upper one) is far stronger than one pulled apart;
+    /// 1 counts compression like tension (old behaviour).
+    /// </summary>
+    public float JointCompressionFactor { get; set; } = 0.25f;
+
     /// <summary>The pod breaks above its MaxGForce times this (PhysicsSettings.PodBreakGFactor). 0 turns the check off.</summary>
     public float PodBreakGFactor { get; set; } = 1.5f;
     private static readonly Comparison<StressViolation> WorstFirst = (x, y) => y.Ratio.CompareTo(x.Ratio);
@@ -56,7 +63,7 @@ public class StructuralStressEvaluator
             float lateral = Mathf.Abs(transmitted.Rotated(-input.BodyRotationRad).X);
 
             bool separable = joint.Decouplers.Count > 0 || joint.IsSelfSeparating;
-            if (separable && joint.Strength > 0f) Check(child, FailureCause.JointOverload, transmitted.Length() / joint.Strength);
+            if (separable && joint.Strength > 0f) Check(child, FailureCause.JointOverload, JointLoad(transmitted, input.BodyRotationRad, joint, child) / joint.Strength);
             if (child.MaxShear > 0f) Check(child, FailureCause.Shear, lateral / child.MaxShear);
             if (child.MaxBending > 0f && _subtreeMass[child] > 0f)
             {
@@ -73,6 +80,22 @@ public class StructuralStressEvaluator
             Check(pod, FailureCause.JointOverload, g / (pod.PodDefinition.MaxGForce * PodBreakGFactor));
         }
         if (_report.Violations.Count > 1) _report.Violations.Sort(WorstFirst);
+    }
+
+    /// <summary>
+    /// Joint load (N): tension and the sideways part count fully, compression only by JointCompressionFactor.
+    /// transmitted is the force the parent puts on the child subtree; pointing from parent to child means pushing.
+    /// </summary>
+    private float JointLoad(Vector2 transmitted, float bodyRotationRad, Joint joint, RocketPart child)
+    {
+        Vector2 local = transmitted.Rotated(-bodyRotationRad);
+        Vector2 axis = child.GetLocalPosition() - (joint.ParentPart?.GetLocalPosition() ?? Vector2.Zero);
+        if (axis.LengthSquared() < 1e-6f) return local.Length();
+        axis = axis.Normalized();
+        float along = local.Dot(axis);
+        float sideways = (local - axis * along).Length();
+        float axial = along > 0f ? along * Mathf.Clamp(JointCompressionFactor, 0f, 1f) : -along;
+        return Mathf.Sqrt(axial * axial + sideways * sideways);
     }
 
     /// <summary>Report of the last EvaluateRecursiveLoad. The object is reused every tick.</summary>

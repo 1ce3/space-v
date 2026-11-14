@@ -76,6 +76,8 @@ public partial class PhysicsSettings : Resource
     [Export(PropertyHint.Range, "0,1,0.0001")] public float SeuChancePerDay { get; set; } = 0.003f;
     /// <summary>The command pod breaks (JointOverload) above MaxGForce times this factor. P1.</summary>
     [Export(PropertyHint.Range, "1,5,0.05")] public float PodBreakGFactor { get; set; } = 1.5f;
+    /// <summary>Share of a compressive load a decoupler joint counts against its strength (tension counts fully).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float JointCompressionFactor { get; set; } = 0.25f;
 
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;
