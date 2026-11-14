@@ -1,7 +1,3 @@
-[gd_scene format=3 uid="uid://dw6aixbvsy5im"]
-
-[ext_resource type="Script" path="res://tests/b/CruiseEventTest.cs" id="1_test"]
-[ext_resource type="Resource" uid="uid://d1dca0tfnt3xs" path="res://data/settings/physics_settings.tres" id="2_settings"]
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://tests/b/CruiseEventTest.cs" id="1_test"]
@@ -10,7 +6,6 @@
 [ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="4_earth"]
 [ext_resource type="Resource" path="res://data/bodies/mars_scaled.tres" id="5_mars"]
 
-[node name="CruiseEventTest" type="Node" unique_id=1067625712]
 [node name="CruiseEventTest" type="Node"]
 script = ExtResource("1_test")
 Settings = ExtResource("2_settings")
