@@ -40,7 +40,7 @@ public partial class BuildGridTest : Node
         PartCatalog catalog = PartCatalog.Instance;
         Check("PartCatalog autoload exists", catalog != null);
         if (catalog == null) return;
-        Check("30 definitions loaded", catalog.GetAll().Count == 30, $"{catalog.GetAll().Count}");
+        Check("38 definitions loaded", catalog.GetAll().Count == 38, $"{catalog.GetAll().Count}");
         Check("build_settings loaded (cell 2 m, 9 x 16)",
             catalog.Settings != null && Near(catalog.Settings.CellSize, 2f) && catalog.Settings.GridWidth == 9 && catalog.Settings.GridHeight == 16);
         Check("tank_m1 is a 1x3 Kerolox tank",

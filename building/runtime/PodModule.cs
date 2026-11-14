@@ -100,7 +100,7 @@ public abstract class PodModule : IFlightComponent
     /// Phase 2 (PHASE2_PLAN.md 5.7): one reboot attempt of a Broken module; true when it works again.
     /// Works with Definition.RebootSuccessChance: State back to Idle and powered again. False (and nothing changes)
     /// when the module is not Broken or the roll fails. Energy is drawn by the caller (PowerSolver.TryDrawEnergy)
-    /// and the caller handles the cooldown (cruise 5 days, flight 10 s). rng null = the global generator.
+    /// and the caller handles the cooldown (ModuleReboot). rng null = the global generator.
     /// </summary>
     public virtual bool TryReboot(RandomNumberGenerator rng)
     {
@@ -112,4 +112,7 @@ public abstract class PodModule : IFlightComponent
         IsPowered = true;
         return true;
     }
+
+    /// <summary>Time (seconds, ModuleReboot clock) before the next reboot attempt is allowed.</summary>
+    public float RebootReadyAtS { get; set; }
 }
