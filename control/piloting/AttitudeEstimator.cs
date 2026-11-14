@@ -21,8 +21,11 @@ public partial class AttitudeEstimator : Node
     public bool HasValidAttitude { get; private set; }
     /// <summary>Altitude used for star tracker blinding; set by FlightControlSubsystem each tick.</summary>
     public float CurrentAltitudeM { get; set; }
+    /// <summary>Sensor used at the last update, or null.</summary>
+    public AttitudeSensorModule ActiveSensor { get; private set; }
 
     private PartTree _tree;
+    private SasModeMask _enabledModes = SasModeMask.None;
     private readonly RandomNumberGenerator _rng = new();
 
     public override void _Ready()
@@ -35,21 +38,68 @@ public partial class AttitudeEstimator : Node
     {
         _tree = tree;
         HasValidAttitude = false;
+        ActiveSensor = null;
+        _enabledModes = SasModeMask.None;
+        EstimatedPitchDeg = 90f;
+        EstimatedRateDegPerSec = 0f;
     }
 
     /// <summary>Advances drift and filtering by one tick.</summary>
     public void Update(float truePitchDeg, float trueRateDegPerSec, float deltaTime)
     {
-        // TODO(C4): pick the best operating AttitudeSensorModule, star tracker blinding, IMU drift, Gauss noise,
-        //           low-pass with ResponseLatencyMs. Temporary pass-through so C3 can fly:
-        EstimatedPitchDeg = truePitchDeg;
-        EstimatedRateDegPerSec = trueRateDegPerSec;
+        AttitudeSensorModule best = null;
+        SasModeMask modes = SasModeMask.None;
+        bool starFix = false;
+        float blindAltitude = Settings?.StarTrackerMinAltitudeM ?? 0f;
+
+        if (_tree != null)
+        {
+            foreach (CommandPodPart pod in _tree.GetParts<CommandPodPart>())
+            {
+                if (!pod.IsAttached) continue;
+                foreach (AttitudeSensorModule sensor in pod.GetModules<AttitudeSensorModule>())
+                {
+                    if (sensor is StarTrackerModule tracker) tracker.IsBlinded = CurrentAltitudeM < blindAltitude;
+                    if (!sensor.CanOperate()) continue;
+                    if (sensor is GyroscopeImuModule imu) imu.AccumulatedDriftDeg += imu.DriftRateDegPerMin / 60f * deltaTime;
+                    if (sensor is StarTrackerModule) starFix = true;
+                    modes |= sensor.EnabledSasModes;
+                    if (best == null || sensor.SensorAccuracyArcsec < best.SensorAccuracyArcsec) best = sensor;
+                }
+            }
+
+            // A working star tracker recalibrates every IMU.
+            if (starFix)
+                foreach (CommandPodPart pod in _tree.GetParts<CommandPodPart>())
+                    foreach (GyroscopeImuModule imu in pod.GetModules<GyroscopeImuModule>())
+                        imu.CalibrateWithStarTracker();
+        }
+
+        _enabledModes = modes;
+        bool wasValid = HasValidAttitude;
+        HasValidAttitude = best != null;
+        if (best != ActiveSensor && DebugLog) GD.Print($"[Control] Attitude sensor -> {best?.ModelId ?? "none"}");
+        ActiveSensor = best;
+        if (best == null) return; // hold the last estimate
+
+        float sigmaDeg = best.SensorAccuracyArcsec / 3600f;
+        float measured = best.ReadPitch(truePitchDeg) + (sigmaDeg > 0f ? _rng.Randfn(0f, sigmaDeg) : 0f);
+        float tau = (best.AcsDefinition?.ResponseLatencyMs ?? 0f) / 1000f;
+        float alpha = tau > 0f ? 1f - Mathf.Exp(-deltaTime / tau) : 1f;
+
+        if (!wasValid)
+        {
+            EstimatedPitchDeg = FlightMath.WrapDeg(measured);
+            EstimatedRateDegPerSec = trueRateDegPerSec;
+            return;
+        }
+        EstimatedPitchDeg = FlightMath.WrapDeg(EstimatedPitchDeg + alpha * FlightMath.WrapDeg(measured - EstimatedPitchDeg));
+        EstimatedRateDegPerSec += alpha * (trueRateDegPerSec - EstimatedRateDegPerSec);
     }
 
     /// <summary>OR of EnabledSasModes of every operating sensor (Off is always allowed).</summary>
     public SasModeMask GetEnabledSasModes()
     {
-        // TODO(C4)
-        return SasModeMask.None;
+        return _enabledModes;
     }
 }

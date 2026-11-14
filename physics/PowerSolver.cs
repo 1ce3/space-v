@@ -11,6 +11,8 @@ public class PowerSolver
     public const float HoursPerDay = 24f;
     /// <summary>Average unserved power (W) below which a step does not count as a brownout (rounding).</summary>
     public const float BrownoutToleranceW = 0.1f;
+    /// <summary>Below this total stored energy (Wh) the batteries count as empty.</summary>
+    public const float EmptyBatteryWh = 0.01f;
 
     private readonly PhysicsSettings _settings;
 
@@ -89,7 +91,11 @@ public class PowerSolver
             }
         }
 
-        result.IsBrownout = hours > 0f && unservedWh / hours > BrownoutToleranceW;
+        // Float rounding of a 500 Wh battery is larger than one 60 Hz tick of consumption, so a shortfall only counts
+        // as a brownout when the batteries are really empty.
+        bool batteriesEmpty = BatteryStoredWh(pod) < EmptyBatteryWh;
+        if (!batteriesEmpty) unservedWh = 0f;
+        result.IsBrownout = hours > 0f && batteriesEmpty && unservedWh / hours > BrownoutToleranceW;
         result.ConsumedW = hours > 0f ? result.DemandW - unservedWh / hours : result.DemandW;
         if (result.IsBrownout != IsBrownout)
         {
@@ -98,6 +104,13 @@ public class PowerSolver
             IsBrownout = result.IsBrownout;
         }
         result.BatteryFraction = BatteryFraction(pod);
+    }
+
+    private static float BatteryStoredWh(CommandPodPart pod)
+    {
+        float stored = 0f;
+        foreach (BatteryModule battery in pod.GetModules<BatteryModule>()) stored += battery.StoredEnergyWh;
+        return stored;
     }
 
     /// <summary>Total battery charge 0..1 (0 when there is no battery).</summary>

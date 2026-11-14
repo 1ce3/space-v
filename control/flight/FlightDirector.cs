@@ -30,6 +30,10 @@ public partial class FlightDirector : Node
     [Export] public FlightAudioDirector Audio { get; set; }
     [Export] public FlightSettings Settings { get; set; }
 
+    /// <summary>Seconds with no possible thrust while falling before segment 1 is declared failed.</summary>
+    [ExportGroup("Rules")]
+    [Export(PropertyHint.Range, "0,10,0.1")] public float OutOfThrustDelaySec { get; set; } = 2f;
+
     [ExportGroup("Debug")]
     [Export] public bool DebugLog { get; set; }
 
@@ -41,6 +45,9 @@ public partial class FlightDirector : Node
     public BlackBoxTelemetryLogger BlackBox => Run?.BlackBox;
 
     private bool _hasEnded;
+    /// <summary>True between SegmentCompleted and the next StartSegment (segment ended well, run continues).</summary>
+    private bool _segmentDone;
+    private float _outOfThrustTimer;
 
     public override void _Ready()
     {
@@ -53,6 +60,7 @@ public partial class FlightDirector : Node
         Coordinator.Failures.BreakTriggered += OnBreakTriggered;
         Vehicle.Staging.StageActivated += OnStageActivated;
         Vehicle.Staging.StagingWarning += Hud.ShowWarning;
+        if (Vehicle.FlightControl != null) Vehicle.FlightControl.ControlWarning += Hud.ShowWarning;
     }
 
     public override void _ExitTree()
@@ -65,6 +73,8 @@ public partial class FlightDirector : Node
     {
         Run = run;
         _hasEnded = false;
+        _segmentDone = false;
+        _outOfThrustTimer = 0f;
         if (run == null) return;
         MissionSegmentDefinition segment = run.CurrentSegment;
         if (segment == null)
@@ -86,7 +96,13 @@ public partial class FlightDirector : Node
                 SetPhase(FlightPhase.PreLaunch);
                 break;
             case SegmentKind.MarsEdl:
-                // TODO(C6): Vehicle.RestoreFromRun(run), Entry, InputHandler.SetInputEnabled(true).
+                Vehicle.RestoreFromRun(run);
+                CameraRig.Follow(Vehicle);
+                Hud.Visible = true;
+                InputHandler.SetInputEnabled(true);
+                Phase = FlightPhase.PreLaunch; // force the PhaseChanged emit below
+                SetPhase(FlightPhase.Entry);
+                Hud.ShowWarning("Vào khí quyển sao Hỏa: quay tấm chắn nhiệt về phía trước");
                 break;
             default:
                 GD.PushError($"[Control] FlightDirector.StartSegment: {segment.Kind} is not a flown segment");
@@ -101,12 +117,87 @@ public partial class FlightDirector : Node
         if (Run == null) return;
         Hud.ShowTelemetry(frame, false);
         Hud.ShowStageText(Vehicle.Staging.DescribeNextStage());
-        if (_hasEnded) return;
+        FlightControlSubsystem control = Vehicle.FlightControl;
+        if (control?.AttitudeController != null && control.Estimator != null)
+            Hud.ShowSasState(control.AttitudeController.Mode, control.Estimator.GetEnabledSasModes());
+        if (_hasEnded || _segmentDone) return;
 
         // PoweredAscent <-> Coast by whether an engine burns.
         if (Phase == FlightPhase.PoweredAscent || Phase == FlightPhase.Coast)
             SetPhase(AnyEngineIgnited() ? FlightPhase.PoweredAscent : FlightPhase.Coast);
-        // TODO(C5): segment 1 success (TargetAltitudeM, TargetSpeedMps), out-of-thrust failure.
+
+        Environment?.UpdateSky(frame.AltitudeM, Vehicle.LastOutput.Air.Density);
+        if (Run.CurrentKind == SegmentKind.EarthAscent) CheckAscent(frame);
+        else if (Run.CurrentKind == SegmentKind.MarsEdl && Phase == FlightPhase.Entry && (AnyChuteDeployed() || AnyEngineIgnited()))
+            SetPhase(FlightPhase.Descent);
+    }
+
+    private bool AnyChuteDeployed()
+    {
+        foreach (ParachutePart chute in Vehicle.PartTree.GetParts<ParachutePart>())
+            if (chute.IsAttached && chute.ChuteState == ParachuteState.Deployed) return true;
+        return false;
+    }
+
+    /// <summary>Segment 1 rules: orbit reached, or nothing left to burn while falling.</summary>
+    private void CheckAscent(TelemetryFrame frame)
+    {
+        MissionSegmentDefinition segment = Run.CurrentSegment;
+        if (segment != null && Phase != FlightPhase.PreLaunch &&
+            frame.AltitudeM >= segment.TargetAltitudeM && frame.HorizontalSpeedMps >= segment.TargetSpeedMps)
+        {
+            CompleteSegment(FlightPhase.OrbitReached, "Đã vào quỹ đạo chờ!");
+            return;
+        }
+
+        if (Phase == FlightPhase.PreLaunch || Vehicle.IsOnPad || frame.VerticalSpeedMps >= 0f || CanStillThrust())
+        {
+            _outOfThrustTimer = 0f;
+            return;
+        }
+        _outOfThrustTimer += (float)GetPhysicsProcessDeltaTime();
+        if (_outOfThrustTimer < OutOfThrustDelaySec) return;
+        BlackBox.RecordFailure(FailureCause.TargetNotReached, null);
+        Hud.ShowWarning("Hết lực đẩy trước khi vào quỹ đạo");
+        EndMission(MissionOutcome.Failed);
+    }
+
+    /// <summary>True if an engine burns, an armed liquid engine can relight, or a later stage arms an engine with propellant.</summary>
+    public bool CanStillThrust()
+    {
+        PartTree tree = Vehicle.PartTree;
+        if (tree == null) return false;
+        foreach (EnginePart engine in tree.GetParts<EnginePart>())
+        {
+            if (!engine.IsAttached) continue;
+            if (engine.IsIgnited && engine.State != ComponentState.Broken) return true;
+            if (engine is LiquidEnginePart liquid && liquid.CanStillFire()) return true;
+        }
+        var stages = Vehicle.Staging.Stages;
+        for (int i = Vehicle.Staging.CurrentStageIndex; i < stages.Count; i++)
+        {
+            foreach (EnginePart engine in stages[i].EnginesToArm)
+            {
+                if (!engine.IsAttached || engine.State == ComponentState.Broken) continue;
+                if (engine is SolidBoosterPart solid && solid.RemainingPropellant > 0f) return true;
+                if (engine is LiquidEnginePart liquid && liquid.RemainingIgnitions > 0 && liquid.GetAvailableFuel() > 0f) return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>The segment ended well: cut the throttle, lock input and hand over to GameFlowManager.</summary>
+    private void CompleteSegment(FlightPhase phase, string message)
+    {
+        _segmentDone = true;
+        InputHandler?.SetInputEnabled(false);
+        Vehicle.FlightControl.ThrottleController?.SetThrottle(0f);
+        foreach (EnginePart engine in Vehicle.PartTree.GetParts<EnginePart>())
+            if (engine is LiquidEnginePart liquid && liquid.IsIgnited) liquid.Shutdown();
+        SetPhase(phase);
+        Hud.ShowWarning(message);
+        if (DebugLog) GD.Print($"[Control] Segment {Run.SegmentIndex} completed ({phase}), max alt {BlackBox.MaxAltitude:0} m");
+        EmitSignal(SignalName.SegmentCompleted, Run);
     }
 
     private void OnStageActivated(int index)
@@ -130,7 +221,7 @@ public partial class FlightDirector : Node
     /// <summary>FailureDetector.BreakTriggered handler: records the failure and ends the run.</summary>
     public void OnBreakTriggered(RocketPart part, FailureCause cause)
     {
-        if (_hasEnded || Run == null) return;
+        if (_hasEnded || _segmentDone || Run == null) return;
         BlackBox.RecordFailure(cause, part);
         Hud.ShowWarning($"Hỏng: {cause} ở {part?.ModelId}");
         EndMission(MissionOutcome.Failed);
@@ -139,7 +230,7 @@ public partial class FlightDirector : Node
     /// <summary>Called by VehicleRoot when the lowest part reaches altitude 0.</summary>
     public void OnGroundContact(RocketPart part, float contactSpeed)
     {
-        if (_hasEnded || Run == null) return;
+        if (_hasEnded || _segmentDone || Run == null) return;
         if (Run.CurrentKind == SegmentKind.EarthAscent)
         {
             // Segment 1: touching the ground after lift-off always ends the run.
@@ -151,13 +242,30 @@ public partial class FlightDirector : Node
             }
             return;
         }
-        // TODO(C6): segment 3 landing check (MaxLandingTiltDeg, pod present) -> Landed or failure.
+        if (Run.CurrentKind != SegmentKind.MarsEdl) return;
+
+        // Segment 3: too fast breaks the part (BreakTriggered ends the run as Collision).
+        if (Coordinator.Failures.MonitorImpact(part, contactSpeed)) return;
+        float tilt = Mathf.Abs(FlightMath.WrapDeg(Vehicle.LastFrame.PitchDeg - 90f));
+        float maxTilt = Run.CurrentSegment?.MaxLandingTiltDeg ?? 15f;
+        bool podOk = Vehicle.PartTree.RootPart is CommandPodPart pod && pod.IsAttached && pod.State != ComponentState.Broken;
+        if (!podOk || tilt > maxTilt)
+        {
+            BlackBox.RecordFailure(FailureCause.TippedOver, part);
+            Hud.ShowWarning(podOk ? $"Lật khi đáp: nghiêng {tilt:0}° (tối đa {maxTilt:0}°)" : "Mất khoang điều khiển");
+            EndMission(MissionOutcome.Failed);
+            return;
+        }
+        BlackBox.LandingSpeedMps = contactSpeed;
+        Hud.ShowWarning($"Đã đáp! {contactSpeed:0.0} m/s");
+        Run.Advance(); // the landing completes segment 3
+        EndMission(MissionOutcome.Success);
     }
 
     /// <summary>Player abort (flight_abort).</summary>
     public void Abort()
     {
-        if (_hasEnded || Run == null) return;
+        if (_hasEnded || _segmentDone || Run == null) return;
         BlackBox.RecordFailure(FailureCause.Aborted, null);
         EndMission(MissionOutcome.Aborted);
     }

@@ -4,6 +4,7 @@ using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Physics;
 using RocketGame.Presentation;
+using RocketGame.Research;
 using Side = RocketGame.Core.Side;
 
 namespace RocketGame.Control;
@@ -159,7 +160,42 @@ public partial class VehicleRoot : RigidBody3D
     /// <summary>Places the same vehicle at the Mars entry point (segment 3 start).</summary>
     public void RestoreFromRun(MissionRun run)
     {
-        // TODO(C6): Coordinator.Initialize(run.CurrentSegment); entry position/velocity/attitude; SetSimulationFrozen(false).
+        MissionSegmentDefinition segment = run?.CurrentSegment;
+        if (segment == null || PartTree == null)
+        {
+            GD.PushError("[Control] VehicleRoot.RestoreFromRun: no segment or no vehicle");
+            return;
+        }
+        Run = run;
+        Coordinator.Initialize(segment);
+        Environment?.SetBody(segment.Body);
+        RecalculatePhysicalProperties();
+
+        // CoM at (0, EntryAltitudeM) above the surface origin, velocity along the entry angle (negative = down),
+        // nose along the velocity (the player turns the heat shield forward).
+        float gammaRad = Mathf.DegToRad(segment.EntryAngleDeg);
+        var velocity = new Vector3(Mathf.Cos(gammaRad), Mathf.Sin(gammaRad), 0f) * segment.EntrySpeedMps;
+        float rotation = gammaRad - Mathf.Pi * 0.5f;
+        var basis = new Basis(Vector3.Back, rotation);
+        var localCom = new Vector3(MassProps.CenterOfMass.X, MassProps.CenterOfMass.Y, 0f);
+        var com = new Vector3(0f, segment.EntryAltitudeM, 0f);
+        GlobalTransform = new Transform3D(basis, com - basis * localCom);
+        PhysicsServer3D.BodySetState(GetRid(), PhysicsServer3D.BodyState.Transform, GlobalTransform);
+        PhysicsServer3D.BodySetState(GetRid(), PhysicsServer3D.BodyState.LinearVelocity, velocity);
+        PhysicsServer3D.BodySetState(GetRid(), PhysicsServer3D.BodyState.AngularVelocity, Vector3.Zero);
+        LinearVelocity = velocity;
+        AngularVelocity = Vector3.Zero;
+
+        _onPad = false;
+        _massTimer = 0f;
+        _lastFrame = default;
+        _lastFrame.AltitudeM = segment.EntryAltitudeM;
+        _lastFrame.PitchDeg = segment.EntryAngleDeg;
+        _lastFrame.FlightPathAngleDeg = segment.EntryAngleDeg;
+        SetSimulationFrozen(false);
+        if (DebugLog)
+            GD.Print($"[Control] Vehicle restored at {segment.SegmentId}: alt {segment.EntryAltitudeM:0} m, " +
+                     $"speed {segment.EntrySpeedMps:0} m/s, angle {segment.EntryAngleDeg:0.0} deg, {MassProps.TotalMass:0} kg");
     }
 
     /// <summary>Freezes the body during cruise (decision #1).</summary>

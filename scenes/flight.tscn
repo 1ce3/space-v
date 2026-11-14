@@ -193,14 +193,80 @@ offset_right = 300.0
 offset_bottom = 88.0
 horizontal_alignment = 1
 
-[node name="CruiseHUD" type="CanvasLayer" parent="UI" node_paths=PackedStringArray("DayLabel")]
+[node name="CruiseHUD" type="CanvasLayer" parent="UI" node_paths=PackedStringArray("DayBar", "DayLabel", "DeltaVLabel", "ResourcesLabel", "AnomalyLabel", "BurnButton", "PauseButton", "SpeedButton")]
 visible = false
 script = ExtResource("20_cruisehud")
-DayLabel = NodePath("Day")
+DayBar = NodePath("Panel/Margin/Box/DayBar")
+DayLabel = NodePath("Panel/Margin/Box/Day")
+DeltaVLabel = NodePath("Panel/Margin/Box/DeltaV")
+ResourcesLabel = NodePath("Panel/Margin/Box/Resources")
+AnomalyLabel = NodePath("Panel/Margin/Box/Message")
+BurnButton = NodePath("Panel/Margin/Box/Buttons/Burn")
+PauseButton = NodePath("Panel/Margin/Box/Buttons/Pause")
+SpeedButton = NodePath("Panel/Margin/Box/Buttons/Speed")
 
-[node name="Day" type="Label" parent="UI/CruiseHUD"]
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 400.0
-offset_bottom = 48.0
+[node name="Panel" type="PanelContainer" parent="UI/CruiseHUD"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -380.0
+offset_top = -250.0
+offset_right = 380.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/CruiseHUD/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 14
+
+[node name="Box" type="VBoxContainer" parent="UI/CruiseHUD/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Day" type="Label" parent="UI/CruiseHUD/Panel/Margin/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Ngày 0"
+
+[node name="DayBar" type="ProgressBar" parent="UI/CruiseHUD/Panel/Margin/Box"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+show_percentage = false
+
+[node name="DeltaV" type="Label" parent="UI/CruiseHUD/Panel/Margin/Box"]
+layout_mode = 2
+
+[node name="Resources" type="Label" parent="UI/CruiseHUD/Panel/Margin/Box"]
+layout_mode = 2
+
+[node name="Message" type="Label" parent="UI/CruiseHUD/Panel/Margin/Box"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="UI/CruiseHUD/Panel/Margin/Box"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Burn" type="Button" parent="UI/CruiseHUD/Panel/Margin/Box/Buttons"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Đốt chuyển quỹ đạo [Z]"
+
+[node name="Pause" type="Button" parent="UI/CruiseHUD/Panel/Margin/Box/Buttons"]
+custom_minimum_size = Vector2(120, 38)
+layout_mode = 2
+disabled = true
+text = "Tạm dừng"
+
+[node name="Speed" type="Button" parent="UI/CruiseHUD/Panel/Margin/Box/Buttons"]
+custom_minimum_size = Vector2(80, 38)
+layout_mode = 2
+disabled = true
+text = "×1"
