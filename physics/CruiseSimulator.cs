@@ -43,15 +43,23 @@ public class CruiseSimulator
     private readonly List<FlightEvent> _pendingEvents = new();
     private readonly List<FlightEvent> _burnEvents = new();
     private readonly HashSet<PodModule> _poweredDown = new();
-    private FuelTankPart _leakingTank;
 
     /// <summary>Cruise events planned at Begin (B11), for the HUD and tests.</summary>
     public IReadOnlyList<CruiseEventDirector.PlannedEvent> PlannedEvents =>
         _director?.Planned ?? (IReadOnlyList<CruiseEventDirector.PlannedEvent>)System.Array.Empty<CruiseEventDirector.PlannedEvent>();
     /// <summary>Incidents of the last ExecuteTransferBurn (EngineFlameout or CryoLeak); also reported by the next StepDay.</summary>
     public IReadOnlyList<FlightEvent> LastBurnEvents => _burnEvents;
-    /// <summary>A tank leaks fuel every day until SealLeak.</summary>
-    public bool HasLeak => _leakingTank != null && _leakingTank.IsAttached;
+    /// <summary>A tank leaks fuel, or the pod hull is breached, until SealLeak (V).</summary>
+    public bool HasLeak
+    {
+        get
+        {
+            if (_parts == null) return false;
+            foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>())
+                if (tank.IsAttached && tank.LeakRateKgPerSec > 0f) return true;
+            return PowerSolver.FindPod(_parts)?.IsHullBreached ?? false;
+        }
+    }
     /// <summary>True while modules are powered down for a solar flare (PowerDownForFlare).</summary>
     public bool IsPoweredDownForFlare => _poweredDown.Count > 0;
 
@@ -76,13 +84,17 @@ public class CruiseSimulator
         _pendingEvents.Clear();
         _burnEvents.Clear();
         _poweredDown.Clear();
-        _leakingTank = null;
         _director = new CruiseEventDirector(Settings, HazardSeed + 1);
         _director.Plan(parts, segment);
     }
 
     /// <summary>Player sealed the tank leak (key V).</summary>
-    public void SealLeak() => _leakingTank = null;
+    public void SealLeak()
+    {
+        if (_parts == null) return;
+        foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>()) tank.SealLeak();
+        PowerSolver.FindPod(_parts)?.SealHullBreach();
+    }
 
     /// <summary>
     /// After a flare warning the player may power the pod modules down (except power sources): they then take
@@ -175,8 +187,10 @@ public class CruiseSimulator
         }
         else
         {
-            _leakingTank = tanks[_rng.RandiRange(0, tanks.Count - 1)];
-            _burnEvents.Add(new FlightEvent { Type = FlightEventType.CryoLeak, Severity = 0.5f, SourceId = _leakingTank.ModelId });
+            FuelTankPart leaking = tanks[_rng.RandiRange(0, tanks.Count - 1)];
+            float reduction = MeteorImpact.SensorReduction(PowerSolver.FindPod(_parts), InstrumentKind.FuelSensor);
+            leaking.LeakRateKgPerSec = Mathf.Max(leaking.LeakRateKgPerSec, (Settings?.CryoLeakRateKgPerSec ?? 0f) * (1f - reduction));
+            _burnEvents.Add(new FlightEvent { Type = FlightEventType.CryoLeak, Severity = 0.5f, SourceId = leaking.ModelId });
         }
         _pendingEvents.AddRange(_burnEvents);
     }
@@ -206,7 +220,7 @@ public class CruiseSimulator
         AdvanceModules();
         RollDailyHazards(power, thermal);
         ApplyPlannedEvents();
-        if (HasLeak) _leakingTank.DrainFuel(_leakingTank.CurrentFuel * (Settings?.CruiseLeakFractionPerDay ?? 0f));
+        ApplyCruiseLeaks();
 
         return new CruiseStepResult
         {
@@ -221,6 +235,29 @@ public class CruiseSimulator
             FrozenComponents = _frozen,
             DamagedModules = _damaged,
         };
+    }
+
+    /// <summary>
+    /// B12: a leaking tank (LeakRateKgPerSec > 0, from a transfer burn or a meteor) loses CruiseLeakFractionPerDay of its fuel
+    /// a day, scaled by its rate against CryoLeakRateKgPerSec (a FuelSensor lowers the rate). A hull breach breaks a module
+    /// every CruiseHullBreachFailDays (longer with a PressureSensor).
+    /// </summary>
+    private void ApplyCruiseLeaks()
+    {
+        if (_parts == null) return;
+        float fraction = Settings?.CruiseLeakFractionPerDay ?? 0f;
+        float referenceRate = Mathf.Max(0.001f, Settings?.CryoLeakRateKgPerSec ?? 1f);
+        foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>())
+        {
+            if (!tank.IsAttached || tank.LeakRateKgPerSec <= 0f) continue;
+            tank.DrainFuel(tank.CurrentFuel * fraction * Mathf.Min(1f, tank.LeakRateKgPerSec / referenceRate));
+            if (tank.CurrentFuel <= 0f) tank.LeakRateKgPerSec = 0f;
+        }
+
+        string lost = MeteorImpact.TickHullBreach(PowerSolver.FindPod(_parts), 1f, Settings?.CruiseHullBreachFailDays ?? 0f, _rng);
+        if (lost.Length == 0) return;
+        _damaged.Add(lost);
+        _events.Add(new FlightEvent { Type = FlightEventType.HullBreach, Severity = 0.5f, SourceId = lost });
     }
 
     /// <summary>B11: planned events of today; applies flare and instrument-failure damage.</summary>

@@ -116,6 +116,16 @@ public partial class PhysicsSettings : Resource
     /// <summary>Share of its fuel a leaking tank loses per cruise day until the leak is sealed.</summary>
     [Export(PropertyHint.Range, "0,1,0.005")] public float CruiseLeakFractionPerDay { get; set; } = 0.02f;
 
+    /// <summary>Leak rate of a tank holed by a meteor (kg/s), before a FuelSensor (PHASE2 5.6, B12).</summary>
+    [ExportGroup("Meteor impact")]
+    [Export] public float MeteorLeakRateKgPerSec { get; set; } = 3f;
+    /// <summary>Above this many times the impact tolerance the hit part breaks.</summary>
+    [Export(PropertyHint.Range, "1,10,0.1")] public float MeteorBreakFactor { get; set; } = 3f;
+    /// <summary>Seconds between module failures of a hull breach in flight, before a PressureSensor.</summary>
+    [Export] public float HullBreachFailSeconds { get; set; } = 20f;
+    /// <summary>Days between module failures of a hull breach during the cruise, before a PressureSensor.</summary>
+    [Export] public float CruiseHullBreachFailDays { get; set; } = 3f;
+
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;
     private const float DragSubsonic = 1.0f;

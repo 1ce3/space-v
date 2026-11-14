@@ -14,6 +14,24 @@ public partial class CommandPodPart : RocketPart
 
     public CommandPodPartDefinition PodDefinition => Definition as CommandPodPartDefinition;
 
+    /// <summary>Phase 2 (B12): pressure leak after a meteor hit; a module breaks every interval until SealHullBreach (V).</summary>
+    public bool IsHullBreached { get; set; }
+    /// <summary>Time left until the next module failure of the hull breach (s in flight, days in cruise). Physics writes it.</summary>
+    public float HullBreachTimer { get; set; }
+
+    /// <summary>Stops the hull breach.</summary>
+    public void SealHullBreach()
+    {
+        IsHullBreached = false;
+        HullBreachTimer = 0f;
+    }
+
+    protected override void ResetRuntimeState()
+    {
+        base.ResetRuntimeState();
+        SealHullBreach();
+    }
+
     /// <summary>Dry + payload + modules (kg).</summary>
     public override float GetCurrentMass()
     {

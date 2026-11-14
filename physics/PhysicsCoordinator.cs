@@ -40,6 +40,7 @@ public partial class PhysicsCoordinator : Node
     private readonly List<PartLoad> _bodyLoads = new();
     private readonly Dictionary<RocketPart, Vector2> _loadByPart = new();
     private readonly List<FlightEvent> _events = new();
+    private readonly RandomNumberGenerator _hullRng = new();
     private readonly List<FlightEvent> _solverEvents = new();
 
     public override void _Ready()
@@ -120,6 +121,10 @@ public partial class PhysicsCoordinator : Node
         output.Thermal = _thermal.Step(input.Parts, output.HeatFlux, input.DeltaTime, velDirBody, com, output.Air.Temperature);
         output.Power = _power.Step(input.Parts, aero.DynamicPressure, CurrentBody?.SolarFluxWm2 ?? 0f, input.DeltaTime);
         float leaked = Hazards.ApplyLeaks(input.Parts, input.DeltaTime);
+        string lostToBreach = MeteorImpact.TickHullBreach(PowerSolver.FindPod(input.Parts), input.DeltaTime,
+            Settings?.HullBreachFailSeconds ?? 0f, _hullRng);
+        if (lostToBreach.Length > 0)
+            _events.Add(new FlightEvent { Type = FlightEventType.HullBreach, Severity = 0.5f, SourceId = lostToBreach });
 
         // 8. Totals.
         output.NetForce = FlightMath.BodyToWorld(thrust.ThrustForceVector + aero.Force + rcsForceBody, rot) + output.GravityForce;
@@ -226,4 +231,8 @@ public partial class PhysicsCoordinator : Node
             _partLoads.Add(new PartLoad { Part = pair.Key, Force = FlightMath.BodyToWorld(pair.Value, rot) });
         }
     }
+
+    /// <summary>B12: a meteor hit part at speedMps (C11 calls it). Uses these settings and breaks through Failures.</summary>
+    public MeteorImpactResult ResolveMeteorHit(RocketPart part, float speedMps) =>
+        MeteorImpact.Resolve(part, speedMps, Settings, Failures);
 }
