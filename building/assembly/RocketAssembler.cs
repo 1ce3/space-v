@@ -327,22 +327,34 @@ public class RocketAssembler
     public void AttachVisuals(PartTree tree)
     {
         if (tree == null) return;
-        PartCatalog catalog = PartCatalog.Instance;
-        foreach (RocketPart part in tree.ActiveParts)
-        {
-            if (part.HasNode("Visual")) continue; // already attached
-            PackedScene scene = part.Definition?.Scene;
-            if (scene == null && catalog != null)
-                scene = part is DecouplerPart ? catalog.GetDecouplerPlaceholderScene() : catalog.GetPlaceholderScene(part.PartGroup);
-            if (scene == null) continue;
+        foreach (RocketPart part in tree.ActiveParts) AttachVisual(part);
+    }
 
-            Node visual = scene.Instantiate();
-            visual.Name = "Visual";
-            part.AddChild(visual);
-            // Called by name: Building never references the presentation classes (AGENTS 1.5).
-            if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
-            else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
-        }
+    /// <summary>Adds the visual of one part as child "Visual" (skipped if it already has one). Returns the visual or null.</summary>
+    public static Node AttachVisual(RocketPart part)
+    {
+        if (part == null) return null;
+        if (part.HasNode("Visual")) return part.GetNode("Visual");
+        PackedScene scene = GetVisualScene(part.Definition as PartDefinition);
+        if (scene == null) return null;
+
+        Node visual = scene.Instantiate();
+        visual.Name = "Visual";
+        part.AddChild(visual);
+        // Called by name: Building never references the presentation classes (AGENTS 1.5).
+        if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
+        else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
+        return visual;
+    }
+
+    /// <summary>Own scene of the definition, else the group (or decoupler) placeholder.</summary>
+    public static PackedScene GetVisualScene(PartDefinition def)
+    {
+        if (def == null) return null;
+        if (def.Scene != null) return def.Scene;
+        PartCatalog catalog = PartCatalog.Instance;
+        if (catalog == null) return null;
+        return def is DecouplerPartDefinition ? catalog.GetDecouplerPlaceholderScene() : catalog.GetPlaceholderScene(def.PartGroup);
     }
 
     /// <summary>Stage 0 plus one stage per decoupler depth (deepest first), with Parts and EnginesToArm.</summary>

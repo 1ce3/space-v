@@ -32,6 +32,8 @@ public partial class PartVisual : Node3D
 
     /// <summary>The part shown; null in the palette.</summary>
     public RocketPart Part { get; private set; }
+    /// <summary>Build-screen ghost: the per-frame thermal tint is skipped.</summary>
+    public bool IsGhost { get; private set; }
 
     private StandardMaterial3D _material;
     private Color _baseColor;
@@ -58,6 +60,8 @@ public partial class PartVisual : Node3D
                              : settings?.GhostInvalidColor ?? new Color(1f, 0.3f, 0.3f, 0.5f);
         _material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         _material.AlbedoColor = tint;
+        _material.EmissionEnabled = false;
+        IsGhost = true;
     }
 
     /// <summary>Mirrors the visual for left/right side parts.</summary>
@@ -76,7 +80,7 @@ public partial class PartVisual : Node3D
 
     public override void _Process(double delta)
     {
-        if (Part != null && IsInstanceValid(Part)) UpdateVisual((float)delta);
+        if (!IsGhost && Part != null && IsInstanceValid(Part)) UpdateVisual((float)delta);
     }
 
     /// <summary>Per-frame refresh from Part state. Subclasses call base.</summary>
