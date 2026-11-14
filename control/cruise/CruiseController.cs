@@ -165,6 +165,11 @@ public partial class CruiseController : Node
             if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"Đã mở {open} pin mặt trời." : "Đã gập pin mặt trời.");
         }
         if (input.ThrottleFull) RequestTransferBurn();
+        if (input.SealLeakPressed && _sim != null && _sim.HasLeak)
+        {
+            _sim.SealLeak();
+            Hud.ShowMessage("Leak sealed.");
+        }
         if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
         if (!IsPaused) Advance((float)delta);
     }

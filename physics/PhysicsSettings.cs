@@ -90,6 +90,32 @@ public partial class PhysicsSettings : Resource
     /// </summary>
     [Export(PropertyHint.Range, "0,5,0.05")] public float HeatShieldStabilityCoefficient { get; set; } = 1.5f;
 
+    /// <summary>Fewest planned cruise events (PHASE2 5.2, B11).</summary>
+    [ExportGroup("Cruise events")]
+    [Export(PropertyHint.Range, "0,10,1")] public int CruiseEventsMin { get; set; } = 2;
+    /// <summary>Most planned cruise events.</summary>
+    [Export(PropertyHint.Range, "0,10,1")] public int CruiseEventsMax { get; set; } = 4;
+    /// <summary>Smallest gap between two planned events (days).</summary>
+    [Export(PropertyHint.Range, "0,100,1")] public int CruiseEventMinGapDays { get; set; } = 20;
+    /// <summary>No event before this day.</summary>
+    [Export(PropertyHint.Range, "1,100,1")] public int CruiseEventFirstDay { get; set; } = 5;
+    /// <summary>No event in the last days of the cruise.</summary>
+    [Export(PropertyHint.Range, "0,100,1")] public int CruiseEventLastDayMargin { get; set; } = 5;
+    /// <summary>Relative weights of the planned event types.</summary>
+    [Export] public float SolarFlareWeight { get; set; } = 40f;
+    [Export] public float MeteorFieldWeight { get; set; } = 40f;
+    [Export] public float InstrumentFailureWeight { get; set; } = 20f;
+    /// <summary>Flare damage chance of an unshielded, unhardened module (5.3).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float FlareBaseDamageChance { get; set; } = 0.5f;
+    /// <summary>Flare damage chance factor for modules the player powered down after a warning.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float FlarePoweredDownFactor { get; set; } = 0.3f;
+    /// <summary>Chance of an incident during the transfer burn (5.5): engine flameout or tank leak.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TransferBurnEventChance { get; set; } = 0.3f;
+    /// <summary>Extra delta-v of the relight after a transfer-burn flameout, as a share of the required delta-v.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float TransferRelightDeltaVFraction { get; set; } = 0.05f;
+    /// <summary>Share of its fuel a leaking tank loses per cruise day until the leak is sealed.</summary>
+    [Export(PropertyHint.Range, "0,1,0.005")] public float CruiseLeakFractionPerDay { get; set; } = 0.02f;
+
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;
     private const float DragSubsonic = 1.0f;
