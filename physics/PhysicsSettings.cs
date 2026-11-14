@@ -11,6 +11,11 @@ public partial class PhysicsSettings : Resource
     [Export(PropertyHint.Range, "0,3,0.01")] public float SideDragCoefficient { get; set; } = 1.0f;
     /// <summary>Drag multiplier by Mach number (x = Mach, y = multiplier). May be null: SampleMachDrag then uses built-in defaults.</summary>
     [Export] public Curve MachDragCurve { get; set; }
+    /// <summary>
+    /// Balance switch. False (guide B 4.3.2): every unshielded part adds its frontal drag. True: only parts whose leading face
+    /// (top when flying nose first, bottom when flying base first) has no other part on it add frontal drag; side drag is unchanged.
+    /// </summary>
+    [Export] public bool FrontalDragOnlyExposed { get; set; }
     /// <summary>Fin stall angle (deg): lift magnitude is clamped at this angle of attack.</summary>
     [Export(PropertyHint.Range, "1,90,0.5")] public float FinStallDeg { get; set; } = 25f;
     /// <summary>Half-angle of the cone (deg) in which fairing or heat shield counts as facing the airflow.</summary>

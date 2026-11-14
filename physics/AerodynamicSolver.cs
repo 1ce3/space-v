@@ -44,12 +44,15 @@ public class AerodynamicSolver
         float sideCd = _settings?.SideDragCoefficient ?? 1f;
         float stallSin = Mathf.Sin(Mathf.DegToRad(_settings?.FinStallDeg ?? 25f));
 
+        bool onlyExposed = _settings?.FrontalDragOnlyExposed ?? false;
+        bool noseFirst = velDir.Y >= 0f;
         float weight = 0f;
         Vector2 weightedPos = Vector2.Zero;
         foreach (RocketPart part in parts.ActiveParts)
         {
             if (part.IsShielded) continue;
-            Vector2 force = -velDir * (q * (part.FrontalArea * part.DragCoefficient * cosA + part.SideArea * sideCd * sinA) * machMult);
+            float frontal = !onlyExposed || IsLeadingFaceExposed(part, parts, noseFirst) ? part.FrontalArea * part.DragCoefficient * cosA : 0f;
+            Vector2 force = -velDir * (q * (frontal + part.SideArea * sideCd * sinA) * machMult);
 
             if (part is AeroSurfacePart fin) force += FinForce(fin, flowDir, q, stallSin);
             else if (part is ParachutePart chute) force += ChuteForce(chute, velDir, q, mach);
@@ -71,6 +74,23 @@ public class AerodynamicSolver
 
     /// <summary>True when q is above MaxQLimit.</summary>
     public bool IsOverMaxQ(float dynamicPressure) => dynamicPressure > MaxQLimit;
+
+    /// <summary>True when no other part (decouplers excluded) touches the face of part that meets the flow first.</summary>
+    private static bool IsLeadingFaceExposed(RocketPart part, PartTree parts, bool noseFirst)
+    {
+        if (part is DecouplerPart) return true;
+        int left = part.Cell.X;
+        int right = part.Cell.X + part.Footprint.X;
+        int faceRow = noseFirst ? part.Cell.Y + part.Footprint.Y : part.Cell.Y - 1;
+        foreach (RocketPart other in parts.ActiveParts)
+        {
+            if (other == part || other is DecouplerPart) continue;
+            bool rowHit = faceRow >= other.Cell.Y && faceRow < other.Cell.Y + other.Footprint.Y;
+            bool columnsOverlap = other.Cell.X < right && other.Cell.X + other.Footprint.X > left;
+            if (rowHit && columnsOverlap) return false;
+        }
+        return true;
+    }
 
     /// <summary>Lift from the flow component across the body plus control deflection (+deflection pushes +X).</summary>
     private static Vector2 FinForce(AeroSurfacePart fin, Vector2 flowDir, float q, float stallSin)

@@ -41,6 +41,8 @@ public partial class PhysicsHarness : Node
     /// <summary>Fin definition (fin_f1.tres), used by the fin check.</summary>
     [Export] public AeroSurfacePartDefinition Fin { get; set; }
 
+    /// <summary>Ascent uses TestRocketFactory.CreateMinimal() (A2). False: build the rocket here from the definition slots.</summary>
+    [Export] public bool UseTestRocketFactory { get; set; } = true;
     /// <summary>Quit after the test so the log is flushed.</summary>
     [Export] public bool QuitWhenDone { get; set; } = true;
 
@@ -66,10 +68,34 @@ public partial class PhysicsHarness : Node
 
     private void RunAscent()
     {
-        PartTree tree = BuildMinimalRocket(withFins: false, out LiquidEnginePart engine);
-        engine.IsArmed = true;
-        engine.IsIgnited = true;
+        PartTree tree = null;
+        LiquidEnginePart engine = null;
+        if (UseTestRocketFactory)
+        {
+            AssembledRocket rocket = TestRocketFactory.CreateMinimal();
+            tree = rocket?.PartTree;
+            List<LiquidEnginePart> engines = tree?.GetParts<LiquidEnginePart>();
+            if (engines != null && engines.Count > 0)
+            {
+                engine = engines[0];
+                _parts.AddRange(tree.ActiveParts);
+            }
+            else
+            {
+                GD.PushWarning("[Physics] CreateMinimal() gave no engine; building the rocket by hand.");
+                tree = null;
+            }
+        }
+        if (tree == null) tree = BuildMinimalRocket(withFins: false, out engine);
+
+        engine.Arm();
         engine.SetThrottle(1f);
+        engine.Ignite();
+        if (!engine.IsIgnited)
+        {
+            GD.PushError("[Physics] Engine did not ignite (armed, ignitions and fuel are checked by A's Ignite).");
+            return;
+        }
 
         MassProperties mass = ComputeMass(tree);
         Vector2 position = new Vector2(0f, mass.CenterOfMass.Y);
@@ -80,7 +106,7 @@ public partial class PhysicsHarness : Node
         float apogee = 0f;
         float nextPrint = 0f;
 
-        GD.Print("[Physics] === B2 harness: pod + tank_s1 + engine_lv1, full throttle ===");
+        GD.Print($"[Physics] === B2 harness: pod + tank_s1 + engine_lv1, full throttle ({(UseTestRocketFactory ? "CreateMinimal" : "hand-built")}, FrontalDragOnlyExposed = {Coordinator.Settings.FrontalDragOnlyExposed}) ===");
         GD.Print("[Physics]    t s |  alt m |  v m/s | vy m/s |  mass kg |    q Pa | Mach | burning");
         for (float t = 0f; t <= MaxSimSeconds; t += StepSeconds)
         {
