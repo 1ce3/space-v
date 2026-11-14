@@ -1,6 +1,8 @@
 using Godot;
+using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Physics;
+using RocketGame.Research;
 
 namespace RocketGame.Control;
 
@@ -49,6 +51,9 @@ public partial class CruiseController : Node
         if (!NodeGuard.Require(this, Hud, nameof(Hud))) return;
         if (!NodeGuard.Require(this, InputHandler, nameof(InputHandler))) return;
         if (Settings != null) DaysPerSecond = Settings.CruiseDaysPerSecond;
+        Hud.TransferBurnRequested += RequestTransferBurn;
+        Hud.PauseToggled += SetPaused;
+        Hud.TimeScaleRequested += OnTimeScaleRequested;
         SetProcess(false);
     }
 
@@ -59,21 +64,74 @@ public partial class CruiseController : Node
         IsActive = true;
         HasBurned = false;
         IsPaused = false;
+        TimeScale = 1f;
         _dayAccumulator = 0f;
-        // TODO(C6): Vehicle.SetSimulationFrozen(true); hide FlightHud, show Hud; _sim = new CruiseSimulator();
-        //           _sim.Begin(run.PartTree, run.CurrentSegment, origin body, destination body); SetProcess(true).
+
+        Vehicle.SetSimulationFrozen(true);
+        InputHandler.SetInputEnabled(true);
+        if (FlightHud != null) FlightHud.Visible = false;
+        Hud.Visible = true;
+
+        MissionDefinition mission = run.Mission;
+        CelestialBodyDefinition origin = mission != null && mission.Segments.Count > 0 ? mission.Segments[0].Body : null;
+        CelestialBodyDefinition destination = mission != null && mission.Segments.Count > 2 ? mission.Segments[2].Body : origin;
+        _sim = new CruiseSimulator { Settings = Vehicle.Coordinator?.Settings };
+        _sim.Begin(run.PartTree, run.CurrentSegment, origin, destination);
+
+        Hud.ResetControls();
+        Hud.ShowProgress(0, TotalDays);
+        RefreshDeltaV();
+        Hud.ShowMessage("Bấm \"Đốt chuyển quỹ đạo\" (hoặc Z). Có thể tách tầng (Space) và mở pin (G) trước.");
+        SetProcess(true);
+        if (DebugLog) GD.Print($"[Control] Cruise started: {TotalDays} days, delta-v {_sim.GetRemainingDeltaV():0} / {RequiredDeltaV:0} m/s");
     }
 
     /// <summary>Player asked for the transfer burn. Fails the run with InsufficientDeltaV if it cannot be done.</summary>
     public void RequestTransferBurn()
     {
-        // TODO(C6): _sim.ExecuteTransferBurn(); false -> EndMission(InsufficientDeltaV).
+        if (!IsActive || HasBurned || _sim == null) return;
+        float before = _sim.GetRemainingDeltaV();
+        if (!_sim.ExecuteTransferBurn())
+        {
+            Hud.ShowMessage($"Không đủ delta-v: còn {before:0} m/s, cần {RequiredDeltaV:0} m/s");
+            EndMission(FailureCause.InsufficientDeltaV);
+            return;
+        }
+        HasBurned = true;
+        Hud.SetBurnDone(true);
+        RefreshDeltaV();
+        Hud.ShowMessage("Đã đốt chuyển quỹ đạo. Đang bay tới sao Hỏa...");
+        if (DebugLog) GD.Print($"[Control] Transfer burn done, delta-v left {_sim.GetRemainingDeltaV():0} m/s");
     }
 
     /// <summary>Advances simulated time by deltaTime real seconds.</summary>
     public void Advance(float deltaTime)
     {
-        // TODO(C6): accumulate deltaTime * DaysPerSecond * TimeScale; StepDay() per whole day; events, end checks.
+        if (!IsActive || !HasBurned || IsPaused || _sim == null) return;
+        _dayAccumulator += deltaTime * DaysPerSecond * TimeScale;
+        while (_dayAccumulator >= 1f && IsActive)
+        {
+            _dayAccumulator -= 1f;
+            CruiseStepResult step = _sim.StepDay();
+            _run.ElapsedDays = step.Day;
+            _run.BlackBox.CruiseDaysSurvived = step.Day;
+            Hud.ShowProgress(step.Day, TotalDays);
+            Hud.ShowResources(step);
+            Hud.ShowDeltaV(step.DeltaVRemaining, RequiredDeltaV);
+            HandleEvents(step);
+
+            if (_run.PartTree?.RootPart is CommandPodPart pod && pod.State == ComponentState.Broken)
+            {
+                Hud.ShowMessage("Khoang điều khiển hỏng vì nhiệt");
+                EndMission(FailureCause.Thermal, pod);
+                return;
+            }
+            if (step.Day >= TotalDays)
+            {
+                Finish();
+                return;
+            }
+        }
     }
 
     /// <summary>Stops or resumes the day clock.</summary>
@@ -84,7 +142,60 @@ public partial class CruiseController : Node
 
     public override void _Process(double delta)
     {
-        if (!IsActive || IsPaused) return;
-        Advance((float)delta);
+        if (!IsActive) return;
+        PilotInput input = InputHandler.Poll();
+        if (input.StagePressed && Staging != null)
+        {
+            Staging.ActivateNextStage();
+            Callable.From(RefreshDeltaV).CallDeferred(); // cuts are processed deferred
+        }
+        if (input.DeployTogglePressed) Vehicle.FlightControl?.ToggleDeployables();
+        if (input.ThrottleFull) RequestTransferBurn();
+        if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
+        if (!IsPaused) Advance((float)delta);
+    }
+
+    private int TotalDays => Mathf.Max(1, Mathf.RoundToInt(_run?.CurrentSegment?.DurationDays ?? 1f));
+    private float RequiredDeltaV => _run?.CurrentSegment?.RequiredDeltaVMps ?? 0f;
+
+    private void RefreshDeltaV()
+    {
+        if (_sim != null && IsActive) Hud.ShowDeltaV(_sim.GetRemainingDeltaV(), RequiredDeltaV);
+    }
+
+    /// <summary>P0: cruise events are warnings only (C7 adds the key responses), then acknowledged.</summary>
+    private void HandleEvents(CruiseStepResult step)
+    {
+        if (step.Events == null) return;
+        foreach (FlightEvent e in step.Events)
+        {
+            Hud.ShowMessage($"Ngày {step.Day}: {e.Type}");
+            _sim.Acknowledge(e.Type);
+            if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
+        }
+    }
+
+    private void OnTimeScaleRequested(float scale) => TimeScale = Mathf.Max(scale, 0.1f);
+
+    /// <summary>Arrived: hand the run back for segment 3.</summary>
+    private void Finish()
+    {
+        IsActive = false;
+        SetProcess(false);
+        Hud.Visible = false;
+        if (FlightHud != null) FlightHud.Visible = true;
+        if (DebugLog) GD.Print($"[Control] Cruise completed after {_run.ElapsedDays:0} days");
+        EmitSignal(SignalName.SegmentCompleted, _run);
+    }
+
+    private void EndMission(FailureCause cause, RocketPart part = null, MissionOutcome outcome = MissionOutcome.Failed)
+    {
+        if (!IsActive) return;
+        IsActive = false;
+        SetProcess(false);
+        InputHandler.SetInputEnabled(false);
+        _run.BlackBox.RecordFailure(cause, part);
+        if (DebugLog) GD.Print($"[Control] Cruise ended: {cause}");
+        EmitSignal(SignalName.MissionEnded, _run.BlackBox.BuildResult(outcome));
     }
 }

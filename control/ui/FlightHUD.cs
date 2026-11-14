@@ -77,6 +77,22 @@ public partial class FlightHUD : CanvasLayer
     /// <summary>Shows the SAS mode and which modes the sensors allow.</summary>
     public void ShowSasState(SasMode mode, SasModeMask enabledModes)
     {
-        // TODO(C7)
+        if (SasLabel == null) return;
+        var allowed = new System.Text.StringBuilder();
+        SasMode[] modes = { SasMode.StabilityAssist, SasMode.HoldPitch, SasMode.Prograde, SasMode.Retrograde };
+        for (int i = 0; i < modes.Length; i++)
+            if (enabledModes.Has(modes[i])) allowed.Append(allowed.Length > 0 ? " " : "").Append(i + 1);
+        string list = allowed.Length > 0 ? allowed.ToString() : "không";
+        SasLabel.Text = $"SAS [T]: {SasModeName(mode)}   chế độ dùng được [1-4]: {list}";
     }
+
+    /// <summary>Short Vietnamese name of a SAS mode.</summary>
+    public static string SasModeName(SasMode mode) => mode switch
+    {
+        SasMode.StabilityAssist => "Giữ ổn định",
+        SasMode.HoldPitch => "Giữ góc",
+        SasMode.Prograde => "Theo hướng bay",
+        SasMode.Retrograde => "Ngược hướng bay",
+        _ => "Tắt",
+    };
 }

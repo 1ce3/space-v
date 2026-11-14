@@ -39,6 +39,15 @@ public partial class GameFlowManager : Node
     private Node _currentScreen;
     private FlightSceneNode _flightScene;
 
+    /// <summary>Scene that starts the real game loop (opens the build screen). Other scenes (sandboxes) are left alone.</summary>
+    [ExportGroup("Startup")]
+    [Export(PropertyHint.File, "*.tscn")] public string MainScenePath { get; set; } = "res://scenes/main.tscn";
+
+    /// <summary>Result of the last finished run (debrief and victory).</summary>
+    public FlightResult LastResult { get; private set; }
+    /// <summary>RP breakdown of the last finished run, or null.</summary>
+    public RewardBreakdown LastReward { get; private set; }
+
     public override void _EnterTree() => Instance = this;
 
     public override void _ExitTree()
@@ -46,12 +55,28 @@ public partial class GameFlowManager : Node
         if (Instance == this) Instance = null;
     }
 
+    public override void _Ready()
+    {
+        Callable.From(StartIfMainScene).CallDeferred();
+    }
+
+    /// <summary>When the game starts from main.tscn, replace it with the build screen.</summary>
+    private void StartIfMainScene()
+    {
+        Node current = GetTree().CurrentScene;
+        if (current == null || current.SceneFilePath != MainScenePath) return;
+        _currentScreen = current;
+        GoToBuild();
+    }
+
     /// <summary>Build screen confirmed a design: create the run and start segment 1.</summary>
     public void OnDesignConfirmed(AssembledRocket rocket)
     {
         MissionDefinition mission = ResearchCampaignEngine.Instance?.CurrentMission;
         if (mission == null) GD.PushWarning("[Control] GameFlowManager: no current mission, flying without one");
-        StartRun(new MissionRun(mission, rocket));
+        var run = new MissionRun(mission, rocket);
+        // Deferred: the build screen is still emitting; switch scenes after it returns.
+        Callable.From(() => StartRun(run)).CallDeferred();
     }
 
     /// <summary>Opens the flight scene and starts the run's current segment. Used by the game and by sandboxes.</summary>
@@ -83,33 +108,132 @@ public partial class GameFlowManager : Node
     /// <summary>Flight or cruise finished a segment successfully: advance and start the next one.</summary>
     public void OnSegmentCompleted(MissionRun run)
     {
-        // TODO(C6): run.Advance(); EarthAscent -> Cruise.StartCruise(run); Cruise -> Director.StartSegment(run).
+        // Signals come from inside the physics step: change state after it.
+        Callable.From(() => AdvanceRun(run)).CallDeferred();
+    }
+
+    private void AdvanceRun(MissionRun run)
+    {
+        if (run == null || run != CurrentRun || _flightScene == null || !IsInstanceValid(_flightScene)) return;
+        run.Advance();
+        if (DebugLog) GD.Print($"[Control] Run advanced to segment {run.SegmentIndex} ({run.CurrentSegment?.SegmentId ?? "end"})");
+
+        if (run.IsFinished || run.CurrentSegment == null)
+        {
+            // Defensive: the last segment ends through MissionEnded, not SegmentCompleted.
+            OnMissionEnded(run.BlackBox.BuildResult(MissionOutcome.Success));
+            return;
+        }
+        if (run.CurrentKind == SegmentKind.Cruise)
+        {
+            SetState(GameState.Cruise);
+            _flightScene.Cruise.StartCruise(run);
+        }
+        else
+        {
+            SetState(GameState.Flight);
+            _flightScene.Director.StartSegment(run);
+        }
+    }
+
+    /// <summary>Debug (sandboxes): skips the run forward to a later segment on the vehicle already built.</summary>
+    public void DebugJumpToSegment(int segmentIndex)
+    {
+        MissionRun run = CurrentRun;
+        if (run == null || _flightScene == null) return;
+        while (run.SegmentIndex < segmentIndex && !run.IsFinished) run.Advance();
+        if (run.CurrentSegment == null) return;
+        GD.Print($"[Control] Debug jump to segment {run.SegmentIndex} ({run.CurrentSegment.SegmentId})");
+        if (run.CurrentKind == SegmentKind.Cruise)
+        {
+            SetState(GameState.Cruise);
+            _flightScene.Cruise.StartCruise(run);
+        }
+        else
+        {
+            SetState(GameState.Flight);
+            _flightScene.Director.StartSegment(run);
+        }
     }
 
     /// <summary>The run ended (success or failure): process RP and show the debrief.</summary>
     public void OnMissionEnded(FlightResult result)
     {
-        // TODO(C5): reward = ResearchCampaignEngine.Instance.ProcessMissionEnd(result); close flight scene;
-        //           show DebriefScreen.Show(result, reward).
+        if (result == null) return;
+        LastResult = result;
+        LastReward = ResearchCampaignEngine.Instance?.ProcessMissionEnd(result);
+        Callable.From(ShowDebrief).CallDeferred();
+    }
+
+    private void ShowDebrief()
+    {
+        _flightScene = null;
+        var debrief = SwitchScreen<DebriefScreen>(DebriefScene, d => d.ContinueRequested += OnDebriefContinue);
+        if (debrief == null)
+        {
+            OnDebriefContinue();
+            return;
+        }
+        debrief.TotalSegments = CurrentRun?.Mission?.Segments.Count ?? 3;
+        debrief.Show(LastResult, LastReward);
+        SetState(GameState.Debrief);
+    }
+
+    private void OnDebriefContinue()
+    {
+        CurrentRun = null;
+        bool won = ResearchCampaignEngine.Instance?.IsCampaignComplete() ?? LastResult?.Outcome == MissionOutcome.Success;
+        if (won && LastResult?.Outcome == MissionOutcome.Success) GoToVictory();
+        else GoToResearch();
     }
 
     /// <summary>Switch to the research screen.</summary>
     public void GoToResearch()
     {
-        // TODO(C5): instance ResearchScreen, connect BuildRequested -> GoToBuild.
+        var research = SwitchScreen<ResearchScreenRoot>(ResearchScreen, r => r.BuildRequested += OnBuildRequested);
+        if (research == null)
+        {
+            GoToBuild();
+            return;
+        }
+        SetState(GameState.Research);
     }
+
+    private void OnBuildRequested() => Callable.From(GoToBuild).CallDeferred();
 
     /// <summary>Switch to the build screen.</summary>
     public void GoToBuild()
     {
-        // TODO(C5): instance BuildScreen, connect Building.DesignConfirmed and ResearchRequested.
+        var build = SwitchScreen<BuildScreenRoot>(BuildScreen, b =>
+        {
+            if (b.Building != null) b.Building.DesignConfirmed += OnDesignConfirmed;
+            else GD.PushError("[Control] GameFlowManager: BuildScreenRoot.Building is not set");
+            b.ResearchRequested += OnResearchRequested;
+        });
+        if (build != null) SetState(GameState.Build);
     }
+
+    private void OnResearchRequested() => Callable.From(GoToResearch).CallDeferred();
 
     /// <summary>Switch to the victory screen.</summary>
     public void GoToVictory()
     {
-        // TODO(C6): instance VictoryScene.
+        var victory = SwitchScreen<VictoryScreen>(VictoryScene, v =>
+        {
+            v.ContinueRequested += OnVictoryContinue;
+            v.QuitRequested += OnQuitRequested;
+        });
+        if (victory == null)
+        {
+            GoToResearch();
+            return;
+        }
+        victory.Show(LastResult);
+        SetState(GameState.Victory);
     }
+
+    private void OnVictoryContinue() => Callable.From(GoToResearch).CallDeferred();
+    private void OnQuitRequested() => GetTree().Quit();
 
     private void SetState(GameState state)
     {
