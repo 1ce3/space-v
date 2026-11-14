@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://bos144yl4ofuh"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -9,5 +9,4 @@ DisplayName = "Power Systems"
 Tier = 2
 CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_avionics")
-UnlocksModelIds = PackedStringArray("solar_s1", "battery_b2")
-BuildWeightBonus = 0
+UnlocksModelIds = PackedStringArray("solar_s1", "battery_b2", "rad_x1")

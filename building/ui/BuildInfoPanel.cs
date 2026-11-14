@@ -30,6 +30,9 @@ public partial class BuildInfoPanel : VBoxContainer
     private RichTextLabel _errors;
     private Button _launch;
     private Label _windTunnel;
+    private OptionButton _materialPick;
+    private Button _brush;
+    private Label _materialInfo;
 
     public override void _Ready()
     {
@@ -39,7 +42,11 @@ public partial class BuildInfoPanel : VBoxContainer
         Building.DesignChanged += Refresh;
         Building.ConfirmRejected += OnConfirmRejected;
         Building.WindTunnelUpdated += ShowWindTunnelReport;
-        if (Cursor != null) Cursor.DecouplerModeChanged += _ => RefreshMode();
+        if (Cursor != null)
+        {
+            Cursor.DecouplerModeChanged += _ => RefreshMode();
+            Cursor.MaterialBrushChanged += _ => RefreshMode();
+        }
         Callable.From(Refresh).CallDeferred();
     }
 
@@ -60,6 +67,8 @@ public partial class BuildInfoPanel : VBoxContainer
         AddChild(_grid);
         AddChild(_palette);
         AddChild(new HSeparator());
+        BuildMaterialSection();
+        AddChild(new HSeparator());
         AddChild(new Label { Text = "Kiểm tra thiết kế" });
         AddChild(_errors);
 
@@ -76,6 +85,62 @@ public partial class BuildInfoPanel : VBoxContainer
             Text = "Chuột trái: đặt   Chuột phải: xoá\nTab: chế độ decoupler   Esc: bỏ chọn\nLăn chuột: zoom\nKhông chọn gì: kéo part để di chuyển, để chuột trên part để xem thông số",
             Modulate = new Color(1f, 1f, 1f, 0.6f),
         });
+    }
+
+    // ------------------------------------------------------------------ A12: hull materials
+
+    private void BuildMaterialSection()
+    {
+        AddChild(new Label { Text = "Vật liệu vỏ (bình, khoang lái, vỏ tách)" });
+        _materialPick = new OptionButton { FocusMode = FocusModeEnum.None };
+        _materialPick.ItemSelected += _ => OnMaterialPicked();
+        AddChild(_materialPick);
+        _materialInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 1f, 1f, 0.75f) };
+        AddChild(_materialInfo);
+        var row = new HBoxContainer();
+        _brush = new Button { Text = "Cọ sơn", ToggleMode = true, FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _brush.Toggled += on => Cursor?.SetMaterialBrush(on ? SelectedMaterialId() : null);
+        var all = new Button { Text = "Áp cho cả tên lửa", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        all.Pressed += () => { if (SelectedMaterialId() is string id) Building.ApplyMaterialToAll(id); };
+        row.AddChild(_brush);
+        row.AddChild(all);
+        AddChild(row);
+        RefreshMaterials();
+    }
+
+    private string SelectedMaterialId() =>
+        _materialPick == null || _materialPick.Selected < 0 ? null : _materialPick.GetItemMetadata(_materialPick.Selected).AsString();
+
+    /// <summary>Unlocked materials only; keeps the current pick when it is still there.</summary>
+    private void RefreshMaterials()
+    {
+        if (_materialPick == null) return;
+        string keep = SelectedMaterialId();
+        _materialPick.Clear();
+        List<MaterialDefinition> list = Building.Catalog?.GetUnlockedMaterials() ?? new List<MaterialDefinition>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            MaterialDefinition m = list[i];
+            _materialPick.AddItem($"{m.DisplayName} (T{m.Tier}, +{m.BuildWeightCost} W)", i);
+            _materialPick.SetItemMetadata(i, m.MaterialId);
+            if (m.MaterialId == keep) _materialPick.Select(i);
+        }
+        if (_materialPick.Selected < 0 && list.Count > 0) _materialPick.Select(0);
+        UpdateMaterialInfo();
+    }
+
+    private void OnMaterialPicked()
+    {
+        UpdateMaterialInfo();
+        if (_brush.ButtonPressed) Cursor?.SetMaterialBrush(SelectedMaterialId());
+    }
+
+    private void UpdateMaterialInfo()
+    {
+        MaterialDefinition m = SelectedMaterialId() is string id ? Building.Catalog?.GetMaterial(id) : null;
+        _materialInfo.Text = m == null ? "(chưa có vật liệu)" :
+            $"Khối lượng x{m.MassMultiplier:0.##}, nhiệt {m.MaxTempBonusK:+0;-0;0} K, chắn bức xạ {m.RadiationShielding:P0}\n" +
+            $"Chịu va chạm x{m.ImpactToleranceMultiplier:0.##}, độ bền x{m.StrengthMultiplier:0.##}";
     }
 
     private Button AddButton(string text, System.Action onPressed)
@@ -104,6 +169,7 @@ public partial class BuildInfoPanel : VBoxContainer
         _mass.Text = $"Khối lượng: {mp.TotalMass:0} kg (chưa tính payload)";
 
         RebuildSlots();
+        RefreshMaterials();
         RefreshMode();
         if (_windTunnel != null) _windTunnel.Text = ""; // stale after any change
 
@@ -114,7 +180,11 @@ public partial class BuildInfoPanel : VBoxContainer
 
     private void RefreshMode()
     {
-        _mode.Text = Cursor != null && Cursor.DecouplerMode ? "Chế độ decoupler: trỏ vào cạnh giữa hai part" : "";
+        string text = Cursor != null && Cursor.DecouplerMode ? "Chế độ decoupler: trỏ vào cạnh giữa hai part" : "";
+        if (Cursor?.MaterialBrushId != null)
+            text += (text.Length > 0 ? "\n" : "") + (Cursor.DecouplerMode ? "Cọ sơn: bấm vào cạnh có vỏ tách" : "Cọ sơn: bấm vào bình / khoang lái (Tab: vỏ tách)");
+        _mode.Text = text;
+        if (_brush != null) _brush.SetPressedNoSignal(Cursor?.MaterialBrushId != null);
     }
 
     private void ShowWindTunnelReport()

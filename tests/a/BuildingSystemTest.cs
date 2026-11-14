@@ -35,6 +35,8 @@ public partial class BuildingSystemTest : Node
         TestOrphansAndPodRemoval();
         TestRoundTrip();
         TestVersion1Design();
+        TestMaterials();
+        TestInstruments();
         GD.Print($"[A test] ---- {_passed} passed, {_failed} failed ----");
         if (_failed > 0) GD.PushError($"[A test] {_failed} check(s) failed");
         if (QuitWhenDone) GetTree().Quit(_failed > 0 ? 1 : 0);
@@ -138,6 +140,53 @@ public partial class BuildingSystemTest : Node
         Check("version 1 modules auto-placed at (0,0) and (1,0)",
             c.InstalledModules.ContainsKey(new Vector2I(0, 0)) && c.InstalledModules.ContainsKey(new Vector2I(1, 0)));
         Dispose(c);
+    }
+
+    private void TestMaterials()
+    {
+        PartCatalog cat = PartCatalog.Instance;
+        Check("6 materials loaded", cat.GetAllMaterials().Count == 6, $"{cat.GetAllMaterials().Count}");
+        BuildingSystem b = NewSystem();
+        BuildStarter(b);
+        b.PlaceDecoupler("decoupler_d1", TankEngineEdge);
+        RocketPart tank = b.Grid.GetPartAt(TankCell);
+        Check("tank gets default aluminium", tank.Material?.MaterialId == "mat_al2024", tank.Material?.MaterialId ?? "null");
+        Check("decoupler gets default aluminium", b.Grid.GetDecouplerAt(TankEngineEdge).Material?.MaterialId == "mat_al2024");
+        Check("engine takes no material", b.Grid.GetPartAt(EngineCell).Material == null);
+        Check("engine cannot be painted", !b.CanSetPartMaterial(EngineCell, "mat_al2024"));
+
+        float baseMass = tank.DryMass;
+        MaterialDefinition cfrp = cat.GetMaterial("mat_cfrp");
+        tank.Material = cfrp;
+        Check("CFRP tank dry mass x0.7", Mathf.IsEqualApprox(tank.DryMass, baseMass * 0.7f, 0.01f), $"{tank.DryMass} vs {baseMass}");
+        Check("CFRP max temp -100 K", Mathf.IsEqualApprox(tank.GetEffectiveMaxSafeTempK(), tank.Definition.MaxSafeTempK - 100f));
+        tank.Material = cat.GetMaterial("mat_al2024");
+        if (!b.IsMaterialUnlocked("mat_cfrp"))
+            Check("locked CFRP refused", !b.SetPartMaterial(TankCell, "mat_cfrp"));
+
+        // Paint with a tier-0 material set directly in the design: round trip through JSON.
+        Check("paint tank aluminium", b.SetPartMaterial(TankCell, "mat_al2024"));
+        string json = b.Design.Serialize();
+        Check("design JSON carries material", json.Contains("mat_al2024"));
+        RocketDesign d = RocketDesign.Deserialize(json.Replace("mat_al2024", "mat_steel304"));
+        Dispose(b);
+        BuildingSystem c = NewSystem();
+        c.LoadDesign(d);
+        RocketPart loadedTank = c.Grid.GetPartAt(TankCell);
+        string expected = c.IsMaterialUnlocked("mat_steel304") ? "mat_steel304" : "mat_al2024";
+        Check($"loaded tank material is {expected}", loadedTank?.Material?.MaterialId == expected, loadedTank?.Material?.MaterialId ?? "null");
+        Check("ApplyMaterialToAll(al2024) keeps 3 hull pieces aluminium",
+            c.ApplyMaterialToAll("mat_al2024") >= 0 && c.Grid.GetDecouplerAt(TankEngineEdge).Material?.MaterialId == "mat_al2024");
+        Dispose(c);
+    }
+
+    private void TestInstruments()
+    {
+        PartCatalog cat = PartCatalog.Instance;
+        foreach (string id in new[] { "comms_c1", "comms_c2", "rad_x1", "rad_x2", "fuel_f1", "pressure_p1" })
+            Check($"{id} is an instrument", cat.GetDefinition(id) is InstrumentModuleDefinition);
+        Check("pod_mk3 grid 4x3", (cat.GetDefinition("pod_mk3") as CommandPodPartDefinition)?.InventorySize == new Vector2I(4, 3));
+        Check("tech tree matches catalog", cat.ValidateAgainstTechTree().Count == 0, string.Join(" | ", cat.ValidateAgainstTechTree()));
     }
 
     private void TestRoundTrip()

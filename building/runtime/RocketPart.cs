@@ -36,23 +36,27 @@ public partial class RocketPart : Node3D, IFlightComponent
     public PartGroup PartGroup => Definition?.PartGroup ?? PartGroup.Structural;
     public Vector2I Footprint => Definition?.Footprint ?? Vector2I.One;
     /// <summary>Mass without fuel (kg).</summary>
-    public float DryMass => Definition?.DryMass ?? 0f;
+    /// <summary>Dry mass with the hull material applied (kg).</summary>
+    public float DryMass => (Definition?.DryMass ?? 0f) * (Material?.MassMultiplier ?? 1f);
     public float FrontalArea => Definition?.FrontalArea ?? 0f;
     public float SideArea => Definition?.SideArea ?? 0f;
     public float DragCoefficient => Definition?.DragCoefficient ?? 0f;
-    public float MaxShear => Definition?.MaxShear ?? 0f;
-    public float MaxBending => Definition?.MaxBending ?? 0f;
-    public float ImpactToleranceMps => Definition?.ImpactToleranceMps ?? 0f;
+    public float MaxShear => (Definition?.MaxShear ?? 0f) * (Material?.StrengthMultiplier ?? 1f);
+    public float MaxBending => (Definition?.MaxBending ?? 0f) * (Material?.StrengthMultiplier ?? 1f);
+    public float ImpactToleranceMps => (Definition?.ImpactToleranceMps ?? 0f) * (Material?.ImpactToleranceMultiplier ?? 1f);
 
     /// <summary>Phase 2: hull material (null for parts that take none).</summary>
     public MaterialDefinition Material { get; set; }
 
-    // Phase 2 effective values: base definition value with the material applied. Solvers move to these in B9.
-    public float GetEffectiveDryMass() => DryMass * (Material?.MassMultiplier ?? 1f);
+    // A12: DryMass, MaxShear, MaxBending and ImpactToleranceMps above already include the material, so every reader
+    // (mass, structure, ground contact) uses it. The GetEffective names stay for code written against the C9 contract.
+    public float GetEffectiveDryMass() => DryMass;
     public float GetEffectiveMaxSafeTempK() => (Definition?.MaxSafeTempK ?? 0f) + (Material?.MaxTempBonusK ?? 0f);
-    public float GetEffectiveImpactToleranceMps() => ImpactToleranceMps * (Material?.ImpactToleranceMultiplier ?? 1f);
-    public float GetEffectiveMaxShear() => MaxShear * (Material?.StrengthMultiplier ?? 1f);
-    public float GetEffectiveMaxBending() => MaxBending * (Material?.StrengthMultiplier ?? 1f);
+    public float GetEffectiveImpactToleranceMps() => ImpactToleranceMps;
+    public float GetEffectiveMaxShear() => MaxShear;
+    public float GetEffectiveMaxBending() => MaxBending;
+    /// <summary>Extra build weight of the material.</summary>
+    public int MaterialWeight => Material?.BuildWeightCost ?? 0;
     public float GetRadiationShielding() => Material?.RadiationShielding ?? 0f;
     /// <summary>B9: joint strength this part brings (decoupler, fairing, parachute) with the material, 0 for other parts.</summary>
     public float GetEffectiveAttachmentStrength()
