@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
+[ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="2_body"]
+
+[resource]
+script = ExtResource("1_seg")
+SegmentId = "seg_cruise"
+DisplayName = "Hành trình tới sao Hỏa"
+Kind = 1
+Body = ExtResource("2_body")
+RewardRP = 80
+EnabledHazards = 0
+RequiredDeltaVMps = 800.0
+DurationDays = 210.0

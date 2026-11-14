@@ -1,0 +1,29 @@
+using Godot;
+using RocketGame.Core;
+
+namespace RocketGame.Building;
+
+/// <summary>Command pod: carries the robot payload and the module slots.</summary>
+[GlobalClass]
+public partial class CommandPodPartDefinition : PartDefinition
+{
+    [ExportGroup("CommandPod")]
+    [Export] public int AvionicsSlots { get; set; } = 1;
+    [Export] public int ThermalSlots { get; set; } = 0;
+    [Export] public int PowerSlots { get; set; } = 1;
+    /// <summary>G limit for the crew-less payload.</summary>
+    [Export] public float MaxGForce { get; set; } = 8f;
+
+    public CommandPodPartDefinition()
+    {
+        PartGroup = PartGroup.CommandPod;
+    }
+
+    /// <summary>Number of slots of a type.</summary>
+    public int GetSlotCount(ModuleSlotType slot) => slot switch
+    {
+        ModuleSlotType.Avionics => AvionicsSlots,
+        ModuleSlotType.Thermal => ThermalSlots,
+        _ => PowerSlots,
+    };
+}
