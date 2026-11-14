@@ -3,20 +3,24 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Fin or other aerodynamic surface. Controllable when MaxDeflectionDeg is greater than zero.</summary>
+
+/// <summary>Fin. MaxDeflectionDeg > 0 makes it a control fin.</summary>
 [GlobalClass]
 public partial class AeroSurfacePartDefinition : PartDefinition
 {
-    /// <summary>Lift coefficient per radian of angle of attack.</summary>
-    [ExportGroup("Aero surface")]
+    [ExportGroup("AeroSurface")]
     [Export] public float LiftCoefficient { get; set; } = 0.8f;
-
-    /// <summary>Planform area, in m^2.</summary>
+    /// <summary>Lifting area (m^2).</summary>
     [Export] public float PlanformArea { get; set; } = 1.5f;
+    /// <summary>0 = fixed fin.</summary>
+    [Export] public float MaxDeflectionDeg { get; set; } = 0f;
 
-    /// <summary>Largest control deflection either side of neutral, in degrees. Zero means a fixed fin.</summary>
-    [Export] public float MaxDeflectionDeg { get; set; }
+    public AeroSurfacePartDefinition()
+    {
+        PartGroup = PartGroup.AeroSurface;
+    }
 
-    /// <summary>Sets the group to AeroSurface so new definitions are valid without extra setup.</summary>
-    public AeroSurfacePartDefinition() => PartGroup = PartGroup.AeroSurface;
+    /// <summary>True when the fin can be steered.</summary>
+    public bool IsControlSurface => MaxDeflectionDeg > 0f;
+
 }

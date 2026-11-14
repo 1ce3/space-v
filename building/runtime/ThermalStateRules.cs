@@ -2,53 +2,23 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Thermal state machine shared by parts and modules. Physics changes TempK, then calls Evaluate.</summary>
+/// <summary>Temperature -> ComponentState rules (decision #12). Physics calls this after every TempK change.</summary>
 public static class ThermalStateRules
 {
-    /// <summary>Above this multiple of MaxSafeTempK the component is destroyed (Broken).</summary>
-    public const float BrokenTempFactor = 1.25f;
-
-    /// <summary>An Overheated component recovers once it cools below this multiple of MaxSafeTempK.</summary>
-    public const float OverheatRecoverFactor = 0.9f;
-
-    /// <summary>A Frozen component recovers once it warms this far above MinSafeTempK, in K.</summary>
+    /// <summary>Above MaxSafeTempK times this, the component breaks.</summary>
+    public const float BreakFactor = 1.25f;
+    /// <summary>An overheated component recovers below MaxSafeTempK times this.</summary>
+    public const float RecoverFactor = 0.9f;
+    /// <summary>A frozen component recovers above MinSafeTempK plus this (K).</summary>
     public const float FrozenRecoverMarginK = 10f;
 
-    /// <summary>Updates the component State from its TempK. Broken is permanent.</summary>
+    /// <summary>J/(kg*K) used for HeatCapacityJPerK = DryMass * this.</summary>
+    public const float SpecificHeat = 900f;
+
+    /// <summary>Updates c.State from c.TempK.</summary>
     public static void Evaluate(IFlightComponent c)
     {
-        if (c == null || c.BaseDefinition == null || c.State == ComponentState.Broken) return;
-
-        float maxSafe = c.BaseDefinition.MaxSafeTempK;
-        float minSafe = c.BaseDefinition.MinSafeTempK;
-        float temp = c.TempK;
-
-        if (temp > BrokenTempFactor * maxSafe)
-        {
-            c.State = ComponentState.Broken;
-            return;
-        }
-
-        if (temp > maxSafe)
-        {
-            c.State = ComponentState.Overheated;
-            return;
-        }
-
-        if (c.State == ComponentState.Overheated && temp < OverheatRecoverFactor * maxSafe)
-        {
-            c.State = ComponentState.Active;
-        }
-
-        if (temp < minSafe)
-        {
-            c.State = ComponentState.Frozen;
-            return;
-        }
-
-        if (c.State == ComponentState.Frozen && temp > minSafe + FrozenRecoverMarginK)
-        {
-            c.State = ComponentState.Active;
-        }
+        // TODO(A1): Broken stays Broken; > BreakFactor*Max -> Broken; > Max -> Overheated;
+        //           Overheated and < RecoverFactor*Max -> Active; < Min -> Frozen; Frozen and > Min + margin -> Active.
     }
 }

@@ -3,17 +3,18 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Nose fairing. Shields the parts below it until jettisoned.</summary>
+/// <summary>Nose fairing: shields the parts below it while nose-first.</summary>
 [GlobalClass]
 public partial class FairingPartDefinition : PartDefinition
 {
-    /// <summary>Force the fairing joint can carry before it breaks, in N.</summary>
+    /// <summary>Strength of its self-separating joint (N).</summary>
     [ExportGroup("Fairing")]
     [Export] public float AttachmentStrength { get; set; } = 100_000f;
-
-    /// <summary>Dynamic pressure above which the fairing breaks, in Pa.</summary>
+    /// <summary>q above which the fairing fails (Pa).</summary>
     [Export] public float MaxDynamicPressure { get; set; } = 60_000f;
 
-    /// <summary>Sets the group to Fairing so new definitions are valid without extra setup.</summary>
-    public FairingPartDefinition() => PartGroup = PartGroup.Fairing;
+    public FairingPartDefinition()
+    {
+        PartGroup = PartGroup.Fairing;
+    }
 }

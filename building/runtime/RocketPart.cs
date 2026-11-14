@@ -4,139 +4,95 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Base class of every part placed on the grid. Created through RocketPart.Create so the right subclass is chosen.</summary>
-public abstract partial class RocketPart : Node3D, IFlightComponent
+/// <summary>
+/// A part of the flying rocket (also used for previews in the build screen). Node3D child of VehicleRoot in flight.
+/// Holds runtime state; stats are read-only forwards to Definition.
+/// </summary>
+public partial class RocketPart : Node3D, IFlightComponent
 {
-    private const float FallbackCellSizeM = 2f;
-    private const float HeatCapacityPerKg = 900f;
-    private const float StartTempK = 288f;
-
-    /// <summary>Definition this part was created from. Set by Create.</summary>
+    /// <summary>Data of this part.</summary>
     public PartDefinition Definition { get; private set; }
-
-    /// <summary>Lower-left grid cell of the footprint (Y increases upward).</summary>
+    /// <summary>Lower-left cell of the footprint.</summary>
     public Vector2I Cell { get; set; }
-
-    /// <summary>Parent in the part tree. Null for the command pod. Kept after the part is severed.</summary>
+    /// <summary>Parent in the tree (null for the pod and for decouplers).</summary>
     public RocketPart ParentPart { get; set; }
-
-    /// <summary>Child parts in the part tree.</summary>
     public List<RocketPart> Children { get; } = new();
-
-    /// <summary>Joint to the parent. Kept after the part is severed so listeners can see the old parent.</summary>
+    /// <summary>Joint to the parent. Kept after a cut so listeners can find the parent.</summary>
     public Joint ParentJoint { get; set; }
-
-    /// <summary>Operating state.</summary>
-    public ComponentState State { get; set; } = ComponentState.Idle;
-
-    /// <summary>Current temperature, in K.</summary>
-    public float TempK { get; set; } = StartTempK;
-
-    /// <summary>True while a fairing or heat shield protects this part from the airflow.</summary>
-    public bool IsShielded { get; set; }
-
-    /// <summary>The part tree this part belongs to. Set by the assembler.</summary>
+    /// <summary>Tree this part belongs to (set by RocketAssembler).</summary>
     public PartTree Tree { get; set; }
 
-    /// <summary>The definition as the base type, for IFlightComponent.</summary>
+    public ComponentState State { get; set; } = ComponentState.Idle;
+    /// <summary>Temperature (K).</summary>
+    public float TempK { get; set; } = 288f;
+    /// <summary>True while a fairing or heat shield hides this part from the flow (physics writes it).</summary>
+    public bool IsShielded { get; set; }
+
     public ComponentDefinition BaseDefinition => Definition;
+    public float HeatCapacityJPerK => DryMass * ThermalStateRules.SpecificHeat;
 
-    /// <summary>Dry mass, in kg.</summary>
-    public float DryMass => Definition?.DryMass ?? 0f;
-
-    /// <summary>Footprint size, in cells.</summary>
-    public Vector2I Footprint => Definition?.Footprint ?? Vector2I.One;
-
-    /// <summary>Part category.</summary>
+    // Read-only forwards to Definition.
+    public string ModelId => Definition?.ModelId ?? "";
     public PartGroup PartGroup => Definition?.PartGroup ?? PartGroup.Structural;
-
-    /// <summary>Cross-section facing the airflow, in m^2.</summary>
+    public Vector2I Footprint => Definition?.Footprint ?? Vector2I.One;
+    /// <summary>Mass without fuel (kg).</summary>
+    public float DryMass => Definition?.DryMass ?? 0f;
     public float FrontalArea => Definition?.FrontalArea ?? 0f;
-
-    /// <summary>Area facing a sideways airflow, in m^2.</summary>
     public float SideArea => Definition?.SideArea ?? 0f;
-
-    /// <summary>Drag coefficient.</summary>
     public float DragCoefficient => Definition?.DragCoefficient ?? 0f;
-
-    /// <summary>Largest shear force the part survives, in N.</summary>
     public float MaxShear => Definition?.MaxShear ?? 0f;
-
-    /// <summary>Largest bending moment the part survives, in N*m.</summary>
     public float MaxBending => Definition?.MaxBending ?? 0f;
-
-    /// <summary>Largest impact speed the part survives, in m/s.</summary>
     public float ImpactToleranceMps => Definition?.ImpactToleranceMps ?? 0f;
 
-    /// <summary>Heat needed to raise the temperature by 1 K, in J/K.</summary>
-    public float HeatCapacityJPerK => DryMass * HeatCapacityPerKg;
-
-    /// <summary>Builds the right runtime class for a definition. Returns null (and logs an error) for unknown types.</summary>
+    /// <summary>Creates the runtime class that matches the definition type (A_BUILDING.md 4.2).</summary>
     public static RocketPart Create(PartDefinition def)
     {
-        if (def == null)
-        {
-            GD.PushError("[RocketPart] Create was called with a null definition.");
-            return null;
-        }
-
-        RocketPart part = def switch
-        {
-            DecouplerPartDefinition => new DecouplerPart(),
-            StructuralPartDefinition => new StructuralPart(),
-            FuelTankPartDefinition => new FuelTankPart(),
-            LiquidEnginePartDefinition => new LiquidEnginePart(),
-            SolidBoosterPartDefinition => new SolidBoosterPart(),
-            AeroSurfacePartDefinition aero => aero.MaxDeflectionDeg > 0f ? new ControlFinPart() : new AeroSurfacePart(),
-            CommandPodPartDefinition => new CommandPodPart(),
-            FairingPartDefinition => new FairingPart(),
-            HeatShieldPartDefinition => new HeatShieldPart(),
-            ParachutePartDefinition => new ParachutePart(),
-            _ => null,
-        };
-
-        if (part == null)
-        {
-            GD.PushError($"[RocketPart] No runtime class for definition type {def.GetType().Name} ('{def.ModelId}').");
-            return null;
-        }
-
-        part.Definition = def;
-        part.InitializeFromDefinition();
+        // TODO(A1): map definition type -> runtime class (Decoupler before Structural; fin by MaxDeflectionDeg).
+        var part = new RocketPart();
+        part.Initialize(def);
         return part;
     }
 
-    /// <summary>Current mass: dry mass plus any fuel or propellant carried, in kg.</summary>
+    /// <summary>Sets the definition and resets runtime state (fuel, ignitions, ablator...).</summary>
+    public void Initialize(PartDefinition def)
+    {
+        Definition = def;
+        Name = string.IsNullOrEmpty(def?.ModelId) ? "Part" : def.ModelId;
+        ResetRuntimeState();
+    }
+
+    /// <summary>Subclasses fill their tanks / counters here.</summary>
+    protected virtual void ResetRuntimeState()
+    {
+        State = ComponentState.Idle;
+        TempK = 288f;
+        IsShielded = false;
+    }
+
+    /// <summary>Dry mass plus fuel or propellant (kg).</summary>
     public virtual float GetCurrentMass() => DryMass;
 
-    /// <summary>Aerodynamic force on the part. Stub: Physics computes aerodynamics itself.</summary>
-    public virtual Vector2 CalculateAero(Vector2 airVel, float rho, float mach) => Vector2.Zero;
+    /// <summary>Kept for the contract; physics computes aero itself. Always zero.</summary>
+    public Vector2 CalculateAero(Vector2 airVel, float rho, float mach) => Vector2.Zero;
 
-    /// <summary>Center of the footprint, in grid cells (a 1x2 part at cell (2,3) gives (2.5, 4.0)).</summary>
-    public virtual Vector2 GetGridPosition()
-        => new(Cell.X + Footprint.X * 0.5f, Cell.Y + Footprint.Y * 0.5f);
+    /// <summary>Footprint center in cells (vehicle-local grid units).</summary>
+    public virtual Vector2 GetGridPosition() => new Vector2(Cell.X + Footprint.X * 0.5f, Cell.Y + Footprint.Y * 0.5f);
 
-    /// <summary>Position in the vehicle-local frame, in meters (grid position times cell size).</summary>
-    public Vector2 GetLocalPosition() => GetGridPosition() * GetCellSizeM();
+    /// <summary>GetGridPosition() * CellSize, in meters (vehicle-local frame). Physics uses this.</summary>
+    public Vector2 GetLocalPosition() => GetGridPosition() * GetCellSize();
 
-    /// <summary>Adds heat (negative removes it) and re-evaluates the thermal state. Heat in J.</summary>
     public void ApplyThermalLoad(float heatJoule)
     {
-        float capacity = HeatCapacityJPerK;
-        if (capacity <= 0f) return;
-        TempK += heatJoule / capacity;
+        if (HeatCapacityJPerK <= 0f) return;
+        TempK = Mathf.Max(0f, TempK + heatJoule / HeatCapacityJPerK);
         ThermalStateRules.Evaluate(this);
     }
 
-    /// <summary>True unless the part is Broken, Overheated or Frozen.</summary>
-    public bool CanOperate()
-        => State != ComponentState.Broken && State != ComponentState.Overheated && State != ComponentState.Frozen;
+    public virtual bool CanOperate() =>
+        State != ComponentState.Broken && State != ComponentState.Overheated && State != ComponentState.Frozen;
 
-    /// <summary>Per-tick hook. Parts hold state only, so the default does nothing.</summary>
     public virtual void OnFixedTick(float deltaTime) { }
 
-    /// <summary>Called once by Create after Definition is set. Subclasses load their starting state here.</summary>
-    protected virtual void InitializeFromDefinition() { }
-
-    private static float GetCellSizeM() => PartCatalog.Instance?.Settings?.CellSize ?? FallbackCellSizeM;
+    /// <summary>CellSize from PartCatalog settings, or the default when no catalog is loaded.</summary>
+    public static float GetCellSize() => PartCatalog.Instance?.Settings?.CellSize ?? BuildSettings.DefaultCellSize;
 }

@@ -3,17 +3,15 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Abstract base of devices installed in command pod slots (avionics, thermal, power).</summary>
-[GlobalClass]
+/// <summary>Data of a device installed in a command pod slot.</summary>
 public abstract partial class ModuleDefinition : ComponentDefinition
 {
-    /// <summary>Slot type this module fits into.</summary>
-    [ExportGroup("Module")]
-    [Export] public ModuleSlotType SlotType { get; set; }
+    [ExportGroup("Slot")]
+    [Export] public ModuleSlotType SlotType { get; set; } = ModuleSlotType.Avionics;
 
-    /// <summary>Applies the module temperature limits (350 K max, 230 K min).</summary>
     protected ModuleDefinition()
     {
+        DryMass = 15f;
         MaxSafeTempK = 350f;
         MinSafeTempK = 230f;
     }

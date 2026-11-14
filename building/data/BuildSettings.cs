@@ -2,22 +2,21 @@ using Godot;
 
 namespace RocketGame.Building;
 
-/// <summary>Build screen settings, stored as data/settings/build_settings.tres. Read through PartCatalog.Instance.Settings.</summary>
+/// <summary>Shared building values. Saved as data/settings/build_settings.tres; read via PartCatalog.Instance.Settings.</summary>
 [GlobalClass]
 public partial class BuildSettings : Resource
 {
-    /// <summary>Edge length of one grid cell, in meters.</summary>
-    [Export] public float CellSize { get; set; } = 2.0f;
+    /// <summary>Used when no BuildSettings is loaded (tests, sandboxes).</summary>
+    public const float DefaultCellSize = 2.0f;
 
-    /// <summary>Grid width, in cells.</summary>
-    [Export] public int GridWidth { get; set; } = 9;
+    /// <summary>Size of one grid cell (m).</summary>
+    [ExportGroup("Grid")]
+    [Export(PropertyHint.Range, "0.5,10,0.1")] public float CellSize { get; set; } = DefaultCellSize;
+    [Export(PropertyHint.Range, "1,32,1")] public int GridWidth { get; set; } = 9;
+    [Export(PropertyHint.Range, "1,64,1")] public int GridHeight { get; set; } = 16;
 
-    /// <summary>Grid height, in cells.</summary>
-    [Export] public int GridHeight { get; set; } = 16;
+    [ExportGroup("Ghost")]
+    [Export] public Color GhostValidColor { get; set; } = new(0.3f, 1f, 0.4f, 0.5f);
+    [Export] public Color GhostInvalidColor { get; set; } = new(1f, 0.3f, 0.3f, 0.5f);
 
-    /// <summary>Ghost tint when the part can be placed.</summary>
-    [Export] public Color GhostValidColor { get; set; } = new Color(0.2f, 0.9f, 0.3f, 0.5f);
-
-    /// <summary>Ghost tint when the part cannot be placed.</summary>
-    [Export] public Color GhostInvalidColor { get; set; } = new Color(0.9f, 0.2f, 0.2f, 0.5f);
 }

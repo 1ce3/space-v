@@ -1,12 +1,19 @@
 using Godot;
 
+using RocketGame.Core;
+
 namespace RocketGame.Building;
 
-/// <summary>Plain structural part that holds other parts together.</summary>
+/// <summary>Beam, adapter or other passive part.</summary>
 [GlobalClass]
 public partial class StructuralPartDefinition : PartDefinition
 {
-    /// <summary>Force the joint to this part can carry before it breaks, in N.</summary>
+    /// <summary>Joint strength contributed by this part (N).</summary>
     [ExportGroup("Structural")]
     [Export] public float AttachmentStrength { get; set; } = 500_000f;
+
+    public StructuralPartDefinition()
+    {
+        PartGroup = PartGroup.Structural;
+    }
 }

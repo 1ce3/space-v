@@ -1,34 +1,43 @@
 using System.Collections.Generic;
-using System.Linq;
+
 using Godot;
 using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>The tree of parts that make up the rocket. Emits PartSevered when a subtree is cut off.</summary>
+
+/// <summary>
+/// View over the runtime part tree (root = command pod). Cutting happens only through SeverSubtree,
+/// called by StagingManager (Jettison) or StructuralBreakHandler (Break). Never reparents nodes.
+/// </summary>
 public partial class PartTree : RefCounted
 {
-    /// <summary>Emitted after a subtree has been removed from ActiveParts. The part keeps its ParentJoint.</summary>
+    /// <summary>Emitted after a cut. part keeps its ParentJoint so listeners can find the parent.</summary>
     [Signal] public delegate void PartSeveredEventHandler(RocketPart part, SeverCause cause, float impulseNs);
 
     /// <summary>The command pod.</summary>
     public RocketPart RootPart { get; set; }
 
-    /// <summary>Every part still attached, including decouplers on intact joints.</summary>
+    /// <summary>Every part still attached, including decouplers.</summary>
     public List<RocketPart> ActiveParts { get; } = new();
 
-    /// <summary>All active parts of one runtime type.</summary>
-    public List<T> GetParts<T>() where T : RocketPart => ActiveParts.OfType<T>().ToList();
-
-    /// <summary>Part and all its descendants in the tree (decouplers are not tree nodes, so they are not included).</summary>
-    public List<RocketPart> GetSubtree(RocketPart part)
+    /// <summary>Attached parts of type T.</summary>
+    public List<T> GetParts<T>() where T : RocketPart
     {
-        var result = new List<RocketPart>();
-        if (part != null) CollectSubtree(part, result);
+        var result = new List<T>();
+        foreach (RocketPart part in ActiveParts)
+            if (part is T typed) result.Add(typed);
         return result;
     }
 
-    /// <summary>Total current mass of the part and its descendants, in kg.</summary>
+    /// <summary>part and every descendant (no decouplers).</summary>
+    public List<RocketPart> GetSubtree(RocketPart part)
+    {
+        // TODO(A1): depth-first over Children.
+        return new List<RocketPart> { part };
+    }
+
+    /// <summary>Current mass of part and its descendants (kg).</summary>
     public float GetSubtreeMass(RocketPart part)
     {
         float mass = 0f;
@@ -36,43 +45,12 @@ public partial class PartTree : RefCounted
         return mass;
     }
 
-    /// <summary>
-    /// Cuts the part and everything below it off the tree. Removes them, and the decouplers of their joints,
-    /// from ActiveParts, then emits PartSevered. Does not reparent nodes: VehicleRoot does that on the signal.
-    /// </summary>
+    /// <summary>Detaches part and its subtree, removes them and the joint's decouplers from ActiveParts, emits PartSevered.</summary>
     public void SeverSubtree(RocketPart part, SeverCause cause, float impulseNs = 0f)
     {
-        if (part == null)
-        {
-            GD.PushError("[PartTree] SeverSubtree was called with a null part.");
-            return;
-        }
-
-        if (part == RootPart)
-        {
-            GD.PushError("[PartTree] The root part cannot be severed.");
-            return;
-        }
-
-        if (!ActiveParts.Contains(part)) return; // Already severed.
-
-        List<RocketPart> subtree = GetSubtree(part);
-
-        part.ParentPart?.Children.Remove(part);
-
-        foreach (RocketPart p in subtree)
-        {
-            ActiveParts.Remove(p);
-            if (p.ParentJoint == null) continue;
-            foreach (DecouplerPart decoupler in p.ParentJoint.Decouplers) ActiveParts.Remove(decoupler);
-        }
-
+        // TODO(A1): remove from parent's Children (keep part.ParentJoint), mark joint separated,
+        //           remove subtree and joint decouplers from ActiveParts, then emit.
         EmitSignal(SignalName.PartSevered, part, (int)cause, impulseNs);
     }
 
-    private static void CollectSubtree(RocketPart part, List<RocketPart> result)
-    {
-        result.Add(part);
-        foreach (RocketPart child in part.Children) CollectSubtree(child, result);
-    }
 }

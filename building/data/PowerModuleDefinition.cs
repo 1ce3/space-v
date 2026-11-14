@@ -3,26 +3,23 @@ using RocketGame.Core;
 
 namespace RocketGame.Building;
 
-/// <summary>Power device: battery, solar array or radioisotope generator.</summary>
+/// <summary>Power device: battery, solar array or RTG.</summary>
 [GlobalClass]
 public partial class PowerModuleDefinition : ModuleDefinition
 {
-    /// <summary>Which device this is.</summary>
     [ExportGroup("Power")]
     [Export] public PowerDeviceKind Kind { get; set; } = PowerDeviceKind.Battery;
+    /// <summary>Output at 1361 W/m^2 (solar) or at launch (RTG) (W).</summary>
+    [Export] public float NominalOutputW { get; set; } = 0f;
+    /// <summary>Battery capacity (Wh).</summary>
+    [Export] public float EnergyStorageWh { get; set; } = 0f;
+    /// <summary>Heat released (W).</summary>
+    [Export] public float WasteHeatW { get; set; } = 0f;
+    /// <summary>RTG output loss per year (fraction).</summary>
+    [Export] public float DegradationRatePerYear { get; set; } = 0f;
 
-    /// <summary>Output at nominal conditions, in W (solar arrays: at 1361 W/m^2 flux).</summary>
-    [Export] public float NominalOutputW { get; set; }
-
-    /// <summary>Stored energy when full, in Wh.</summary>
-    [Export] public float EnergyStorageWh { get; set; }
-
-    /// <summary>Waste heat released into the pod, in W.</summary>
-    [Export] public float WasteHeatW { get; set; }
-
-    /// <summary>Fraction of output lost per year of mission time.</summary>
-    [Export] public float DegradationRatePerYear { get; set; }
-
-    /// <summary>Sets the slot type to Power.</summary>
-    public PowerModuleDefinition() => SlotType = ModuleSlotType.Power;
+    public PowerModuleDefinition()
+    {
+        SlotType = ModuleSlotType.Power;
+    }
 }
