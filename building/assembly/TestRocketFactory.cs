@@ -51,6 +51,7 @@ public static class TestRocketFactory
         var stage0 = new StageGroup { StageIndex = 0, Depth = 0 };
         stage0.EnginesToArm.Add(engine);
 
+        new RocketAssembler().AttachVisuals(tree);
         return new AssembledRocket(tree, new List<StageGroup> { stage0 }, MassCenterCalculator.Calculate(tree.ActiveParts));
     }
 

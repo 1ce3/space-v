@@ -4,6 +4,7 @@ using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Physics;
 using RocketGame.Presentation;
+using Side = RocketGame.Core.Side;
 
 namespace RocketGame.Control;
 
@@ -40,6 +41,11 @@ public partial class VehicleRoot : RigidBody3D
     /// <summary>Telemetry of the last physics tick.</summary>
     public TelemetryFrame LastFrame => _lastFrame;
 
+    /// <summary>Lower bound for the rigid body mass and inertia (Jolt rejects 0).</summary>
+    private const float MinBodyMassKg = 1f;
+    /// <summary>Decoupler collision plate thickness, in cells.</summary>
+    private const float DecouplerThickness = 0.1f;
+
     private readonly Dictionary<RocketPart, CollisionShape3D> _shapes = new();
     private readonly List<(RocketPart part, float impulseNs)> _pendingSevers = new();
     private TelemetryFrame _lastFrame;
@@ -59,9 +65,89 @@ public partial class VehicleRoot : RigidBody3D
     /// <summary>Builds the flying rocket from the build screen result (segment 1 start).</summary>
     public void OnDesignConfirmed(AssembledRocket rocket)
     {
-        // TODO(C2): add part nodes, one CollisionShape3D per part (layer/mask 0), set Mass/CenterOfMass/Inertia,
-        //           Staging.Bind(...), FlightControl.Bind(...), connect PartTree.PartSevered, place on pad, _onPad = true.
+        if (rocket?.PartTree?.RootPart == null)
+        {
+            GD.PushError("[Control] VehicleRoot.OnDesignConfirmed: rocket has no part tree");
+            return;
+        }
+        ClearVehicle();
+
+        PartTree = rocket.PartTree;
+        float cell = RocketPart.GetCellSize();
+        foreach (RocketPart part in PartTree.ActiveParts)
+        {
+            // 1. Part nodes in the vehicle-local frame.
+            if (part.GetParent() != null) part.GetParent().RemoveChild(part);
+            AddChild(part);
+            Vector2 local = part.GetLocalPosition();
+            part.Position = new Vector3(local.X, local.Y, 0f);
+            part.Rotation = Vector3.Zero;
+
+            // 2. One box per part, direct child of the body (layer/mask 0: the body never collides).
+            var shape = new CollisionShape3D
+            {
+                Name = $"Shape_{part.Name}",
+                Shape = new BoxShape3D { Size = GetShapeSize(part, cell) },
+                Position = part.Position,
+            };
+            AddChild(shape);
+            _shapes[part] = shape;
+        }
+        CollisionLayer = 0;
+        CollisionMask = 0;
+
+        // 3. Mass, CoM, inertia.
+        RecalculatePhysicalProperties();
+
+        // 4. Controllers and cuts.
+        Staging.Bind(PartTree, rocket.Stages);
+        FlightControl.Bind(PartTree);
+        PartTree.PartSevered += OnPartSevered;
+
+        // 5. Lowest part bottom at altitude 0, center column (pod) at x = 0.
+        PlaceOnPad();
+        if (DebugLog)
+            GD.Print($"[Control] Vehicle built: {PartTree.ActiveParts.Count} parts, {MassProps.TotalMass:0} kg, CoM {MassProps.CenterOfMass}");
     }
+
+    /// <summary>Puts the vehicle upright on the pad, at rest.</summary>
+    public void PlaceOnPad()
+    {
+        float cell = RocketPart.GetCellSize();
+        float bottom = float.MaxValue;
+        foreach (RocketPart part in PartTree.ActiveParts)
+        {
+            if (part is DecouplerPart) continue;
+            bottom = Mathf.Min(bottom, part.Cell.Y * cell);
+        }
+        if (bottom == float.MaxValue) bottom = 0f;
+        float centerX = PartTree.RootPart.GetLocalPosition().X;
+
+        var origin = new Vector3(-centerX, -bottom, 0f);
+        GlobalTransform = new Transform3D(Basis.Identity, origin);
+        PhysicsServer3D.BodySetState(GetRid(), PhysicsServer3D.BodyState.Transform, GlobalTransform);
+        LinearVelocity = Vector3.Zero;
+        AngularVelocity = Vector3.Zero;
+        _onPad = true;
+    }
+
+    /// <summary>Height of the attached parts, bottom of the lowest to top of the highest (m).</summary>
+    public float GetHeightM()
+    {
+        if (PartTree == null) return 0f;
+        float cell = RocketPart.GetCellSize();
+        float bottom = float.MaxValue, top = float.MinValue;
+        foreach (RocketPart part in PartTree.ActiveParts)
+        {
+            if (part is DecouplerPart) continue;
+            bottom = Mathf.Min(bottom, part.Cell.Y * cell);
+            top = Mathf.Max(top, (part.Cell.Y + part.Footprint.Y) * cell);
+        }
+        return top > bottom ? top - bottom : 0f;
+    }
+
+    /// <summary>World position of the center of mass.</summary>
+    public Vector3 GetWorldCenterOfMass() => GlobalTransform * new Vector3(MassProps.CenterOfMass.X, MassProps.CenterOfMass.Y, 0f);
 
     /// <summary>Places the same vehicle at the Mars entry point (segment 3 start).</summary>
     public void RestoreFromRun(MissionRun run)
@@ -84,7 +170,12 @@ public partial class VehicleRoot : RigidBody3D
     /// <summary>Recomputes MassProps from the active parts and pushes them to the rigid body.</summary>
     public void RecalculatePhysicalProperties()
     {
-        // TODO(C2): MassProps = MassCenterCalculator.Calculate(PartTree.ActiveParts); Mass, CenterOfMass, Inertia.
+        if (PartTree == null) return;
+        MassProps = MassCenterCalculator.Calculate(PartTree.ActiveParts);
+        Mass = Mathf.Max(MassProps.TotalMass, MinBodyMassKg);
+        CenterOfMass = new Vector3(MassProps.CenterOfMass.X, MassProps.CenterOfMass.Y, 0f);
+        float inertia = Mathf.Max(MassProps.MomentOfInertia, MinBodyMassKg);
+        Inertia = new Vector3(inertia, inertia, inertia);
         EmitSignal(SignalName.MassPropertiesChanged);
     }
 
@@ -108,6 +199,32 @@ public partial class VehicleRoot : RigidBody3D
         // TODO(C3): for each pending cut: GetSubtree, remove shapes, Coordinator.BreakHandler.SpawnDebrisRigidBody(...),
         //           opposite impulse on this body, then RecalculatePhysicalProperties().
         _pendingSevers.Clear();
+    }
+
+    /// <summary>Removes the parts and shapes of a previous rocket (a new run in the same scene).</summary>
+    private void ClearVehicle()
+    {
+        if (PartTree != null) PartTree.PartSevered -= OnPartSevered;
+        foreach (CollisionShape3D shape in _shapes.Values)
+            if (IsInstanceValid(shape)) shape.QueueFree();
+        _shapes.Clear();
+        _pendingSevers.Clear();
+        if (PartTree != null)
+            foreach (RocketPart part in PartTree.ActiveParts)
+                if (IsInstanceValid(part) && part.GetParent() == this) RemoveChild(part);
+        PartTree = null;
+        _lastFrame = default;
+    }
+
+    /// <summary>Box of the part footprint; decouplers are a thin plate on their edge.</summary>
+    private static Vector3 GetShapeSize(RocketPart part, float cell)
+    {
+        if (part is DecouplerPart decoupler)
+        {
+            bool vertical = decoupler.Edge.Side == Side.Left || decoupler.Edge.Side == Side.Right;
+            return vertical ? new Vector3(DecouplerThickness * cell, cell, cell) : new Vector3(cell, DecouplerThickness * cell, cell);
+        }
+        return new Vector3(part.Footprint.X * cell, part.Footprint.Y * cell, cell);
     }
 
     private void ConfigureBody()

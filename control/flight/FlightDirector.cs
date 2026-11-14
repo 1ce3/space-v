@@ -3,6 +3,7 @@ using RocketGame.Building;
 using RocketGame.Core;
 using RocketGame.Physics;
 using RocketGame.Presentation;
+using RocketGame.Research;
 
 namespace RocketGame.Control;
 
@@ -56,8 +57,34 @@ public partial class FlightDirector : Node
     {
         Run = run;
         _hasEnded = false;
-        // TODO(C2): EarthAscent -> Coordinator.Initialize(segment), Vehicle.OnDesignConfirmed(run.Rocket), PreLaunch.
-        // TODO(C6): MarsEdl -> Vehicle.RestoreFromRun(run), Entry, InputHandler.SetInputEnabled(true).
+        if (run == null) return;
+        MissionSegmentDefinition segment = run.CurrentSegment;
+        if (segment == null)
+        {
+            GD.PushError("[Control] FlightDirector.StartSegment: run has no current segment");
+            return;
+        }
+
+        Vehicle.Run = run;
+        switch (segment.Kind)
+        {
+            case SegmentKind.EarthAscent:
+                Coordinator.Initialize(segment);
+                Environment?.SetBody(segment.Body);
+                Vehicle.OnDesignConfirmed(run.Rocket);
+                CameraRig.Follow(Vehicle);
+                InputHandler.SetInputEnabled(true);
+                Phase = FlightPhase.Entry; // force the PhaseChanged emit below
+                SetPhase(FlightPhase.PreLaunch);
+                break;
+            case SegmentKind.MarsEdl:
+                // TODO(C6): Vehicle.RestoreFromRun(run), Entry, InputHandler.SetInputEnabled(true).
+                break;
+            default:
+                GD.PushError($"[Control] FlightDirector.StartSegment: {segment.Kind} is not a flown segment");
+                break;
+        }
+        if (DebugLog) GD.Print($"[Control] Segment {run.SegmentIndex} ({segment.SegmentId}) started");
     }
 
     /// <summary>Called by VehicleRoot after every physics tick.</summary>

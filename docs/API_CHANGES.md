@@ -44,3 +44,5 @@ Một dòng cho mỗi thay đổi hợp đồng (chỉ thêm, không đổi tên
 | B5 | B | `ThermalSolver.SolveSteadyState(parts, flux, electricLoadW = 0)`; `ThermalStepResult.FrozenComponents`; `PowerStepResult.ConsumedW`; `PowerSolver.FindPod`, `PowerSolver.BatteryFraction` (static) | Điện tiêu thụ thật làm nóng pod (guide B 5 bước 3) |
 | B5 | B | `PhysicsSettings.Absorptivity` 0.3 → 0.5 (code và `physics_settings.tres`) | Với 0.3 pod không cách nhiệt đóng băng ngay ngày 1; 0.5 đóng băng ở ngày ~117 như mục tiêu cân bằng |
 | B5 | B | Lưu ý cho C: solar chỉ phát điện khi `IsDeployed`; người chơi phải deploy (phím G) trước khi tua | `PowerSolver.SolveSteadyState` |
+| C2 | C | `VehicleRoot.PlaceOnPad()`, `GetWorldCenterOfMass()`; `GameFlowManager.StartRun(MissionRun)` (trả `FlightScene`), `ConnectFlightScene(scene)`; `VehicleRoot.GetHeightM()`; `FlightCameraRig.FrameHeightFactor`, `ZoomFactor`, `HeightOffsetFraction` | Sandbox và game dùng chung một đường khởi động chặng |
+| C2 | A | `TestRocketFactory.CreateMinimal()` gắn hình part (`AttachVisuals`); `AttachVisuals` bỏ qua part đã có node `Visual` | Sandbox của C thấy rocket tối thiểu; gọi lại không nhân đôi hình |

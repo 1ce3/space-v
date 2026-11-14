@@ -330,6 +330,7 @@ public class RocketAssembler
         PartCatalog catalog = PartCatalog.Instance;
         foreach (RocketPart part in tree.ActiveParts)
         {
+            if (part.HasNode("Visual")) continue; // already attached
             PackedScene scene = part.Definition?.Scene;
             if (scene == null && catalog != null)
                 scene = part is DecouplerPart ? catalog.GetDecouplerPlaceholderScene() : catalog.GetPlaceholderScene(part.PartGroup);

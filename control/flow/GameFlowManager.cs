@@ -1,6 +1,7 @@
 using Godot;
 using RocketGame.Building;
 using RocketGame.Core;
+using RocketGame.Research;
 using FlightSceneNode = RocketGame.Control.FlightScene;
 
 namespace RocketGame.Control;
@@ -48,8 +49,35 @@ public partial class GameFlowManager : Node
     /// <summary>Build screen confirmed a design: create the run and start segment 1.</summary>
     public void OnDesignConfirmed(AssembledRocket rocket)
     {
-        // TODO(C2): CurrentRun = new MissionRun(ResearchCampaignEngine.Instance.CurrentMission, rocket);
-        //           instance FlightScene, connect Director/Cruise signals, Director.StartSegment(CurrentRun).
+        MissionDefinition mission = ResearchCampaignEngine.Instance?.CurrentMission;
+        if (mission == null) GD.PushWarning("[Control] GameFlowManager: no current mission, flying without one");
+        StartRun(new MissionRun(mission, rocket));
+    }
+
+    /// <summary>Opens the flight scene and starts the run's current segment. Used by the game and by sandboxes.</summary>
+    public FlightSceneNode StartRun(MissionRun run)
+    {
+        CurrentRun = run;
+        _flightScene = SwitchScreen<FlightSceneNode>(FlightScene, ConnectFlightScene);
+        if (_flightScene == null) return null;
+        SetState(GameState.Flight);
+        _flightScene.Director.StartSegment(run);
+        return _flightScene;
+    }
+
+    /// <summary>Connects the segment signals of a flight scene (before it enters the tree).</summary>
+    public void ConnectFlightScene(FlightSceneNode scene)
+    {
+        if (scene?.Director != null)
+        {
+            scene.Director.SegmentCompleted += OnSegmentCompleted;
+            scene.Director.MissionEnded += OnMissionEnded;
+        }
+        if (scene?.Cruise != null)
+        {
+            scene.Cruise.SegmentCompleted += OnSegmentCompleted;
+            scene.Cruise.MissionEnded += OnMissionEnded;
+        }
     }
 
     /// <summary>Flight or cruise finished a segment successfully: advance and start the next one.</summary>
