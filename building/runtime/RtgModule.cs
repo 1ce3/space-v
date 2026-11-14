@@ -18,8 +18,9 @@ public class RtgModule : PowerModule
     /// <summary>Output after decay (W).</summary>
     public float ConvertDecayToElectricity()
     {
-        // TODO(A1): NominalOutputW * (1 - DegradationRatePerYear * MissionElapsedYears), not below 0.
-        return 0f;
+        if (State == ComponentState.Broken || PowerDefinition == null) return 0f;
+        float factor = 1f - PowerDefinition.DegradationRatePerYear * MissionElapsedYears;
+        return Mathf.Max(0f, PowerDefinition.NominalOutputW * factor);
     }
 
     public override float GetOutputW(float dynamicPressure, float solarFluxWm2) => ConvertDecayToElectricity();

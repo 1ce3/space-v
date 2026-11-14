@@ -18,8 +18,8 @@ public class ActiveRadiatorModule : ThermalModule
 
     public override float GetHeatRejectionW()
     {
-        // TODO(A1): MaxHeatRejectionW * CoolantPumpRate when extended and operating.
-        return 0f;
+        if (!IsPanelExtended || !CanOperate()) return 0f;
+        return (ThermalDefinition?.MaxHeatRejectionW ?? 0f) * Mathf.Clamp(CoolantPumpRate, 0f, 1f);
     }
 
     /// <summary>Extends or stows the panel (flight_deploy_toggle).</summary>

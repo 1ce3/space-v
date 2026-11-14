@@ -15,6 +15,12 @@ public class GyroscopeImuModule : AttitudeSensorModule
         AccumulatedDriftDeg = 0f;
     }
 
+    /// <summary>True attitude plus accumulated drift.</summary>
+    public override float ReadPitch(float truePitchDeg) => truePitchDeg + AccumulatedDriftDeg;
+
+    /// <summary>Drift rate (deg/min).</summary>
+    public float DriftRateDegPerMin => AcsDefinition?.DriftRateDegPerMin ?? 0f;
+
     /// <summary>Clears accumulated drift.</summary>
     public void CalibrateWithStarTracker()
     {
