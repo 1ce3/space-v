@@ -17,4 +17,6 @@ public partial class SolidBoosterPartDefinition : EnginePartDefinition
     {
         PartGroup = PartGroup.SolidBooster;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nPropellant: {N(PropellantMass, "0")} kg (cannot be shut down)";
 }

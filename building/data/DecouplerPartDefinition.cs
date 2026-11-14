@@ -15,4 +15,6 @@ public partial class DecouplerPartDefinition : StructuralPartDefinition
     {
         AttachmentStrength = 300_000f;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + (EjectionImpulse > 0f ? $"\nEjection: {N(EjectionImpulse, "0")} N·s" : "");
 }

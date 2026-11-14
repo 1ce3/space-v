@@ -84,7 +84,7 @@ public partial class BuildPalettePanel : VBoxContainer
                 _buttons[id] = button;
             }
         }
-        // TODO(A7): "Module" group lives in the pod slot panel.
+        // Modules are not in the palette: they are installed from the pod slot list in BuildInfoPanel (A7).
     }
 
     private void OnSelectionChanged(string modelId)

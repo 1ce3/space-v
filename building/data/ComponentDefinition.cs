@@ -27,7 +27,10 @@ public abstract partial class ComponentDefinition : Resource
     /// <summary>Multi-line text for the build palette tooltip.</summary>
     public virtual string GetFormattedTooltip()
     {
-        return $"{DisplayName}\nWeight: {BuildWeight}\nDry mass: {DryMass:0} kg"
-            + (PowerDrawW > 0f ? $"\nPower: {PowerDrawW:0} W" : "");
+        return $"{DisplayName}\nWeight: {BuildWeight}\nDry mass: {N(DryMass, "0")} kg"
+            + (PowerDrawW > 0f ? $"\nPower: {N(PowerDrawW, "0")} W" : "");
     }
+
+    /// <summary>Number for tooltips, culture-independent (dot decimal separator).</summary>
+    protected static string N(float value, string format) => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
 }

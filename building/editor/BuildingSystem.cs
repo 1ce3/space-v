@@ -20,12 +20,25 @@ public partial class BuildingSystem : Node
     [Signal] public delegate void DesignChangedEventHandler();
     /// <summary>ConfirmDesign refused: the design has validation errors.</summary>
     [Signal] public delegate void ConfirmRejectedEventHandler(string[] errors);
+    /// <summary>ShowWindTunnel finished; read LastAeroReport.</summary>
+    [Signal] public delegate void WindTunnelUpdatedEventHandler();
 
     /// <summary>Parent node for the preview parts shown on the grid.</summary>
     [Export] public Node3D PartsRoot { get; set; }
     /// <summary>Restore user://current_design.json when the screen opens.</summary>
     [Export] public bool LoadSavedOnReady { get; set; } = true;
     [Export] public bool DebugLog { get; set; }
+
+    [ExportGroup("Wind tunnel")]
+    /// <summary>Altitude of the ShowWindTunnel test (m, Earth air).</summary>
+    [Export] public float WindTunnelAltitudeM { get; set; } = 10000f;
+    /// <summary>Speed of the ShowWindTunnel test (m/s).</summary>
+    [Export] public float WindTunnelSpeedMps { get; set; } = 400f;
+    /// <summary>Angle between nose and flow in the ShowWindTunnel test (deg).</summary>
+    [Export(PropertyHint.Range, "0,30,0.5")] public float WindTunnelAngleDeg { get; set; } = 5f;
+
+    /// <summary>Result of the last ShowWindTunnel.</summary>
+    public AeroReport LastAeroReport { get; private set; }
 
     public BuildGrid Grid { get; private set; }
     public BuildBudget Budget { get; private set; }
@@ -102,10 +115,42 @@ public partial class BuildingSystem : Node
         EmitSignal(SignalName.DesignChanged);
     }
 
+    /// <summary>True when the part covering from can have its lower-left cell at to (cells, neighbors; weight does not change).</summary>
+    public bool CanMovePart(Vector2I from, Vector2I to)
+    {
+        RocketPart part = Grid.GetPartAt(from);
+        if (part == null || part is DecouplerPart) return false;
+        if (to == part.Cell) return true;
+        Grid.Vacate(part);
+        bool ok = Grid.CanPlace(part.Definition, to);
+        Grid.Occupy(part);
+        return ok;
+    }
+
+    /// <summary>
+    /// Moves the part covering from so its lower-left cell becomes to (A9, drag and drop). Pod modules stay; decouplers that
+    /// no longer sit between two touching parts are removed and refunded. False (nothing changes) when it does not fit.
+    /// </summary>
     public bool MovePart(Vector2I from, Vector2I to)
     {
-        // TODO(A9)
-        return false;
+        if (!CanMovePart(from, to)) return false;
+        RocketPart part = Grid.GetPartAt(from);
+        Vector2I old = part.Cell;
+        if (to == old) return true;
+
+        Grid.Vacate(part);
+        part.Cell = to;
+        Grid.Occupy(part);
+        RocketDesign.PartEntry entry = Design.PartEntries.Find(e => e.ModelId == part.ModelId && e.Cell == old);
+        if (entry != null) entry.Cell = to;
+        Vector2 local = part.GetLocalPosition();
+        part.Position = new Vector3(local.X, local.Y, 0f);
+        RemoveOrphanDecouplers();
+
+        if (DebugLog) GD.Print($"[Building] Moved {part.ModelId} {old} -> {to}");
+        EmitSignal(SignalName.PartMoved, part);
+        EmitSignal(SignalName.DesignChanged);
+        return true;
     }
 
     /// <summary>True when the edge can take a decoupler and the budget allows it.</summary>
@@ -234,9 +279,26 @@ public partial class BuildingSystem : Node
         EmitSignal(SignalName.DesignChanged);
     }
 
+    /// <summary>Aero forces and stability of the preview for the given flow (A9, P2). Modules count in the center of mass.</summary>
+    public AeroReport AnalyzeAero(TestConditions conditions)
+    {
+        var parts = new List<RocketPart>(Grid.Parts);
+        parts.AddRange(Grid.Decouplers);
+        return new WindTunnelAnalyzer().Analyze(parts, conditions, GetPreviewMass().CenterOfMass);
+    }
+
+    /// <summary>Runs AnalyzeAero with the Wind tunnel exports, stores LastAeroReport and emits WindTunnelUpdated.</summary>
     public void ShowWindTunnel()
     {
-        // TODO(A9, P2)
+        LastAeroReport = AnalyzeAero(new TestConditions
+        {
+            AltitudeM = WindTunnelAltitudeM,
+            SpeedMps = WindTunnelSpeedMps,
+            AngleOfAttackDeg = WindTunnelAngleDeg,
+        });
+        if (DebugLog)
+            GD.Print($"[Building] Wind tunnel: drag {LastAeroReport.DragN:0} N, side {LastAeroReport.LiftN:0} N, stable {LastAeroReport.IsStable}");
+        EmitSignal(SignalName.WindTunnelUpdated);
     }
 
     /// <summary>Writes the current design to user://current_design.json (also done by ConfirmDesign).</summary>

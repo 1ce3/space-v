@@ -17,4 +17,6 @@ public partial class FairingPartDefinition : PartDefinition
     {
         PartGroup = PartGroup.Fairing;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nShields the parts below it nose first; max q {N(MaxDynamicPressure / 1000f, "0.#")} kPa";
 }
