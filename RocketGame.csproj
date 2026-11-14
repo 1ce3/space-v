@@ -5,12 +5,4 @@
     <RootNamespace>RocketGame</RootNamespace>
     <Nullable>disable</Nullable>
   </PropertyGroup>
-  <!--
-    TEMPORARY (C1): compile tests/c/contract_stubs/ until A's and B's skeletons are on main.
-    Remove C_STUB_A once building/ has A's real classes; remove C_STUB_B once physics/ and research/ have B's.
-    A leftover symbol shows up as "type already defined" errors (CS0101).
-  -->
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);C_STUB_A;C_STUB_B</DefineConstants>
-  </PropertyGroup>
 </Project>
