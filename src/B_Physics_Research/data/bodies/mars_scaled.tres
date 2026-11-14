@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3]
+
+[ext_resource type="Script" path="res://src/B_Physics_Research/physics/CelestialBodyDefinition.cs" id="1_body"]
+
+[resource]
+script = ExtResource("1_body")
+BodyId = "mars_scaled"
+DisplayName = "Sao Hỏa"
+Mass = 5.692e+21
+Radius = 320000.0
+UsesLayerTable = false
+SeaLevelDensity = 0.02
+SeaLevelPressure = 610.0
+ScaleHeight = 11100.0
+SurfaceTemperatureK = 210.0
+SpeedOfSoundMps = 230.0
+AtmosphereTopM = 120000.0
+SuttonGravesConstant = 0.00019
+SolarFluxWm2 = 590.0

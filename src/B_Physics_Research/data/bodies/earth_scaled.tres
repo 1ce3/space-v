@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3]
+
+[ext_resource type="Script" path="res://src/B_Physics_Research/physics/CelestialBodyDefinition.cs" id="1_body"]
+
+[resource]
+script = ExtResource("1_body")
+BodyId = "earth_scaled"
+DisplayName = "Trái Đất"
+Mass = 5.2916e+22
+Radius = 600000.0
+UsesLayerTable = true
+SeaLevelDensity = 1.225
+SeaLevelPressure = 101325.0
+ScaleHeight = 8500.0
+SurfaceTemperatureK = 288.0
+SpeedOfSoundMps = 340.0
+AtmosphereTopM = 86000.0
+SuttonGravesConstant = 0.000174
+SolarFluxWm2 = 1361.0
