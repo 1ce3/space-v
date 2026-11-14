@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://src/B_Physics_Research/research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_edl"
+DisplayName = "Vào khí quyển và hạ cánh"
+Tier = 3
+CostRP = 90
+PrerequisiteNodeIds = PackedStringArray("t2_upper_stage")
+UnlocksModelIds = PackedStringArray("heatshield_h1", "chute_p1")
+BuildWeightBonus = 0

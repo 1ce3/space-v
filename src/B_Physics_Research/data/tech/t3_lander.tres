@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://src/B_Physics_Research/research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_lander"
+DisplayName = "Tàu đáp"
+Tier = 3
+CostRP = 100
+PrerequisiteNodeIds = PackedStringArray("t3_edl")
+UnlocksModelIds = PackedStringArray("engine_land1", "tank_lm1")
+BuildWeightBonus = 0

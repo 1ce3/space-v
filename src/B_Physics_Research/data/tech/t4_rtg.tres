@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://src/B_Physics_Research/research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_rtg"
+DisplayName = "Pin đồng vị phóng xạ"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t3_thermal")
+UnlocksModelIds = PackedStringArray("rtg_t1")
+BuildWeightBonus = 0
