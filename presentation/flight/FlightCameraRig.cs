@@ -11,8 +11,8 @@ public partial class FlightCameraRig : Node3D
     [Export] public FlightSettings Settings { get; set; }
     /// <summary>Zoom factor per wheel step / key press.</summary>
     [Export(PropertyHint.Range, "1.01,2,0.01")] public float ZoomFactor { get; set; } = 1.15f;
-    /// <summary>Follow smoothing; 0 = rigid.</summary>
-    [Export(PropertyHint.Range, "0,20,0.1")] public float FollowSharpness { get; set; } = 8f;
+    /// <summary>Follow smoothing; 0 = rigid (no lag at high speed).</summary>
+    [Export(PropertyHint.Range, "0,20,0.1")] public float FollowSharpness { get; set; } = 0f;
     /// <summary>Start distance = rocket height x this factor (clamped to the settings range).</summary>
     [Export(PropertyHint.Range, "0.5,10,0.1")] public float FrameHeightFactor { get; set; } = 1.6f;
     /// <summary>Camera height above the CoM, as a fraction of the distance.</summary>
