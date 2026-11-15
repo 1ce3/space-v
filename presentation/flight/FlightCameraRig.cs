@@ -66,13 +66,48 @@ public partial class FlightCameraRig : Node3D
 
     private Vector3 TargetPoint() => _target.GetWorldCenterOfMass();
 
+    /// <summary>
+    /// Roll of the whole view (radians, about Z) so screen-up follows the local vertical of the round planet
+    /// (set by BodyEnvironmentVisual when it bends the map; 0 = world up).
+    /// </summary>
+    public float RollRad { get; set; }
+
+    /// <summary>
+    /// The camera never goes lower than this above the ground (m): it rises and looks down at the rocket instead of
+    /// diving into the terrain during a landing. 0 = off.
+    /// </summary>
+    [Export] public float MinCameraAltitudeM { get; set; } = 50f;
+    /// <summary>Also on Earth (off: the launch pad keeps its low side view).</summary>
+    [Export] public bool MinAltitudeOnEarth { get; set; }
+
     /// <summary>Camera on +Z looking along -Z (side view of the XY plane).</summary>
     private void PlaceCamera()
     {
         if (Camera == null) return;
+        Rotation = new Vector3(0f, 0f, RollRad);
         Camera.Position = new Vector3(0f, DistanceM * HeightOffsetFraction, DistanceM) + ShakeOffset;
         Camera.RotationDegrees = ShakeRotationDeg;
+        KeepAboveGround();
         Camera.Far = Mathf.Max(Camera.Far, DistanceM * 20f);
+    }
+
+    /// <summary>Raises the camera to MinCameraAltitudeM above the (round) ground and aims it at the rocket.</summary>
+    private void KeepAboveGround()
+    {
+        if (MinCameraAltitudeM <= 0f || _target == null || !IsInstanceValid(_target) || !Camera.IsInsideTree()) return;
+        var body = _target.Coordinator?.CurrentBody;
+        if (body == null || body.Radius <= 0f) return;
+        if (!MinAltitudeOnEarth && body.BodyId != Settings?.MarsBodyId) return;
+        // Planet centre is (0, -Radius); ground = the physics sphere.
+        var center = new Vector3(0f, -body.Radius, 0f);
+        Vector3 cam = Camera.GlobalPosition;
+        Vector3 fromCenter = cam - center;
+        float altitude = fromCenter.Length() - body.Radius;
+        if (altitude >= MinCameraAltitudeM) return;
+        Vector3 up = fromCenter.Normalized();
+        Camera.GlobalPosition = cam + up * (MinCameraAltitudeM - altitude);
+        Vector3 aim = _target.GetWorldCenterOfMass();
+        if ((aim - Camera.GlobalPosition).LengthSquared() > 1f) Camera.LookAt(aim, up);
     }
 
     private float ClampDistance(float d)

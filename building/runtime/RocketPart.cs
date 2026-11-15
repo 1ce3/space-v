@@ -29,7 +29,7 @@ public partial class RocketPart : Node3D, IFlightComponent
     public bool IsShielded { get; set; }
 
     public ComponentDefinition BaseDefinition => Definition;
-    public float HeatCapacityJPerK => GetEffectiveDryMass() * ThermalStateRules.SpecificHeat;
+    public float HeatCapacityJPerK => GetEffectiveDryMass() * ThermalStateRules.SpecificHeat * ThermalStateRules.SkinMassFraction;
 
     // Read-only forwards to Definition.
     public string ModelId => Definition?.ModelId ?? "";

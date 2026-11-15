@@ -24,6 +24,7 @@ public class ThermalSolver
     {
         _settings = settings;
         NoseRadius = settings?.NoseRadiusM ?? 1f;
+        ThermalStateRules.SkinMassFraction = settings?.ThermalSkinFraction ?? 1f;
     }
 
     /// <summary>Loads the Sutton-Graves constant of the body.</summary>
