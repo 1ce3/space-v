@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3 uid="uid://ced2mwhmslx8g"]
 
 [ext_resource type="Script" uid="uid://bpivdky3rtjvh" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://csnqujwfgqsxy" path="res://assets/models/thruster/LR87-AJ-7.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_script")
 PropellantType = 0
 MinThrottle = 0.6
-MaxThrustVac = 165000.0
+MaxThrustVac = 146800.0
+RealThrustVacKN = 1100.0
 IspVacuum = 290.0
 IspSeaLevel = 258.0
 GimbalRangeDeg = 5.0
@@ -21,4 +21,3 @@ DisplayName = "LR87-AJ-7"
 Tier = 1
 BuildWeight = 2
 DryMass = 125.8
-Scene = ExtResource("2_model")

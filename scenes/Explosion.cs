@@ -6,6 +6,7 @@ public partial class Explosion : Node3D
 	{
 		var fireBlast = GetNode<GpuParticles3D>("FireBlast");
 		var debrisSparks = GetNode<GpuParticles3D>("DebrisSparks");
+		var heavySmoke = GetNodeOrNull<GpuParticles3D>("HeavySmoke");
 		var shockwave = GetNodeOrNull<MeshInstance3D>("Shockwave");
 		var flashLight = GetNodeOrNull<OmniLight3D>("FlashLight");
 
@@ -14,6 +15,11 @@ public partial class Explosion : Node3D
 		debrisSparks.Restart();
 		fireBlast.Emitting = true;
 		debrisSparks.Emitting = true;
+		if (heavySmoke != null)
+		{
+			heavySmoke.Restart();
+			heavySmoke.Emitting = true;
+		}
 
 		// 2. Tạo Tween cho sóng xung kích và đèn chớp
 		Tween tween = CreateTween().SetParallel(true);
@@ -25,8 +31,11 @@ public partial class Explosion : Node3D
 				 .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
 			
 			// Làm mờ dần vật liệu của Shockwave
-			if (shockwave.GetActiveMaterial(0) is StandardMaterial3D mat)
+			if (shockwave.GetActiveMaterial(0) is StandardMaterial3D shared)
 			{
+				// Own copy: the fade must not leave the shared material invisible for the next explosion.
+				var mat = (StandardMaterial3D)shared.Duplicate();
+				shockwave.MaterialOverride = mat;
 				Color startColor = mat.AlbedoColor;
 				Color endColor = new Color(startColor.R, startColor.G, startColor.B, 0.0f);
 				tween.TweenProperty(mat, "albedo_color", endColor, 0.25f);

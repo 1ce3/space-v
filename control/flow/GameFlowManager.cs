@@ -37,6 +37,9 @@ public partial class GameFlowManager : Node
     [Export] public PackedScene DiscoveryScene { get; set; }
     [Export] public PackedScene MarsEndingScene { get; set; }
     [Export] public PackedScene CreditsScene { get; set; }
+    /// <summary>Video clips (scene with a VideoStreamPlayer root) played between the story cards.</summary>
+    [Export] public PackedScene TelescopeVideo { get; set; }
+    [Export] public PackedScene MarsSignalVideo { get; set; }
 
     [ExportGroup("Debug")]
     [Export] public bool DebugLog { get; set; }
@@ -373,11 +376,7 @@ public partial class GameFlowManager : Node
         }
         EndTutorial();
         ResearchCampaignEngine.Instance?.AddRP(TutorialRewardRP);
-        PlayCutscenes(new[]
-        {
-            (SatelliteDeployScene, (System.Collections.Generic.IReadOnlyList<StoryScript.Card>)StoryScript.SatelliteDeploy, (string)null),
-            (DiscoveryScene, StoryScript.Discovery, null),
-        }, GoToResearch);
+        PlayCutscenes(TutorialEndCutscenes(), GoToResearch);
     }
 
     private void PlayEnding()
@@ -391,6 +390,33 @@ public partial class GameFlowManager : Node
             StoryProgress.Save();
             GoToHome();
         });
+    }
+
+    /// <summary>
+    /// After the tutorial: "Stage separation" card, telescope video, "AURORA telescope" card, "5 years later",
+    /// Mars signal video, then the rest of the discovery cards. A full animation scene, when assigned, replaces its part.
+    /// </summary>
+    private (PackedScene Scene, System.Collections.Generic.IReadOnlyList<StoryScript.Card> Cards, string Credits)[] TutorialEndCutscenes()
+    {
+        var steps = new System.Collections.Generic.List<(PackedScene, System.Collections.Generic.IReadOnlyList<StoryScript.Card>, string)>();
+        void Cards(params StoryScript.Card[] cards) => steps.Add((null, cards, null));
+        void Video(PackedScene video) { if (video != null) steps.Add((video, null, null)); }
+
+        if (SatelliteDeployScene != null) steps.Add((SatelliteDeployScene, null, null));
+        else
+        {
+            Cards(StoryScript.SatelliteDeploy[0]);
+            Video(TelescopeVideo);
+            Cards(StoryScript.SatelliteDeploy[1..]);
+        }
+        if (DiscoveryScene != null) steps.Add((DiscoveryScene, null, null));
+        else
+        {
+            Cards(StoryScript.Discovery[0]);
+            Video(MarsSignalVideo);
+            Cards(StoryScript.Discovery[1..]);
+        }
+        return steps.ToArray();
     }
 
     private (PackedScene, System.Collections.Generic.IReadOnlyList<StoryScript.Card>, string) CreditsStep() =>

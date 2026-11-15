@@ -8,15 +8,50 @@ namespace RocketGame.Presentation;
 /// </summary>
 public static class ExplosionEffect
 {
+    /// <summary>Boom played with every explosion (placeholder sound until the art team provides one).</summary>
+    public const string SoundPath = "res://assets/audio/explosion.wav";
+    /// <summary>Distance (m) at which the boom starts to fade.</summary>
+    public static float SoundUnitSizeM { get; set; } = 80f;
+
     public static Node3D Spawn(Node parent, Vector3 globalPosition, float scale = 1f, PackedScene custom = null)
     {
         if (parent == null) return null;
         Node3D root = custom?.Instantiate<Node3D>() ?? BuildPlaceholder(scale);
+        if (custom != null) StripPreviewNodes(root);
         parent.AddChild(root);
         root.GlobalPosition = globalPosition;
         if (custom != null) root.Scale = Vector3.One * scale;
+        PlaySound(parent, globalPosition, scale);
         parent.GetTree().CreateTimer(4.0).Timeout += () => { if (GodotObject.IsInstanceValid(root)) root.QueueFree(); };
         return root;
+    }
+
+    /// <summary>
+    /// An effect scene made for previewing may carry its own Camera3D / WorldEnvironment: they would take over the
+    /// game view and sky, so they are removed before the scene enters the tree.
+    /// </summary>
+    private static void StripPreviewNodes(Node root)
+    {
+        foreach (Node n in root.FindChildren("*", nameof(Camera3D), true, false)) { n.GetParent().RemoveChild(n); n.Free(); }
+        foreach (Node n in root.FindChildren("*", nameof(WorldEnvironment), true, false)) { n.GetParent().RemoveChild(n); n.Free(); }
+    }
+
+    /// <summary>One-shot 3D boom at the explosion; louder for bigger explosions. Frees itself when done.</summary>
+    private static void PlaySound(Node parent, Vector3 at, float scale)
+    {
+        if (!ResourceLoader.Exists(SoundPath)) return;
+        var player = new AudioStreamPlayer3D
+        {
+            Name = "ExplosionSound",
+            Stream = ResourceLoader.Load<AudioStream>(SoundPath),
+            UnitSize = SoundUnitSizeM,
+            VolumeDb = Mathf.Clamp(Mathf.LinearToDb(Mathf.Max(scale, 0.05f)), -20f, 6f),
+            PitchScale = Mathf.Clamp(1.15f - 0.1f * scale, 0.7f, 1.3f),
+        };
+        parent.AddChild(player);
+        player.GlobalPosition = at;
+        player.Finished += () => player.QueueFree();
+        player.Play();
     }
 
     private static Node3D BuildPlaceholder(float s)
