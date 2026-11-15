@@ -28,5 +28,5 @@ MaxThrustVac = 114000.0
 IspSeaLevel = 248.0
 IspVacuum = 282.0
 GimbalRangeDeg = 4.0
-MinThrottle = 1.0
+MinThrottle = 0.6
 MaxIgnitions = 1

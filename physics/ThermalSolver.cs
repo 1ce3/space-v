@@ -213,7 +213,7 @@ public class ThermalSolver
     {
         if (engine is not LiquidEnginePart liquid) return 1f;
         if (liquid.Throttle <= 0f) return 0f;
-        return Mathf.Lerp(liquid.LiquidDefinition?.MinThrottle ?? 0f, 1f, liquid.Throttle);
+        return Mathf.Clamp(Mathf.Max(liquid.Throttle, liquid.LiquidDefinition?.MinThrottle ?? 0f), 0f, 1f);
     }
 
     private void CollectStates(PartTree parts, ref ThermalStepResult result)

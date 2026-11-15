@@ -28,6 +28,16 @@ public partial class GameFlowManager : Node
     /// <summary>scenes/victory.tscn (root: VictoryScreen).</summary>
     [Export] public PackedScene VictoryScene { get; set; }
 
+    [ExportGroup("Story")]
+    /// <summary>One-segment ascent mission flown in the tutorial (satellite launch).</summary>
+    [Export] public MissionDefinition TutorialMission { get; set; }
+    [Export] public int TutorialRewardRP { get; set; } = 50;
+    /// <summary>Optional animation scenes from the art team; empty = text cards from StoryScript.</summary>
+    [Export] public PackedScene SatelliteDeployScene { get; set; }
+    [Export] public PackedScene DiscoveryScene { get; set; }
+    [Export] public PackedScene MarsEndingScene { get; set; }
+    [Export] public PackedScene CreditsScene { get; set; }
+
     [ExportGroup("Debug")]
     [Export] public bool DebugLog { get; set; }
 
@@ -37,6 +47,19 @@ public partial class GameFlowManager : Node
     public MissionRun CurrentRun { get; private set; }
 
     private Node _currentScreen;
+    /// <summary>The screen now shown (build, research, flight, home, cutscene...).</summary>
+    public Node CurrentScreen => _currentScreen;
+    public bool IsTutorial { get; private set; }
+    private TutorialOverlay _tutorial;
+    private TutorialOverlay _researchGuide;
+
+    private void CloseResearchGuide()
+    {
+        StoryProgress.ResearchGuideSeen = true;
+        StoryProgress.Save();
+        _researchGuide?.QueueFree();
+        _researchGuide = null;
+    }
     private FlightSceneNode _flightScene;
 
     /// <summary>Scene that starts the real game loop (opens the build screen). Other scenes (sandboxes) are left alone.</summary>
@@ -57,6 +80,7 @@ public partial class GameFlowManager : Node
 
     public override void _Ready()
     {
+        StoryProgress.Load();
         Callable.From(StartIfMainScene).CallDeferred();
     }
 
@@ -66,13 +90,13 @@ public partial class GameFlowManager : Node
         Node current = GetTree().CurrentScene;
         if (current == null || current.SceneFilePath != MainScenePath) return;
         _currentScreen = current;
-        GoToBuild();
+        GoToHome();
     }
 
     /// <summary>Build screen confirmed a design: create the run and start segment 1.</summary>
     public void OnDesignConfirmed(AssembledRocket rocket)
     {
-        MissionDefinition mission = ResearchCampaignEngine.Instance?.CurrentMission;
+        MissionDefinition mission = IsTutorial && TutorialMission != null ? TutorialMission : ResearchCampaignEngine.Instance?.CurrentMission;
         if (mission == null) GD.PushWarning("[Control] GameFlowManager: no current mission, flying without one");
         var run = new MissionRun(mission, rocket);
         // Deferred: the build screen is still emitting; switch scenes after it returns.
@@ -161,7 +185,18 @@ public partial class GameFlowManager : Node
     {
         if (result == null) return;
         LastResult = result;
+        if (IsTutorial)
+        {
+            Callable.From(() => OnTutorialFlightEnded(result)).CallDeferred();
+            return;
+        }
         LastReward = ResearchCampaignEngine.Instance?.ProcessMissionEnd(result);
+        bool finale = result.Outcome == MissionOutcome.Success && (ResearchCampaignEngine.Instance?.IsCampaignComplete() ?? true);
+        if (finale)
+        {
+            Callable.From(PlayEnding).CallDeferred();
+            return;
+        }
         Callable.From(ShowDebrief).CallDeferred();
     }
 
@@ -197,9 +232,21 @@ public partial class GameFlowManager : Node
             return;
         }
         SetState(GameState.Research);
+        if (!StoryProgress.ResearchGuideSeen && _researchGuide == null)
+        {
+            _researchGuide = new TutorialOverlay { ResearchOnly = true };
+            _researchGuide.Finished += CloseResearchGuide;
+            _researchGuide.SkipRequested += CloseResearchGuide;
+            AddChild(_researchGuide);
+        }
     }
 
-    private void OnBuildRequested() => Callable.From(GoToBuild).CallDeferred();
+    private void OnBuildRequested()
+    {
+        _researchGuide?.QueueFree();
+        _researchGuide = null;
+        Callable.From(GoToBuild).CallDeferred();
+    }
 
     /// <summary>Switch to the build screen.</summary>
     public void GoToBuild()
@@ -234,6 +281,120 @@ public partial class GameFlowManager : Node
 
     private void OnVictoryContinue() => Callable.From(GoToResearch).CallDeferred();
     private void OnQuitRequested() => GetTree().Quit();
+
+    // ------------------------------------------------------------------ home, tutorial, cutscenes
+
+    public void GoToHome()
+    {
+        string win = StoryProgress.ShowWinOnHome ? WinText(LastResult) : null;
+        StoryProgress.ShowWinOnHome = false;
+        var home = new HomeScreen { WinSummary = win };
+        home.PlayRequested += () => Callable.From(() =>
+        {
+            if (StoryProgress.TutorialDone) GoToResearch();
+            else StartTutorial();
+        }).CallDeferred();
+        home.TutorialRequested += () => Callable.From(StartTutorial).CallDeferred();
+        home.CreditsRequested += () => Callable.From(() => PlayCutscenes(new[] { CreditsStep() }, GoToHome)).CallDeferred();
+        home.QuitRequested += OnQuitRequested;
+        ShowNode(home);
+        SetState(GameState.Home);
+    }
+
+    public void StartTutorial()
+    {
+        IsTutorial = true;
+        StoryProgress.ResearchGuideSeen = false; // replaying the tutorial shows the research guide again
+        if (_tutorial == null)
+        {
+            _tutorial = new TutorialOverlay();
+            if (TutorialMission?.Segments.Count > 0) _tutorial.TargetAltitudeM = TutorialMission.Segments[0].TargetAltitudeM;
+            _tutorial.SkipRequested += () => Callable.From(EndTutorial).CallDeferred();
+            AddChild(_tutorial);
+        }
+        GoToBuild();
+    }
+
+    /// <summary>Tutorial finished or skipped: campaign mission from now on.</summary>
+    private void EndTutorial()
+    {
+        IsTutorial = false;
+        _tutorial?.QueueFree();
+        _tutorial = null;
+        StoryProgress.TutorialDone = true;
+        StoryProgress.Save();
+    }
+
+    private void OnTutorialFlightEnded(FlightResult result)
+    {
+        CurrentRun = null;
+        _flightScene = null;
+        if (result.Outcome != MissionOutcome.Success)
+        {
+            _tutorial?.OnRetry(result.FailureCause.ToString());
+            GoToBuild();
+            return;
+        }
+        EndTutorial();
+        ResearchCampaignEngine.Instance?.AddRP(TutorialRewardRP);
+        PlayCutscenes(new[]
+        {
+            (SatelliteDeployScene, (System.Collections.Generic.IReadOnlyList<StoryScript.Card>)StoryScript.SatelliteDeploy, (string)null),
+            (DiscoveryScene, StoryScript.Discovery, null),
+        }, GoToResearch);
+    }
+
+    private void PlayEnding()
+    {
+        _flightScene = null;
+        CurrentRun = null;
+        PlayCutscenes(new[] { (MarsEndingScene, (System.Collections.Generic.IReadOnlyList<StoryScript.Card>)StoryScript.MarsEnding, (string)null), CreditsStep() }, () =>
+        {
+            StoryProgress.EndingSeen = true;
+            StoryProgress.ShowWinOnHome = true;
+            StoryProgress.Save();
+            GoToHome();
+        });
+    }
+
+    private (PackedScene, System.Collections.Generic.IReadOnlyList<StoryScript.Card>, string) CreditsStep() =>
+        (CreditsScene, null, StoryScript.Credits);
+
+    /// <summary>Plays the cutscenes one after another, then calls done.</summary>
+    public void PlayCutscenes((PackedScene Scene, System.Collections.Generic.IReadOnlyList<StoryScript.Card> Cards, string Credits)[] list,
+        System.Action done, int index = 0)
+    {
+        if (index >= list.Length)
+        {
+            done?.Invoke();
+            return;
+        }
+        var c = list[index];
+        var player = new CutscenePlayer { AnimationScene = c.Scene, Cards = c.Scene == null ? c.Cards : null, CreditsText = c.Scene == null ? c.Credits : null };
+        player.Finished += () => Callable.From(() => PlayCutscenes(list, done, index + 1)).CallDeferred();
+        ShowNode(player);
+        SetState(GameState.Cutscene);
+    }
+
+    private static string WinText(FlightResult r)
+    {
+        if (r == null) return "Robot đã đáp xuống sao Hỏa!";
+        int s = Mathf.Max(0, Mathf.RoundToInt(r.FlightTime));
+        return "Robot đã đáp xuống sao Hỏa và gửi dữ liệu về Trái Đất!\n\n" +
+               $"Tốc độ chạm đất   {r.LandingSpeedMps:0.0} m/s\n" +
+               $"Thời gian bay     {s / 60}:{s % 60:00}\n" +
+               $"Ngày hành trình   {r.CruiseDaysSurvived:0}\n" +
+               $"Độ cao lớn nhất   {r.MaxAltitude / 1000f:0.0} km";
+    }
+
+    /// <summary>Shows a screen created in code (no PackedScene).</summary>
+    private void ShowNode(Node root)
+    {
+        GetTree().Root.AddChild(root);
+        GetTree().CurrentScene = root;
+        _currentScreen?.QueueFree();
+        _currentScreen = root;
+    }
 
     private void SetState(GameState state)
     {

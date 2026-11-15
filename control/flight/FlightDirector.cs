@@ -16,6 +16,16 @@ public partial class FlightDirector : Node
     [Signal] public delegate void PhaseChangedEventHandler(FlightPhase phase);
     [Signal] public delegate void SegmentCompletedEventHandler(MissionRun run);
     [Signal] public delegate void MissionEndedEventHandler(FlightResult result);
+    /// <summary>An explosion was spawned (camera shake / SFX hook): world position and strength (1 = one part).</summary>
+    [Signal] public delegate void ExplosionSpawnedEventHandler(Vector3 position, float strength);
+
+    [ExportGroup("Failure")]
+    /// <summary>Seconds of physics after a failure (parts fly apart, explosion) before the result screen.</summary>
+    [Export(PropertyHint.Range, "0,10,0.1")] public float FailRevealDelaySeconds { get; set; } = 2f;
+    /// <summary>Optional explosion scene from the art team; empty = code placeholder.</summary>
+    [Export] public PackedScene ExplosionScene { get; set; }
+    [Export(PropertyHint.Range, "0.1,10,0.1")] public float ExplosionScale { get; set; } = 1.5f;
+    private RocketPart _failPart;
 
     [ExportGroup("Links")]
     [Export] public VehicleRoot Vehicle { get; set; }
@@ -117,14 +127,19 @@ public partial class FlightDirector : Node
     }
 
     /// <summary>Called by VehicleRoot after every physics tick.</summary>
+    /// <summary>Latest telemetry (tutorial overlay reads altitude from here).</summary>
+    public TelemetryFrame LastFrame { get; private set; }
+
     public void OnTick(TelemetryFrame frame)
     {
+        LastFrame = frame;
         if (Run == null) return;
         AnomalyResponseHandler anomalies = Vehicle.FlightControl?.Anomalies;
         Hud.ShowTelemetry(frame, anomalies?.IsTelemetryGlitched ?? false);
         Hud.ShowAnomalies(anomalies?.ActiveAnomalies, Vehicle.FlightControl?.InputHandler?.AbortHoldProgress ?? 0f);
         Hud.ShowStageText(Vehicle.Staging.DescribeNextStage());
         if (anomalies?.ConsumeMessage() is string rebootLine) Hud.ShowWarning(rebootLine);
+        if (Vehicle.FlightControl?.ThrottleController?.ConsumeWarning() is string relight) Hud.ShowWarning(relight);
         FlightControlSubsystem control = Vehicle.FlightControl;
         if (control?.AttitudeController != null && control.Estimator != null)
             Hud.ShowSasState(control.AttitudeController.Mode, control.Estimator.GetEnabledSasModes());
@@ -259,7 +274,8 @@ public partial class FlightDirector : Node
     {
         if (_hasEnded || _segmentDone || Run == null) return;
         BlackBox.RecordFailure(cause, part);
-        Hud.ShowWarning($"Hỏng: {cause} ở {part?.ModelId}");
+        _failPart = part;
+        Hud.ShowWarning($"Hỏng: {cause} ở {part?.Definition?.DisplayName ?? part?.ModelId}");
         EndMission(MissionOutcome.Failed);
     }
 
@@ -270,6 +286,7 @@ public partial class FlightDirector : Node
         if (Run.CurrentKind == SegmentKind.EarthAscent)
         {
             // Segment 1: touching the ground after lift-off always ends the run.
+            _failPart = part;
             bool broke = Coordinator.Failures.MonitorImpact(part, contactSpeed); // a break also calls OnBreakTriggered
             if (!broke)
             {
@@ -321,9 +338,44 @@ public partial class FlightDirector : Node
         _hasEnded = true;
         InputHandler?.SetInputEnabled(false);
         Vehicle.FlightControl.ThrottleController?.SetThrottle(0f);
-        Vehicle.SetSimulationFrozen(true);
         SetPhase(outcome == MissionOutcome.Success ? FlightPhase.Landed : FlightPhase.Failed);
         if (DebugLog) GD.Print($"[Control] Mission ended: {outcome}, cause {BlackBox.FailureCause}, max alt {BlackBox.MaxAltitude:0} m");
-        EmitSignal(SignalName.MissionEnded, Run.BlackBox.BuildResult(outcome));
+        FlightResult result = Run.BlackBox.BuildResult(outcome);
+
+        if (outcome != MissionOutcome.Failed || FailRevealDelaySeconds <= 0f)
+        {
+            Vehicle.SetSimulationFrozen(true);
+            EmitSignal(SignalName.MissionEnded, result);
+            return;
+        }
+        // Failure: explode, let the broken parts fly for a moment, then show the result.
+        bool onGround = Vehicle.LastFrame.RadarAltitudeM < 3f;
+        if (onGround) Vehicle.SetSimulationFrozen(true);
+        Vector3 at = FindPartPosition(_failPart) ?? Vehicle.GetWorldCenterOfMass();
+        Node world = GetTree().CurrentScene ?? GetParent();
+        RocketGame.Presentation.ExplosionEffect.Spawn(world, at, ExplosionScale, ExplosionScene);
+        EmitSignal(SignalName.ExplosionSpawned, at, 1f);
+        GetTree().CreateTimer(FailRevealDelaySeconds).Timeout += () =>
+        {
+            if (!IsInstanceValid(this)) return;
+            Vehicle.SetSimulationFrozen(true);
+            EmitSignal(SignalName.MissionEnded, result);
+        };
+    }
+
+    /// <summary>World position of the visual of part (it may have become debris), or null.</summary>
+    private Vector3? FindPartPosition(RocketPart part)
+    {
+        if (part == null) return null;
+        Node scene = GetTree().CurrentScene;
+        return scene == null ? null : Find(scene);
+
+        Vector3? Find(Node n)
+        {
+            if (n is RocketGame.Presentation.PartVisual v && v.Part == part) return v.GlobalPosition;
+            foreach (Node c in n.GetChildren())
+                if (Find(c) is Vector3 p) return p;
+            return null;
+        }
     }
 }

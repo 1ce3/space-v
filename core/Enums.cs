@@ -23,7 +23,7 @@ public enum FlightEventType
     SolarFlare, MeteorField, HullBreach, InstrumentFailure,
 }
 public enum FlightPhase { PreLaunch, PoweredAscent, Coast, OrbitReached, Entry, Descent, Landed, Failed }
-public enum GameState { Build, Flight, Debrief, Cruise, Victory, Research }
+public enum GameState { Build, Flight, Debrief, Cruise, Victory, Research, Home, Cutscene }
 public enum MissionOutcome { Success, Failed, Aborted }
 public enum SegmentKind { EarthAscent, Cruise, MarsEdl }
 public enum ParachuteState { Stowed, Deployed, Cut }

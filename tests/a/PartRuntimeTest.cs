@@ -81,7 +81,7 @@ public partial class PartRuntimeTest : Node
         engine.SetThrottle(0f);
         Check("throttle 0 gives 0 thrust", Near(engine.ComputeThrust(0f), 0f));
         engine.SetThrottle(0.5f);
-        Check("throttle 0.5 -> factor 0.75", Near(engine.ComputeThrust(0f), 105_000f, 1f), $"{engine.ComputeThrust(0f)}");
+        Check("throttle 0.5 -> factor 0.5 (min 0.5)", Near(engine.ComputeThrust(0f), 70_000f, 1f), $"{engine.ComputeThrust(0f)}");
 
         engine.Shutdown();
         engine.Ignite();

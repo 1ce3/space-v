@@ -9,5 +9,4 @@ DisplayName = "Frame II"
 Tier = 2
 CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_frame")
-UnlocksModelIds = PackedStringArray()
 BuildWeightBonus = 8

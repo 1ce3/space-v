@@ -10,4 +10,3 @@ Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t1_avionics", "fuel_monoprop")
 UnlocksModelIds = PackedStringArray("startracker_st1", "rcs_r1")
-BuildWeightBonus = 0
