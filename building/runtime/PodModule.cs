@@ -9,8 +9,6 @@ public abstract class PodModule : IFlightComponent
     public ModuleDefinition Definition { get; private set; }
     /// <summary>Pod it is installed in.</summary>
     public CommandPodPart Pod { get; set; }
-    /// <summary>Index within its slot type.</summary>
-    public int SlotIndex { get; set; }
 
     public ComponentState State { get; set; } = ComponentState.Idle;
     /// <summary>Temperature (K).</summary>
@@ -48,6 +46,7 @@ public abstract class PodModule : IFlightComponent
                 PowerDeviceKind.SolarArray => new SolarArrayModule(),
                 _ => new RtgModule(),
             },
+            InstrumentModuleDefinition => new InstrumentModule(),
             _ => null,
         };
 
@@ -93,4 +92,27 @@ public abstract class PodModule : IFlightComponent
     public virtual bool CanOperate() => IsPowered && IsHealthy;
 
     public virtual void OnFixedTick(float deltaTime) { }
+
+    /// <summary>Top-left cell in the pod inventory grid.</summary>
+    public Vector2I GridCell { get; set; }
+
+    /// <summary>
+    /// Phase 2 (PHASE2_PLAN.md 5.7): one reboot attempt of a Broken module; true when it works again.
+    /// Works with Definition.RebootSuccessChance: State back to Idle and powered again. False (and nothing changes)
+    /// when the module is not Broken or the roll fails. Energy is drawn by the caller (PowerSolver.TryDrawEnergy)
+    /// and the caller handles the cooldown (ModuleReboot). rng null = the global generator.
+    /// </summary>
+    public virtual bool TryReboot(RandomNumberGenerator rng)
+    {
+        if (State != ComponentState.Broken) return false;
+        float chance = Mathf.Clamp(Definition?.RebootSuccessChance ?? 0f, 0f, 1f);
+        float roll = rng != null ? rng.Randf() : GD.Randf();
+        if (roll >= chance) return false;
+        State = ComponentState.Idle;
+        IsPowered = true;
+        return true;
+    }
+
+    /// <summary>Time (seconds, ModuleReboot clock) before the next reboot attempt is allowed.</summary>
+    public float RebootReadyAtS { get; set; }
 }

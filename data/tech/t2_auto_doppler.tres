@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t2_auto_doppler"
+DisplayName = "Auto-Doppler Compensation"
+Tier = 2
+CostRP = 50
+PrerequisiteNodeIds = PackedStringArray("t2_unified_s_band")
+UnlocksModelIds = PackedStringArray("mod_auto_doppler")
+BuildWeightBonus = 0
+Category = "Liên lạc"

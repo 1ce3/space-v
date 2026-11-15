@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="InstrumentModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/InstrumentModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "mod_ultrasonic_optical_sensor"
+DisplayName = "Ultrasonic & Optical Point Sensor"
+Tier = 3
+BuildWeight = 1
+DryMass = 4.0
+PowerDrawW = 8.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 220.0
+SlotType = 3
+GridSize = Vector2i(1, 1)
+RadiationResistance = 0.45
+RebootSuccessChance = 0.6
+RebootEnergyWh = 20.0
+Kind = 2
+LeakReduction = 0.8

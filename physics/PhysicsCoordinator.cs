@@ -25,6 +25,8 @@ public partial class PhysicsCoordinator : Node
     public StructuralStressEvaluator StressEvaluator { get; private set; }
     /// <summary>In-flight incidents.</summary>
     public HazardMonitor Hazards { get; private set; }
+    /// <summary>A parachute was opened too fast and tore: (chute, q in Pa, Mach). Hook a HUD warning here.</summary>
+    public event System.Action<ParachutePart, float, float> ParachuteTorn;
     /// <summary>Body of the current segment, or null before Initialize.</summary>
     public CelestialBodyDefinition CurrentBody { get; private set; }
 
@@ -38,6 +40,8 @@ public partial class PhysicsCoordinator : Node
     private readonly List<PartLoad> _bodyLoads = new();
     private readonly Dictionary<RocketPart, Vector2> _loadByPart = new();
     private readonly List<FlightEvent> _events = new();
+    private readonly RandomNumberGenerator _hullRng = new();
+    private readonly List<FlightEvent> _solverEvents = new();
 
     public override void _Ready()
     {
@@ -46,7 +50,10 @@ public partial class PhysicsCoordinator : Node
         Failures = new FailureDetector(BreakHandler);
         StressEvaluator = new StructuralStressEvaluator();
         Hazards = new HazardMonitor(Settings, HazardSeed);
+        StressEvaluator.PodBreakGFactor = Settings.PodBreakGFactor;
+        StressEvaluator.JointCompressionFactor = Settings.JointCompressionFactor;
         _aerodynamics = new AerodynamicSolver(Settings);
+        _aerodynamics.ParachuteTorn += (chute, q, mach) => ParachuteTorn?.Invoke(chute, q, mach);
         _gravity = new OrbitalGravitySolver();
         _propulsion = new PropulsionSolver();
         _thermal = new ThermalSolver(Settings);
@@ -79,6 +86,7 @@ public partial class PhysicsCoordinator : Node
         _bodyLoads.Clear();
         _loadByPart.Clear();
         _events.Clear();
+        _solverEvents.Clear();
         var output = new PhysicsStepOutput { PartLoads = _partLoads, Events = _events };
         if (_atmosphere == null || input.Mass.TotalMass <= 0f) return output;
 
@@ -94,8 +102,9 @@ public partial class PhysicsCoordinator : Node
         UpdateShielding(input.Parts, velBody, speed);
 
         // 3-4. Thrust and aero, vehicle-local frame.
-        ThrustStepResult thrust = _propulsion.Solve(input.Parts, output.Air.Pressure, com, input.DeltaTime, _bodyLoads, _events);
-        AeroResult aero = _aerodynamics.Solve(input.Parts, -velBody, output.Air, com, _bodyLoads);
+        ThrustStepResult thrust = _propulsion.Solve(input.Parts, output.Air.Pressure, com, input.DeltaTime, _bodyLoads, _solverEvents);
+        AeroResult aero = _aerodynamics.Solve(input.Parts, -velBody, output.Air, com, _bodyLoads, input.DeltaTime,
+            Mathf.DegToRad(input.AngularVelocityDegPerSec));
 
         // 5. Gravity at the center of mass, world frame.
         output.GravityForce = _gravity.CalculateGravityForce(input.Position, input.Mass.TotalMass);
@@ -106,20 +115,30 @@ public partial class PhysicsCoordinator : Node
         float monopropUsed = 0f;
         if (input.Parts != null) SolveAttitudeModules(input.Parts, input.DeltaTime, ref moduleTorque, ref rcsForceBody, ref monopropUsed);
 
-        // 7-8. Heating, hazards (P1).
+        // 7. Heating, power (P1), cryo leaks.
         output.HeatFlux = _thermal.CalculateHeatFlux(output.Air.Density, speed);
         Vector2 velDirBody = speed > 0.01f ? velBody / speed : Vector2.Zero;
         output.Thermal = _thermal.Step(input.Parts, output.HeatFlux, input.DeltaTime, velDirBody, com, output.Air.Temperature);
-        _events.AddRange(Hazards.Evaluate(input, output));
+        output.Power = _power.Step(input.Parts, aero.DynamicPressure, CurrentBody?.SolarFluxWm2 ?? 0f, input.DeltaTime);
+        float leaked = Hazards.ApplyLeaks(input.Parts, input.DeltaTime);
+        string lostToBreach = MeteorImpact.TickHullBreach(PowerSolver.FindPod(input.Parts), input.DeltaTime,
+            Settings?.HullBreachFailSeconds ?? 0f, _hullRng);
+        if (lostToBreach.Length > 0)
+            _events.Add(new FlightEvent { Type = FlightEventType.HullBreach, Severity = 0.5f, SourceId = lostToBreach });
 
-        // 9. Totals.
+        // 8. Totals.
         output.NetForce = FlightMath.BodyToWorld(thrust.ThrustForceVector + aero.Force + rcsForceBody, rot) + output.GravityForce;
         output.NetTorqueZ = thrust.TorqueZ + aero.TorqueZ + moduleTorque;
-        output.ConsumedMass = thrust.MassBurnedKg + thrust.MassLeakedKg + monopropUsed;
+        output.ConsumedMass = thrust.MassBurnedKg + thrust.MassLeakedKg + leaked + monopropUsed;
         output.DynamicPressure = aero.DynamicPressure;
         output.MachNumber = aero.MachNumber;
         output.CurrentGForce = (output.NetForce - output.GravityForce).Length() / (input.Mass.TotalMass * FlightMath.G0);
         CollectPartLoads(rot);
+
+        // 9. Hazards (P1, guide B 4.6) on the finished tick; an undodged debris warning breaks the pod.
+        _events.AddRange(Hazards.Evaluate(input, output, _solverEvents, output.Power));
+        if (Hazards.ConsumeDebrisHit() && input.Parts?.RootPart != null)
+            Failures.TriggerBreak(input.Parts.RootPart, FailureCause.Collision);
 
         if (DebugLog)
         {
@@ -212,4 +231,8 @@ public partial class PhysicsCoordinator : Node
             _partLoads.Add(new PartLoad { Part = pair.Key, Force = FlightMath.BodyToWorld(pair.Value, rot) });
         }
     }
+
+    /// <summary>B12: a meteor hit part at speedMps (C11 calls it). Uses these settings and breaks through Failures.</summary>
+    public MeteorImpactResult ResolveMeteorHit(RocketPart part, float speedMps) =>
+        MeteorImpact.Resolve(part, speedMps, Settings, Failures);
 }

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_dragonfly_dragmet"
+DisplayName = "Dragonfly DraGMet Package"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t4_vaisala_barocap")
+UnlocksModelIds = PackedStringArray("mod_dragonfly_dragmet")
+BuildWeightBonus = 0
+Category = "Cảm biến áp suất"

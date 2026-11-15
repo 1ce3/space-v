@@ -22,6 +22,8 @@ public class CruiseSimulator
     public bool HasTransferBurned { get; private set; }
     /// <summary>Solar flux of the last StepDay (W/m^2).</summary>
     public float CurrentSolarFluxWm2 { get; private set; }
+    /// <summary>Seed of the daily hazard dice, to replay a bug.</summary>
+    public ulong HazardSeed { get; set; } = 54321;
 
     private PartTree _parts;
     private MissionSegmentDefinition _segment;
@@ -34,6 +36,32 @@ public class CruiseSimulator
     private readonly List<string> _frozen = new();
     private readonly List<LiquidEnginePart> _engines = new();
     private readonly HashSet<FuelTankPart> _tanks = new();
+    private readonly HashSet<FlightEventType> _activeHazards = new();
+    private readonly RandomNumberGenerator _rng = new();
+    private CruiseEventDirector _director;
+    private readonly List<string> _damaged = new();
+    private readonly List<FlightEvent> _pendingEvents = new();
+    private readonly List<FlightEvent> _burnEvents = new();
+    private readonly HashSet<PodModule> _poweredDown = new();
+
+    /// <summary>Cruise events planned at Begin (B11), for the HUD and tests.</summary>
+    public IReadOnlyList<CruiseEventDirector.PlannedEvent> PlannedEvents =>
+        _director?.Planned ?? (IReadOnlyList<CruiseEventDirector.PlannedEvent>)System.Array.Empty<CruiseEventDirector.PlannedEvent>();
+    /// <summary>Incidents of the last ExecuteTransferBurn (EngineFlameout or CryoLeak); also reported by the next StepDay.</summary>
+    public IReadOnlyList<FlightEvent> LastBurnEvents => _burnEvents;
+    /// <summary>A tank leaks fuel, or the pod hull is breached, until SealLeak (V).</summary>
+    public bool HasLeak
+    {
+        get
+        {
+            if (_parts == null) return false;
+            foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>())
+                if (tank.IsAttached && tank.LeakRateKgPerSec > 0f) return true;
+            return PowerSolver.FindPod(_parts)?.IsHullBreached ?? false;
+        }
+    }
+    /// <summary>True while modules are powered down for a solar flare (PowerDownForFlare).</summary>
+    public bool IsPoweredDownForFlare => _poweredDown.Count > 0;
 
     /// <summary>Starts the cruise with the vehicle as it is now.</summary>
     public void Begin(PartTree parts, MissionSegmentDefinition segment, CelestialBodyDefinition origin, CelestialBodyDefinition destination)
@@ -49,7 +77,46 @@ public class CruiseSimulator
             : new PhysicsSettings();
         _power = new PowerSolver(Settings);
         _thermal = new ThermalSolver(Settings);
+        _activeHazards.Clear();
+        _rng.Seed = HazardSeed;
         CurrentSolarFluxWm2 = _origin?.SolarFluxWm2 ?? FallbackSolarFluxWm2;
+        _damaged.Clear();
+        _pendingEvents.Clear();
+        _burnEvents.Clear();
+        _poweredDown.Clear();
+        _director = new CruiseEventDirector(Settings, HazardSeed + 1);
+        _director.Plan(parts, segment);
+    }
+
+    /// <summary>Player sealed the tank leak (key V).</summary>
+    public void SealLeak()
+    {
+        if (_parts == null) return;
+        foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>()) tank.SealLeak();
+        PowerSolver.FindPod(_parts)?.SealHullBreach();
+    }
+
+    /// <summary>
+    /// After a flare warning the player may power the pod modules down (except power sources): they then take
+    /// FlarePoweredDownFactor of the flare damage chance. Power comes back by itself after the flare, or with false.
+    /// </summary>
+    public void PowerDownForFlare(bool powerDown)
+    {
+        CommandPodPart pod = PowerSolver.FindPod(_parts);
+        if (powerDown)
+        {
+            if (pod == null) return;
+            foreach (PodModule module in pod.Modules)
+            {
+                if (module.Definition is PowerModuleDefinition || !module.IsPowered) continue;
+                module.IsPowered = false;
+                _poweredDown.Add(module);
+            }
+            return;
+        }
+        foreach (PodModule module in _poweredDown)
+            if (module.State != ComponentState.Broken) module.IsPowered = true;
+        _poweredDown.Clear();
     }
 
     /// <summary>
@@ -86,7 +153,46 @@ public class CruiseSimulator
         foreach (LiquidEnginePart engine in _engines) engine.RemainingIgnitions--;
 
         HasTransferBurned = true;
+        RollTransferBurnEvent(required, isp);
         return true;
+    }
+
+    /// <summary>
+    /// 5.5: with TransferBurnEventChance, a flameout (relight costs TransferRelightDeltaVFraction of the required
+    /// delta-v more) or a leak on a random tank with fuel (drains CruiseLeakFractionPerDay a day until SealLeak).
+    /// Only types the segment enables.
+    /// </summary>
+    private void RollTransferBurnEvent(float required, float isp)
+    {
+        _burnEvents.Clear();
+        FlightEventMask enabled = _segment?.EnabledHazards ?? FlightEventMask.None;
+        bool flameout = (enabled & FlightEventMask.EngineFlameout) != 0 && _engines.Count > 0;
+        var tanks = new List<FuelTankPart>();
+        if ((enabled & FlightEventMask.CryoLeak) != 0)
+            foreach (FuelTankPart tank in _tanks) if (tank.IsAttached && tank.CurrentFuel > 0f) tanks.Add(tank);
+        if (!flameout && tanks.Count == 0) return;
+        if (_rng.Randf() >= (Settings?.TransferBurnEventChance ?? 0f)) return;
+
+        bool doFlameout = flameout && (tanks.Count == 0 || _rng.Randf() < 0.5f);
+        if (doFlameout)
+        {
+            LiquidEnginePart engine = _engines[_rng.RandiRange(0, _engines.Count - 1)];
+            float extraDv = required * (Settings?.TransferRelightDeltaVFraction ?? 0f);
+            float fuel = TankFuel();
+            float burn = Mathf.Min(fuel, TreeMass() * (1f - Mathf.Exp(-extraDv / (isp * FlightMath.G0))));
+            if (fuel > 0f)
+                foreach (FuelTankPart tank in _tanks)
+                    tank.DrainFuel(burn * tank.CurrentFuel / fuel);
+            _burnEvents.Add(new FlightEvent { Type = FlightEventType.EngineFlameout, Severity = 0.5f, SourceId = engine.ModelId });
+        }
+        else
+        {
+            FuelTankPart leaking = tanks[_rng.RandiRange(0, tanks.Count - 1)];
+            float reduction = MeteorImpact.SensorReduction(PowerSolver.FindPod(_parts), InstrumentKind.FuelSensor);
+            leaking.LeakRateKgPerSec = Mathf.Max(leaking.LeakRateKgPerSec, (Settings?.CryoLeakRateKgPerSec ?? 0f) * (1f - reduction));
+            _burnEvents.Add(new FlightEvent { Type = FlightEventType.CryoLeak, Severity = 0.5f, SourceId = leaking.ModelId });
+        }
+        _pendingEvents.AddRange(_burnEvents);
     }
 
     /// <summary>Advances one day: solar flux, power, temperature, IMU drift, RTG ageing.</summary>
@@ -96,6 +202,9 @@ public class CruiseSimulator
         _events.Clear();
         _broken.Clear();
         _frozen.Clear();
+        _damaged.Clear();
+        _events.AddRange(_pendingEvents);
+        _pendingEvents.Clear();
 
         float originFlux = _origin?.SolarFluxWm2 ?? FallbackSolarFluxWm2;
         float destinationFlux = _destination?.SolarFluxWm2 ?? originFlux;
@@ -109,7 +218,9 @@ public class CruiseSimulator
         if (thermal.FrozenComponents != null) _frozen.AddRange(thermal.FrozenComponents);
 
         AdvanceModules();
-        // TODO(B6): DebrisWarning and SeuGlitch rolls with DebrisChancePerDay / SeuChancePerDay when the segment enables them.
+        RollDailyHazards(power, thermal);
+        ApplyPlannedEvents();
+        ApplyCruiseLeaks();
 
         return new CruiseStepResult
         {
@@ -122,7 +233,86 @@ public class CruiseSimulator
             Events = _events,
             BrokenComponents = _broken,
             FrozenComponents = _frozen,
+            DamagedModules = _damaged,
         };
+    }
+
+    /// <summary>
+    /// B12: a leaking tank (LeakRateKgPerSec > 0, from a transfer burn or a meteor) loses CruiseLeakFractionPerDay of its fuel
+    /// a day, scaled by its rate against CryoLeakRateKgPerSec (a FuelSensor lowers the rate). A hull breach breaks a module
+    /// every CruiseHullBreachFailDays (longer with a PressureSensor).
+    /// </summary>
+    private void ApplyCruiseLeaks()
+    {
+        if (_parts == null) return;
+        float fraction = Settings?.CruiseLeakFractionPerDay ?? 0f;
+        float referenceRate = Mathf.Max(0.001f, Settings?.CryoLeakRateKgPerSec ?? 1f);
+        foreach (FuelTankPart tank in _parts.GetParts<FuelTankPart>())
+        {
+            if (!tank.IsAttached || tank.LeakRateKgPerSec <= 0f) continue;
+            tank.DrainFuel(tank.CurrentFuel * fraction * Mathf.Min(1f, tank.LeakRateKgPerSec / referenceRate));
+            if (tank.CurrentFuel <= 0f) tank.LeakRateKgPerSec = 0f;
+        }
+
+        string lost = MeteorImpact.TickHullBreach(PowerSolver.FindPod(_parts), 1f, Settings?.CruiseHullBreachFailDays ?? 0f, _rng);
+        if (lost.Length == 0) return;
+        _damaged.Add(lost);
+        _events.Add(new FlightEvent { Type = FlightEventType.HullBreach, Severity = 0.5f, SourceId = lost });
+    }
+
+    /// <summary>B11: planned events of today; applies flare and instrument-failure damage.</summary>
+    private void ApplyPlannedEvents()
+    {
+        if (_director == null) return;
+        foreach (FlightEvent planned in _director.EventsForDay(Day, _parts))
+        {
+            FlightEvent e = planned;
+            if (e.Type == FlightEventType.SolarFlare && e.Severity >= 1f)
+            {
+                List<string> broken = _director.ApplySolarFlare(_parts, _poweredDown);
+                _damaged.AddRange(broken);
+                e.SourceId = string.Join(",", broken);
+                PowerDownForFlare(false);
+            }
+            else if (e.Type == FlightEventType.InstrumentFailure)
+            {
+                e.SourceId = _director.ApplyInstrumentFailure(_parts);
+                if (e.SourceId.Length > 0) _damaged.Add(e.SourceId);
+            }
+            _events.Add(e);
+        }
+    }
+
+    /// <summary>Control has handled this hazard; it may fire again.</summary>
+    public void Acknowledge(FlightEventType type) => _activeHazards.Remove(type);
+
+    /// <summary>
+    /// Daily incidents, only for types the segment enables and each once until Acknowledge (guide B 5 step 5):
+    /// PowerBrownout and ComponentOverheat from today's result, DebrisWarning and SeuGlitch by chance per day.
+    /// The simulator only reports them; CruiseController (C) decides what the player must do.
+    /// </summary>
+    private void RollDailyHazards(PowerStepResult power, ThermalStepResult thermal)
+    {
+        CommandPodPart pod = PowerSolver.FindPod(_parts);
+        if (power.IsBrownout) AddHazard(FlightEventType.PowerBrownout, 1f, pod?.ModelId);
+        if (thermal.OverheatedComponents is { Count: > 0 }) AddHazard(FlightEventType.ComponentOverheat, 0.5f, thermal.OverheatedComponents[0]);
+        if (_rng.Randf() < (Settings?.DebrisChancePerDay ?? 0f)) AddHazard(FlightEventType.DebrisWarning, 1f, "");
+        if (_rng.Randf() < (Settings?.SeuChancePerDay ?? 0f)) AddHazard(FlightEventType.SeuGlitch, 0.5f, RandomAvionicsId(pod));
+    }
+
+    private void AddHazard(FlightEventType type, float severity, string sourceId)
+    {
+        FlightEventMask enabled = _segment?.EnabledHazards ?? FlightEventMask.None;
+        if ((enabled & HazardMonitor.ToMask(type)) == 0 || _activeHazards.Contains(type)) return;
+        _activeHazards.Add(type);
+        _events.Add(new FlightEvent { Type = type, Severity = severity, SourceId = sourceId ?? "" });
+    }
+
+    private string RandomAvionicsId(CommandPodPart pod)
+    {
+        if (pod == null) return "";
+        var avionics = pod.Modules.FindAll(m => m.Definition?.SlotType == ModuleSlotType.Avionics);
+        return avionics.Count > 0 ? avionics[_rng.RandiRange(0, avionics.Count - 1)].ModelId : pod.ModelId;
     }
 
     /// <summary>IMU drift (reset by a working star tracker) and RTG ageing.</summary>

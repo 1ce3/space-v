@@ -22,4 +22,6 @@ public partial class PowerModuleDefinition : ModuleDefinition
     {
         SlotType = ModuleSlotType.Power;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\n{Kind}" + (NominalOutputW > 0f ? $", {N(NominalOutputW, "0")} W" : "") + (EnergyStorageWh > 0f ? $", {N(EnergyStorageWh, "0")} Wh" : "") + (WasteHeatW > 0f ? $", {N(WasteHeatW, "0")} W waste heat" : "");
 }

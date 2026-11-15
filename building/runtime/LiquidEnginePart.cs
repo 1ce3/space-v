@@ -55,10 +55,11 @@ public partial class LiquidEnginePart : EnginePart
         return true;
     }
 
-    /// <summary>Lerp(MinThrottle, 1, Throttle) when Throttle > 0, else 0 (B_PHYSICS_RESEARCH.md 4.3.1).</summary>
+    /// <summary>Max(Throttle, MinThrottle) when Throttle > 0, else 0.</summary>
     protected override float GetThrottleFactor()
     {
+        // Throttle maps 1:1 to thrust; below MinThrottle the engine runs at MinThrottle (it cannot go lower).
         if (Throttle <= 0f) return 0f;
-        return Mathf.Lerp(LiquidDefinition?.MinThrottle ?? 0f, 1f, Throttle);
+        return Mathf.Clamp(Mathf.Max(Throttle, LiquidDefinition?.MinThrottle ?? 0f), 0f, 1f);
     }
 }

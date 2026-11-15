@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_galileo_asi"
+DisplayName = "Galileo Probe ASI Subsystem"
+Tier = 3
+CostRP = 80
+PrerequisiteNodeIds = PackedStringArray("t2_tavis_reluctance", "t2_pioneer_venus_asi")
+UnlocksModelIds = PackedStringArray("mod_galileo_asi")
+BuildWeightBonus = 0
+Category = "Cảm biến áp suất"

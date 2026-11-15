@@ -1,0 +1,84 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://building/ui/BuildScreenRoot.cs" id="1_root"]
+[ext_resource type="Script" path="res://building/editor/BuildingSystem.cs" id="2_system"]
+[ext_resource type="Script" path="res://building/ui/BuildCursor.cs" id="3_cursor"]
+[ext_resource type="Script" path="res://building/ui/BuildPalettePanel.cs" id="4_palette"]
+[ext_resource type="Script" path="res://building/ui/BuildInfoPanel.cs" id="5_info"]
+
+[sub_resource type="Environment" id="Env_build"]
+background_mode = 1
+background_color = Color(0.09, 0.11, 0.16, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.62, 0.7, 1)
+ambient_light_energy = 0.8
+
+[node name="BuildScreen" type="Node3D" node_paths=PackedStringArray("Building")]
+script = ExtResource("1_root")
+Building = NodePath("BuildingSystem")
+
+[node name="BuildingSystem" type="Node" parent="." node_paths=PackedStringArray("PartsRoot")]
+script = ExtResource("2_system")
+PartsRoot = NodePath("../Parts")
+DebugLog = true
+
+[node name="Parts" type="Node3D" parent="."]
+
+[node name="BuildCursor" type="Node3D" parent="." node_paths=PackedStringArray("Building", "Camera")]
+script = ExtResource("3_cursor")
+Building = NodePath("../BuildingSystem")
+Camera = NodePath("../Camera3D")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 16, 100)
+projection = 1
+current = true
+size = 36.0
+far = 500.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 30, 30)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_build")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="LeftPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 250.0
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="UI/LeftPanel"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Palette" type="VBoxContainer" parent="UI/LeftPanel/Scroll" node_paths=PackedStringArray("Building", "Cursor")]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("4_palette")
+Building = NodePath("../../../../BuildingSystem")
+Cursor = NodePath("../../../../BuildCursor")
+
+[node name="RightPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="UI/RightPanel"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Info" type="VBoxContainer" parent="UI/RightPanel/Scroll" node_paths=PackedStringArray("Building", "Root", "Cursor")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("5_info")
+Building = NodePath("../../../../BuildingSystem")
+Root = NodePath("../../../..")
+Cursor = NodePath("../../../../BuildCursor")

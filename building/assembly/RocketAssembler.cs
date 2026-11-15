@@ -51,7 +51,7 @@ public class RocketAssembler
                     errors.Add($"Không có part '{entry.ModelId}'.");
                     continue;
                 }
-                weight += def.BuildWeight;
+                weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlace(def, entry.Cell))
                 {
                     errors.Add($"{Name(def)} ở ô {CellText(entry.Cell)} đặt sai chỗ (chồng ô, ra ngoài lưới hoặc hàng xóm không hợp lệ).");
@@ -101,7 +101,7 @@ public class RocketAssembler
                     errors.Add($"Không có bộ tách tầng '{entry.ModelId}'.");
                     continue;
                 }
-                weight += def.BuildWeight;
+                weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlaceDecoupler(def, entry.Edge))
                 {
                     errors.Add($"Bộ tách tầng ở cạnh {EdgeText(entry.Edge)} không nằm giữa hai part tiếp xúc (hoặc bị trùng).");
@@ -117,9 +117,9 @@ public class RocketAssembler
             CheckMaxOne<ParachutePart>(parts, "dù", errors);
             CheckMaxOne<HeatShieldPart>(parts, "khiên nhiệt", errors);
 
-            // Modules: right slot type, index within the pod's slots, no slot used twice.
+            // Modules: inside the pod inventory grid, no two modules on the same cell (Unplaced = first free cell).
             var pod = pods.Count > 0 ? (CommandPodPart)pods[0] : null;
-            var usedSlots = new HashSet<(ModuleSlotType, int)>();
+            var occupied = new List<PodInventory.Item>();
             foreach (RocketDesign.ModuleEntry entry in design.ModuleEntries)
             {
                 if (GetDefinition(entry.ModelId) is not ModuleDefinition def)
@@ -133,16 +133,15 @@ public class RocketAssembler
                     errors.Add($"Module {Name(def)} cần có khoang điều khiển.");
                     continue;
                 }
-                if (def.SlotType != entry.SlotType)
-                {
-                    errors.Add($"Module {Name(def)} phải lắp ở slot {def.SlotType}, không phải {entry.SlotType}.");
-                    continue;
-                }
-                int slots = pod.PodDefinition?.GetSlotCount(entry.SlotType) ?? 0;
-                if (entry.SlotIndex < 0 || entry.SlotIndex >= slots)
-                    errors.Add($"{Name(pod.Definition)} chỉ có {slots} slot {entry.SlotType} (module {Name(def)} ở slot {entry.SlotIndex + 1}).");
-                else if (!usedSlots.Add((entry.SlotType, entry.SlotIndex)))
-                    errors.Add($"Slot {entry.SlotType} {entry.SlotIndex + 1} đã có module.");
+                Vector2I size = PodInventory.SizeOf(def);
+                Vector2I inventory = pod.InventorySize;
+                Vector2I? cell = entry.Cell == PodInventory.Unplaced ? PodInventory.FindFreeCell(inventory, occupied, size) : entry.Cell;
+                if (cell == null || !PodInventory.InBounds(inventory, cell.Value, size))
+                    errors.Add($"Module {Name(def)} ({size.X}x{size.Y} ô) không vừa lưới {inventory.X}x{inventory.Y} của {Name(pod.Definition)}.");
+                else if (!PodInventory.Fits(inventory, occupied, cell.Value, size))
+                    errors.Add($"Module {Name(def)} chồng lên module khác ở ô ({cell.Value.X}, {cell.Value.Y}).");
+                else
+                    occupied.Add(new PodInventory.Item(cell.Value, size));
             }
 
             // Weight.
@@ -177,6 +176,7 @@ public class RocketAssembler
                 continue;
             }
             RocketPart part = RocketPart.Create(def);
+            part.Material = PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId);
             part.Cell = entry.Cell;
             grid.Occupy(part);
             parts.Add(part);
@@ -189,6 +189,7 @@ public class RocketAssembler
                 continue;
             }
             var decoupler = (DecouplerPart)RocketPart.Create(def);
+            decoupler.Material = PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId);
             if (!grid.AddDecoupler(decoupler, entry.Edge))
             {
                 GD.PushWarning($"[Building] RocketAssembler: second decoupler on edge {entry.Edge} ignored");
@@ -286,9 +287,17 @@ public class RocketAssembler
                 GD.PushError($"[Building] RocketAssembler: unknown module '{entry.ModelId}'");
                 continue;
             }
+            Vector2I? cell = entry.Cell == PodInventory.Unplaced
+                ? PodInventory.FindFreeCell(pod.InventorySize, pod.GetOccupiedCells(), PodInventory.SizeOf(def))
+                : entry.Cell;
+            if (cell == null || !pod.CanPlaceModule(def, cell.Value))
+            {
+                GD.PushWarning($"[Building] RocketAssembler: module '{entry.ModelId}' does not fit the pod grid, skipped");
+                continue;
+            }
             PodModule module = PodModule.Create(def);
             if (module == null) continue;
-            module.SlotIndex = entry.SlotIndex;
+            module.GridCell = cell.Value;
             pod.AddModule(module);
         }
     }
@@ -327,21 +336,88 @@ public class RocketAssembler
     public void AttachVisuals(PartTree tree)
     {
         if (tree == null) return;
-        PartCatalog catalog = PartCatalog.Instance;
-        foreach (RocketPart part in tree.ActiveParts)
-        {
-            PackedScene scene = part.Definition?.Scene;
-            if (scene == null && catalog != null)
-                scene = part is DecouplerPart ? catalog.GetDecouplerPlaceholderScene() : catalog.GetPlaceholderScene(part.PartGroup);
-            if (scene == null) continue;
+        foreach (RocketPart part in tree.ActiveParts) AttachVisual(part);
+    }
 
-            Node visual = scene.Instantiate();
-            visual.Name = "Visual";
-            part.AddChild(visual);
-            // Called by name: Building never references the presentation classes (AGENTS 1.5).
-            if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
-            else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
+    /// <summary>Adds the visual of one part as child "Visual" (skipped if it already has one). Returns the visual or null.</summary>
+    public static Node AttachVisual(RocketPart part)
+    {
+        if (part == null) return null;
+        if (part.HasNode("Visual")) return part.GetNode("Visual");
+        var def = part.Definition as PartDefinition;
+        PackedScene scene = GetVisualScene(def);
+        if (scene == null) return null;
+
+        Node visual = scene.Instantiate();
+        Node3D rawModel = null;
+        if (!visual.HasMethod(PartCatalog.BindMethod) && visual is Node3D model && PartCatalog.Instance != null)
+        {
+            // A plain model (.glb / .tscn without PartVisual): use the group placeholder for anchors and effects,
+            // hide its meshes and fit the model into their box after Bind.
+            PackedScene placeholder = def is DecouplerPartDefinition
+                ? PartCatalog.Instance.GetDecouplerPlaceholderScene() : PartCatalog.Instance.GetPlaceholderScene(def.PartGroup);
+            if (placeholder != null)
+            {
+                rawModel = model;
+                visual = placeholder.Instantiate();
+            }
         }
+        visual.Name = "Visual";
+        part.AddChild(visual);
+        // Called by name: Building never references the presentation classes (AGENTS 1.5).
+        if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
+        else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
+        if (rawModel != null && visual is Node3D root) FitModel(root, rawModel);
+        return visual;
+    }
+
+    /// <summary>
+    /// Puts a plain model in place of the placeholder meshes: uniform scale so it fits their box (width and height),
+    /// centred on it. Placeholder meshes are hidden; anchors (ExhaustPoint, ...) stay where they are.
+    /// </summary>
+    public static void FitModel(Node3D visual, Node3D model)
+    {
+        Node3D meshRoot = visual.GetNodeOrNull<Node3D>("MeshRoot") ?? visual;
+        Aabb? target = null;
+        foreach (Node n in meshRoot.FindChildren("*", nameof(MeshInstance3D), true, false))
+        {
+            if (n is not MeshInstance3D m || m.Mesh == null) continue;
+            Aabb box = RelativeTransform(visual, m) * m.GetAabb();
+            target = target == null ? box : target.Value.Merge(box);
+            m.Visible = false;
+        }
+        visual.AddChild(model);
+        model.Name = "Model";
+        Aabb? src = null;
+        foreach (Node n in model.FindChildren("*", nameof(MeshInstance3D), true, false))
+        {
+            if (n is not MeshInstance3D m || m.Mesh == null) continue;
+            Aabb box = RelativeTransform(model, m) * m.GetAabb();
+            src = src == null ? box : src.Value.Merge(box);
+        }
+        if (target == null || src == null || src.Value.Size.X <= 0f || src.Value.Size.Y <= 0f) return;
+        Aabb t = target.Value, s = src.Value;
+        float k = Mathf.Min(t.Size.X / s.Size.X, t.Size.Y / s.Size.Y);
+        model.Scale = Vector3.One * k;
+        model.Position = t.GetCenter() - s.GetCenter() * k;
+    }
+
+    private static Transform3D RelativeTransform(Node3D root, Node3D node)
+    {
+        Transform3D xf = Transform3D.Identity;
+        for (Node n = node; n != null && n != root; n = n.GetParent())
+            if (n is Node3D n3) xf = n3.Transform * xf;
+        return xf;
+    }
+
+    /// <summary>Own scene of the definition, else the group (or decoupler) placeholder.</summary>
+    public static PackedScene GetVisualScene(PartDefinition def)
+    {
+        if (def == null) return null;
+        if (def.Scene != null) return def.Scene;
+        PartCatalog catalog = PartCatalog.Instance;
+        if (catalog == null) return null;
+        return def is DecouplerPartDefinition ? catalog.GetDecouplerPlaceholderScene() : catalog.GetPlaceholderScene(def.PartGroup);
     }
 
     /// <summary>Stage 0 plus one stage per decoupler depth (deepest first), with Parts and EnginesToArm.</summary>
@@ -445,16 +521,13 @@ public class RocketAssembler
             joint.Decouplers.Add(decoupler);
             decoupler.Joint = joint;
             tree.Add(decoupler);
-            joint.Strength += decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f;
+            joint.Strength += decoupler.GetEffectiveAttachmentStrength();
         }
         if (joint.Decouplers.Count == 0)
         {
-            joint.Strength = child.Definition switch
-            {
-                FairingPartDefinition f => f.AttachmentStrength,
-                ParachutePartDefinition c => c.AttachmentStrength,
-                _ => 0f,
-            };
+            joint.Strength = child.Definition is FairingPartDefinition or ParachutePartDefinition
+                ? child.GetEffectiveAttachmentStrength()
+                : 0f;
         }
         return joint;
     }

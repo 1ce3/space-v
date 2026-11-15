@@ -8,22 +8,17 @@ namespace RocketGame.Building;
 public partial class CommandPodPartDefinition : PartDefinition
 {
     [ExportGroup("CommandPod")]
-    [Export] public int AvionicsSlots { get; set; } = 1;
-    [Export] public int ThermalSlots { get; set; } = 0;
-    [Export] public int PowerSlots { get; set; } = 1;
+    /// <summary>Size of the module inventory grid (columns, rows). Every module, whatever its group, goes in this grid.</summary>
+    [Export] public Vector2I InventorySize { get; set; } = new(2, 2);
     /// <summary>G limit for the crew-less payload.</summary>
     [Export] public float MaxGForce { get; set; } = 8f;
 
     public CommandPodPartDefinition()
     {
         PartGroup = PartGroup.CommandPod;
+        AcceptsMaterial = true;
     }
 
-    /// <summary>Number of slots of a type.</summary>
-    public int GetSlotCount(ModuleSlotType slot) => slot switch
-    {
-        ModuleSlotType.Avionics => AvionicsSlots,
-        ModuleSlotType.Thermal => ThermalSlots,
-        _ => PowerSlots,
-    };
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nModule grid: {InventorySize.X} x {InventorySize.Y}\nMax load: {N(MaxGForce, "0.#")} G";
 }

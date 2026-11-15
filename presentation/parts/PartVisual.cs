@@ -32,6 +32,8 @@ public partial class PartVisual : Node3D
 
     /// <summary>The part shown; null in the palette.</summary>
     public RocketPart Part { get; private set; }
+    /// <summary>Build-screen ghost: the per-frame thermal tint is skipped.</summary>
+    public bool IsGhost { get; private set; }
 
     private StandardMaterial3D _material;
     private Color _baseColor;
@@ -58,12 +60,26 @@ public partial class PartVisual : Node3D
                              : settings?.GhostInvalidColor ?? new Color(1f, 0.3f, 0.3f, 0.5f);
         _material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         _material.AlbedoColor = tint;
+        _material.EmissionEnabled = false;
+        IsGhost = true;
     }
 
-    /// <summary>Mirrors the visual for left/right side parts.</summary>
+    /// <summary>Back to the normal look after SetGhost (build screen drag and drop).</summary>
+    public virtual void ClearGhost()
+    {
+        IsGhost = false;
+        if (_material == null) return;
+        _material.Transparency = BaseMaterial3D.TransparencyEnum.Disabled;
+        _material.AlbedoColor = _baseColor;
+    }
+
+    /// <summary>Mirrors the visual for left/right side parts (flips MeshRoot along X).</summary>
     public virtual void SetMirrored(bool mirrored)
     {
-        // TODO(A8)
+        if (MeshRoot == null) return;
+        Vector3 scale = MeshRoot.Scale;
+        scale.X = Mathf.Abs(scale.X) * (mirrored ? -1f : 1f);
+        MeshRoot.Scale = scale;
     }
 
     /// <summary>Called by debris spawning when the part leaves the rocket.</summary>
@@ -76,15 +92,57 @@ public partial class PartVisual : Node3D
 
     public override void _Process(double delta)
     {
-        if (Part != null && IsInstanceValid(Part)) UpdateVisual((float)delta);
+        if (!IsGhost && Part != null && IsInstanceValid(Part)) UpdateVisual((float)delta);
     }
 
     /// <summary>Per-frame refresh from Part state. Subclasses call base.</summary>
     protected virtual void UpdateVisual(float deltaTime)
     {
-        float max = Part.Definition?.MaxSafeTempK ?? 0f;
+        // A12: hull material tint (tanks, pod, decouplers); repainting on the build screen updates it live.
+        if (Part.Material != _appliedMaterial)
+        {
+            _appliedMaterial = Part.Material;
+            SetBaseColor(_appliedMaterial != null ? GroupColor * _appliedMaterial.Tint : GroupColor);
+        }
+        float max = Part.GetEffectiveMaxSafeTempK();
         ApplyThermalOverlay(max > 0f ? Part.TempK / max : 0f, Part.State);
     }
+
+    /// <summary>Unlit color the effects of the visual are tinted with (current base before thermal overlay).</summary>
+    protected Color BaseColor => _baseColor;
+
+    /// <summary>Changes the base color (e.g. heat shield charring); the thermal overlay is applied on top.</summary>
+    private RocketGame.Building.MaterialDefinition _appliedMaterial;
+
+    protected void SetBaseColor(Color color)
+    {
+        _baseColor = color;
+        if (_material != null && !IsGhost) _material.AlbedoColor = color;
+    }
+
+    /// <summary>Unshaded, double-sided material for flames, flashes and glows. Additive blending vanishes against a
+    /// bright sky, so it is only for inner cores; outer layers use normal alpha blending.</summary>
+    protected static StandardMaterial3D MakeGlowMaterial(Color color, bool additive = false)
+    {
+        return new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BlendMode = additive ? BaseMaterial3D.BlendModeEnum.Add : BaseMaterial3D.BlendModeEnum.Mix,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            AlbedoColor = color,
+        };
+    }
+
+    /// <summary>Scale that cancels MeshRoot's footprint scaling, so effects keep their size in meters.</summary>
+    protected Vector3 GetInverseMeshScale()
+    {
+        if (MeshRoot == null) return Vector3.One;
+        Vector3 s = MeshRoot.Scale;
+        return new Vector3(SafeInv(s.X), SafeInv(s.Y), SafeInv(s.Z));
+    }
+
+    private static float SafeInv(float v) => Mathf.Abs(v) < 1e-5f ? 1f : 1f / v;
 
     /// <summary>Anchor node by name (ExhaustPoint, GimbalPivot, ...), or null.</summary>
     protected Node3D FindAnchor(string anchorName) => FindChild(anchorName, true, false) as Node3D;

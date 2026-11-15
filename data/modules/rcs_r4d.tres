@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AcsModuleDefinition" format=3]
+
+[ext_resource type="Script" path="res://building/data/AcsModuleDefinition.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+ModelId = "rcs_r4d"
+DisplayName = "RCS R-4D (hypergolic)"
+Tier = 1
+BuildWeight = 1
+DryMass = 25.0
+PowerDrawW = 8.0
+MaxSafeTempK = 350.0
+MinSafeTempK = 230.0
+SlotType = 0
+GridSize = Vector2i(1, 1)
+RadiationResistance = 0.2
+RebootSuccessChance = 0.5
+RebootEnergyWh = 20.0
+Kind = 3
+ControlAuthority = 3000.0
+MonopropCapacityKg = 60.0

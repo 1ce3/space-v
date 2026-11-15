@@ -26,6 +26,9 @@ public class BuildBudget
         if (def != null) CurrentWeight = Mathf.Max(0, CurrentWeight - def.BuildWeight);
     }
 
+    /// <summary>Adds weight that has no definition (a hull material's BuildWeightCost).</summary>
+    public void AddWeight(int weight) => CurrentWeight = Mathf.Max(0, CurrentWeight + weight);
+
     public void SetMax(int value)
     {
         MaxWeight = Mathf.Max(0, value);

@@ -21,6 +21,10 @@ public partial class PartCatalog : Node
     [ExportGroup("Folders")]
     [Export(PropertyHint.Dir)] public string PartsFolder { get; set; } = "res://data/parts";
     [Export(PropertyHint.Dir)] public string ModulesFolder { get; set; } = "res://data/modules";
+    /// <summary>Phase 2: hull materials (MaterialDefinition .tres, file name = MaterialId).</summary>
+    [Export(PropertyHint.Dir)] public string MaterialsFolder { get; set; } = "res://data/materials";
+
+    private readonly Dictionary<string, MaterialDefinition> _materials = new();
     /// <summary>Placeholder scenes named after the PartGroup in snake_case, plus decoupler.tscn.</summary>
     [Export(PropertyHint.Dir)] public string PlaceholderFolder { get; set; } = "res://assets/parts/_placeholder";
 
@@ -38,6 +42,7 @@ public partial class PartCatalog : Node
         _byId.Clear();
         LoadFolder(PartsFolder);
         LoadFolder(ModulesFolder);
+        LoadMaterials(MaterialsFolder);
         if (DebugLog) GD.Print($"[Building] PartCatalog: {_byId.Count} definitions loaded");
     }
 
@@ -86,6 +91,46 @@ public partial class PartCatalog : Node
     }
 
     /// <summary>Definition for a ModelId, or null.</summary>
+    /// <summary>Phase 2: the material with this id, or null.</summary>
+    public MaterialDefinition GetMaterial(string materialId) =>
+        materialId != null && _materials.TryGetValue(materialId, out MaterialDefinition m) ? m : null;
+
+    /// <summary>Phase 2: every loaded material.</summary>
+    public List<MaterialDefinition> GetAllMaterials() => new(_materials.Values);
+
+    /// <summary>A12: materials the player may use: tier 0, or listed in an unlocked tech node. Sorted by tier.</summary>
+    public List<MaterialDefinition> GetUnlockedMaterials()
+    {
+        TechTreeManager tree = ResearchCampaignEngine.Instance?.TechTree;
+        var result = new List<MaterialDefinition>();
+        foreach (MaterialDefinition m in _materials.Values)
+            if (m.Tier <= 0 || tree == null || tree.IsUnlocked(m.MaterialId)) result.Add(m);
+        result.Sort((a, b) => a.Tier != b.Tier ? a.Tier.CompareTo(b.Tier) : string.CompareOrdinal(a.MaterialId, b.MaterialId));
+        return result;
+    }
+
+    /// <summary>A12: the material a part of this definition gets for materialId (empty = its default); null when it takes none.</summary>
+    public MaterialDefinition ResolveMaterial(PartDefinition def, string materialId)
+    {
+        if (def == null || !def.AcceptsMaterial) return null;
+        return GetMaterial(string.IsNullOrEmpty(materialId) ? def.DefaultMaterialId : materialId) ?? GetMaterial(def.DefaultMaterialId);
+    }
+
+    private void LoadMaterials(string folder)
+    {
+        _materials.Clear();
+        if (string.IsNullOrEmpty(folder) || !DirAccess.DirExistsAbsolute(folder)) return; // folder arrives with A12
+        using DirAccess dir = DirAccess.Open(folder);
+        if (dir == null) return;
+        foreach (string file in dir.GetFiles())
+        {
+            string name = file.EndsWith(".remap") ? file[..^6] : file;
+            if (!name.EndsWith(".tres")) continue;
+            if (ResourceLoader.Load(folder + "/" + name) is MaterialDefinition m && !string.IsNullOrEmpty(m.MaterialId))
+                _materials[m.MaterialId] = m;
+        }
+    }
+
     public ComponentDefinition GetDefinition(string modelId)
     {
         if (string.IsNullOrEmpty(modelId)) return null;
@@ -125,7 +170,7 @@ public partial class PartCatalog : Node
         }
 
         foreach (string id in known)
-            if (!_byId.ContainsKey(id)) problems.Add($"tech tree unlocks '{id}' but there is no .tres for it");
+            if (!_byId.ContainsKey(id) && GetMaterial(id) == null) problems.Add($"tech tree unlocks '{id}' but there is no .tres for it");
         foreach (string id in _byId.Keys)
             if (!known.Contains(id)) problems.Add($"'{id}' has a .tres but no starter entry or tech node unlocks it");
         return problems;
@@ -147,6 +192,12 @@ public partial class PartCatalog : Node
             }
 
             Node root = scene.Instantiate();
+            if (root is Node3D && !root.HasMethod(BindMethod) && part.Scene != null)
+            {
+                // Plain model (.glb): RocketAssembler.AttachVisual fits it into the group placeholder.
+                root.Free();
+                continue;
+            }
             if (root is not Node3D || !root.HasMethod(BindMethod))
                 problems.Add($"{part.ModelId}: scene root is not a PartVisual ({scene.ResourcePath})");
             if (root.GetNodeOrNull("MeshRoot") == null)

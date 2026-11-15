@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_fiber_bragg_grating"
+DisplayName = "Fiber Bragg Grating (FBG)"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t2_rosemount_rtd", "t3_cernox_oxynitride")
+UnlocksModelIds = PackedStringArray("mod_fiber_bragg_grating")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiệt"

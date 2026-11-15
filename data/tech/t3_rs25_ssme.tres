@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_rs25_ssme"
+DisplayName = "RS-25 (SSME)"
+Tier = 3
+CostRP = 90
+PrerequisiteNodeIds = PackedStringArray("t2_rocketdyne_j2")
+UnlocksModelIds = PackedStringArray("eng_rs25_ssme")
+BuildWeightBonus = 0
+Category = "Động cơ"

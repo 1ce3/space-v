@@ -1,15 +1,14 @@
-[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3]
+[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3 uid="uid://bg3lxi6yc2yxg"]
 
-[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
+[ext_resource type="Script" uid="uid://bsgkvoibroawm" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
 [ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="2_body"]
 
 [resource]
 script = ExtResource("1_seg")
 SegmentId = "seg_earth_ascent"
 DisplayName = "Earth Ascent"
-Kind = 0
 Body = ExtResource("2_body")
 RewardRP = 60
-EnabledHazards = 0
+EnabledHazards = 998
 TargetAltitudeM = 90000.0
-TargetSpeedMps = 2200.0
+TargetSpeedMps = 2250.0

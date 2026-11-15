@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "mat_t3"
+DisplayName = "Titan & giáp Whipple"
+Tier = 3
+CostRP = 80
+PrerequisiteNodeIds = PackedStringArray("mat_t2")
+UnlocksModelIds = PackedStringArray("mat_titanium", "mat_whipple")
+BuildWeightBonus = 0
+Category = "Vật liệu"

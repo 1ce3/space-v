@@ -64,12 +64,12 @@ public class PropulsionSolver
         return result;
     }
 
-    /// <summary>Throttle 0 gives 0; otherwise thrust fraction runs from MinThrottle to 1.</summary>
+    /// <summary>Throttle 0 gives 0; otherwise thrust fraction = Throttle, but never below MinThrottle.</summary>
     private static float LiquidThrottleFactor(LiquidEnginePart engine)
     {
         if (engine.Throttle <= 0f) return 0f;
         float min = engine.LiquidDefinition?.MinThrottle ?? 0f;
-        return Mathf.Lerp(min, 1f, engine.Throttle);
+        return Mathf.Clamp(Mathf.Max(engine.Throttle, min), 0f, 1f);
     }
 
     /// <summary>Takes kg evenly from the feed tanks that still have fuel. Returns kg actually drained.</summary>

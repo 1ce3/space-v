@@ -12,10 +12,11 @@ public partial class PhysicsSettings : Resource
     /// <summary>Drag multiplier by Mach number (x = Mach, y = multiplier). May be null: SampleMachDrag then uses built-in defaults.</summary>
     [Export] public Curve MachDragCurve { get; set; }
     /// <summary>
-    /// Balance switch. False (guide B 4.3.2): every unshielded part adds its frontal drag. True: only parts whose leading face
+    /// Balance switch, default true. False (guide B 4.3.2): every unshielded part adds its frontal drag (a stack of 14 parts then
+    /// cannot pass about 17 km). True: only parts whose leading face
     /// (top when flying nose first, bottom when flying base first) has no other part on it add frontal drag; side drag is unchanged.
     /// </summary>
-    [Export] public bool FrontalDragOnlyExposed { get; set; }
+    [Export] public bool FrontalDragOnlyExposed { get; set; } = true;
     /// <summary>Fin stall angle (deg): lift magnitude is clamped at this angle of attack.</summary>
     [Export(PropertyHint.Range, "1,90,0.5")] public float FinStallDeg { get; set; } = 25f;
     /// <summary>Half-angle of the cone (deg) in which fairing or heat shield counts as facing the airflow.</summary>
@@ -60,14 +61,70 @@ public partial class PhysicsSettings : Resource
     /// <summary>Chance per second of a cryo leak while a Hydrolox or Methalox tank is attached. P1.</summary>
     [ExportGroup("Hazards")]
     [Export(PropertyHint.Range, "0,1,0.0001")] public float CryoLeakChancePerSec { get; set; } = 0.002f;
-    /// <summary>Chance per second of a debris warning above 80 km. P1.</summary>
+    /// <summary>Fuel lost by a leaking tank until SealLeak (kg/s). P1.</summary>
+    [Export] public float CryoLeakRateKgPerSec { get; set; } = 3f;
+    /// <summary>Chance per second of a debris warning above DebrisMinAltitudeM. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float DebrisChancePerSec { get; set; } = 0.001f;
+    /// <summary>Debris warnings only roll above this altitude (m). P1.</summary>
+    [Export] public float DebrisMinAltitudeM { get; set; } = 80000f;
+    /// <summary>Change of horizontal speed that counts as dodging the debris (m/s). P1.</summary>
+    [Export] public float DebrisDodgeSpeedMps { get; set; } = 5f;
     /// <summary>Time the player has to dodge a debris warning (s). P1.</summary>
     [Export] public float DebrisWarningSeconds { get; set; } = 8f;
     /// <summary>Chance per cruise day of a debris warning. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float DebrisChancePerDay { get; set; } = 0.005f;
     /// <summary>Chance per cruise day of a single-event upset. P1.</summary>
     [Export(PropertyHint.Range, "0,1,0.0001")] public float SeuChancePerDay { get; set; } = 0.003f;
+    /// <summary>The command pod breaks (JointOverload) above MaxGForce times this factor. P1.</summary>
+    [Export(PropertyHint.Range, "1,5,0.05")] public float PodBreakGFactor { get; set; } = 1.5f;
+    /// <summary>Share of a compressive load a decoupler joint counts against its strength (tension counts fully).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float JointCompressionFactor { get; set; } = 0.25f;
+
+    /// <summary>
+    /// Aeroshell (C6): while a heat shield leads, the parts it shields sit in its wake and get only this share of their cross-flow drag.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float HeatShieldWakeFactor { get; set; } = 0.15f;
+    /// <summary>
+    /// Aeroshell (C6): restoring moment coefficient of a leading heat shield. Torque = coeff * q * shield frontal area *
+    /// shield-to-CoM distance * sin(angle off base-first), turning the shield back into the flow like a real capsule.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,5,0.05")] public float HeatShieldStabilityCoefficient { get; set; } = 1.5f;
+
+    /// <summary>Fewest planned cruise events (PHASE2 5.2, B11).</summary>
+    [ExportGroup("Cruise events")]
+    [Export(PropertyHint.Range, "0,10,1")] public int CruiseEventsMin { get; set; } = 2;
+    /// <summary>Most planned cruise events.</summary>
+    [Export(PropertyHint.Range, "0,10,1")] public int CruiseEventsMax { get; set; } = 4;
+    /// <summary>Smallest gap between two planned events (days).</summary>
+    [Export(PropertyHint.Range, "0,100,1")] public int CruiseEventMinGapDays { get; set; } = 20;
+    /// <summary>No event before this day.</summary>
+    [Export(PropertyHint.Range, "1,100,1")] public int CruiseEventFirstDay { get; set; } = 5;
+    /// <summary>No event in the last days of the cruise.</summary>
+    [Export(PropertyHint.Range, "0,100,1")] public int CruiseEventLastDayMargin { get; set; } = 5;
+    /// <summary>Relative weights of the planned event types.</summary>
+    [Export] public float SolarFlareWeight { get; set; } = 40f;
+    [Export] public float MeteorFieldWeight { get; set; } = 40f;
+    [Export] public float InstrumentFailureWeight { get; set; } = 20f;
+    /// <summary>Flare damage chance of an unshielded, unhardened module (5.3).</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float FlareBaseDamageChance { get; set; } = 0.5f;
+    /// <summary>Flare damage chance factor for modules the player powered down after a warning.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float FlarePoweredDownFactor { get; set; } = 0.3f;
+    /// <summary>Chance of an incident during the transfer burn (5.5): engine flameout or tank leak.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TransferBurnEventChance { get; set; } = 0.3f;
+    /// <summary>Extra delta-v of the relight after a transfer-burn flameout, as a share of the required delta-v.</summary>
+    [Export(PropertyHint.Range, "0,1,0.01")] public float TransferRelightDeltaVFraction { get; set; } = 0.05f;
+    /// <summary>Share of its fuel a leaking tank loses per cruise day until the leak is sealed.</summary>
+    [Export(PropertyHint.Range, "0,1,0.005")] public float CruiseLeakFractionPerDay { get; set; } = 0.02f;
+
+    /// <summary>Leak rate of a tank holed by a meteor (kg/s), before a FuelSensor (PHASE2 5.6, B12).</summary>
+    [ExportGroup("Meteor impact")]
+    [Export] public float MeteorLeakRateKgPerSec { get; set; } = 3f;
+    /// <summary>Above this many times the impact tolerance the hit part breaks.</summary>
+    [Export(PropertyHint.Range, "1,10,0.1")] public float MeteorBreakFactor { get; set; } = 3f;
+    /// <summary>Seconds between module failures of a hull breach in flight, before a PressureSensor.</summary>
+    [Export] public float HullBreachFailSeconds { get; set; } = 20f;
+    /// <summary>Days between module failures of a hull breach during the cruise, before a PressureSensor.</summary>
+    [Export] public float CruiseHullBreachFailDays { get; set; } = 3f;
 
     private const float MachTransonic = 1.1f;
     private const float MachHigh = 3f;

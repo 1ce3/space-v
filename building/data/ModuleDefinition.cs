@@ -9,10 +9,28 @@ public abstract partial class ModuleDefinition : ComponentDefinition
     [ExportGroup("Slot")]
     [Export] public ModuleSlotType SlotType { get; set; } = ModuleSlotType.Avionics;
 
+    [ExportGroup("Inventory")]
+    /// <summary>Cells taken in the pod inventory grid (rectangles only, no rotation).</summary>
+    [Export] public Vector2I GridSize { get; set; } = Vector2I.One;
+
+    [ExportGroup("Faults")]
+    /// <summary>0..1: lowers the chance a solar flare breaks this module.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float RadiationResistance { get; set; }
+    /// <summary>0..1: chance one reboot attempt brings a Broken module back.</summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float RebootSuccessChance { get; set; } = 0.3f;
+    /// <summary>Battery energy one reboot attempt costs (Wh).</summary>
+    [Export] public float RebootEnergyWh { get; set; } = 20f;
+
     protected ModuleDefinition()
     {
         DryMass = 15f;
         MaxSafeTempK = 350f;
         MinSafeTempK = 230f;
     }
+
+    /// <summary>Adds grid size and fault stats (PHASE2 2.3).</summary>
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip()
+        + $"\nSize: {GridSize.X} x {GridSize.Y} cells"
+        + $"\nRadiation resistance: {N(RadiationResistance * 100f, "0")} %"
+        + $"\nReboot: {N(RebootSuccessChance * 100f, "0")} % per try, {N(RebootEnergyWh, "0")} Wh";
 }

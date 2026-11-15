@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t5_optical_mesh_crosslink"
+DisplayName = "Optical Mesh Cross-Link"
+Tier = 5
+CostRP = 200
+PrerequisiteNodeIds = PackedStringArray("t5_tesat_laser")
+UnlocksModelIds = PackedStringArray("mod_optical_mesh_crosslink")
+BuildWeightBonus = 0
+Category = "Liên lạc"

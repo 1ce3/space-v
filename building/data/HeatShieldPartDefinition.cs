@@ -17,4 +17,6 @@ public partial class HeatShieldPartDefinition : PartDefinition
     {
         PartGroup = PartGroup.HeatShield;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nAblator: {N(MaxAblatorKg, "0")} kg ({N(MaxAblatorKg * HeatOfAblationJPerKg / 1e6f, "0")} MJ)";
 }

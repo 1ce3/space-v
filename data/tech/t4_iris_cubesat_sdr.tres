@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_iris_cubesat_sdr"
+DisplayName = "Iris V2.1 CubeSat SDR"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t3_lira_luch_transceiver")
+UnlocksModelIds = PackedStringArray("mod_iris_cubesat_sdr")
+BuildWeightBonus = 0
+Category = "Liên lạc"

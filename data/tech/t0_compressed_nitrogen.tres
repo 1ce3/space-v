@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t0_compressed_nitrogen"
+DisplayName = "Compressed Nitrogen (Cold Gas)"
+Tier = 0
+CostRP = 0
+PrerequisiteNodeIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("rcs_cold_gas")
+BuildWeightBonus = 0
+Category = "Nhiên liệu"

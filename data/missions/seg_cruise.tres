@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3]
+[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3 uid="uid://bkv3o1281erh5"]
 
-[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
+[ext_resource type="Script" uid="uid://bsgkvoibroawm" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
 [ext_resource type="Resource" path="res://data/bodies/earth_scaled.tres" id="2_body"]
 
 [resource]
@@ -10,6 +10,6 @@ DisplayName = "Cruise to Mars"
 Kind = 1
 Body = ExtResource("2_body")
 RewardRP = 80
-EnabledHazards = 0
+EnabledHazards = 16258
 RequiredDeltaVMps = 800.0
 DurationDays = 210.0

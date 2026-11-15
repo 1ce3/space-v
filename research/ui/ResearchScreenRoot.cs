@@ -163,19 +163,125 @@ public partial class ResearchScreenRoot : Godot.Control
 
     // ---------- building the cards ----------
 
+    // ---------- War Thunder style tree: one tab per category, rows = tiers, lines = prerequisites ----------
+
+    [ExportGroup("Tree")]
+    [Export(PropertyHint.Range, "40,200,1")] public float TierLabelWidth { get; set; } = 80f;
+
+    /// <summary>Tab order; categories not listed here come after.</summary>
+    public static readonly string[] CategoryOrder =
+        { "Động cơ", "Nhiên liệu", "Vật liệu", "Khung & khoang", "Điều khiển", "Liên lạc", "Cảm biến nhiên liệu", "Cảm biến áp suất", "Cảm biến nhiệt", "Năng lượng & nhiệt", "Hạ cánh" };
+
+    /// <summary>Category of a node without one set in its .tres.</summary>
+    public static string DefaultCategory(TechNode node)
+    {
+        if (node == null) return "Khác";
+        if (!string.IsNullOrEmpty(node.Category)) return node.Category;
+        string id = node.NodeId;
+        if (id.StartsWith("fuel_")) return "Nhiên liệu";
+        if (id.StartsWith("mat_")) return "Vật liệu";
+        if (id.StartsWith("comm_")) return "Liên lạc";
+        if (id.StartsWith("sensor_")) return "Cảm biến";
+        return id switch
+        {
+            "t1_heavy" or "t2_main_engine" or "t2_upper_stage" => "Động cơ",
+            "t1_frame" or "t2_frame" or "t3_frame" or "t2_pod" => "Khung & khoang",
+            "t1_avionics" or "t3_navigation" => "Điều khiển",
+            "t2_power" or "t3_thermal" or "t4_rtg" => "Năng lượng & nhiệt",
+            "t3_edl" or "t3_lander" => "Hạ cánh",
+            _ => "Khác",
+        };
+    }
+
+    /// <summary>Branch order inside a tab; empty branch = no sub-header.</summary>
+    public static readonly string[] SubCategoryOrder = { "Tầng thấp (mặt đất – 50 km)", "Tầng giữa (30 km – quỹ đạo thấp)", "Tầng trên & không gian sâu" };
+
+    public static string DefaultSubCategory(TechNode node)
+    {
+        if (node == null) return "";
+        if (!string.IsNullOrEmpty(node.SubCategory)) return node.SubCategory;
+        return node.NodeId switch
+        {
+            "t1_lr87_aj7" or "t1_rocketdyne_f1" or "t4_merlin_1d" or "t5_raptor_2_3" or "t1_heavy" or "t2_main_engine" => SubCategoryOrder[0],
+            "t2_rocketdyne_j2" or "t3_rs25_ssme" => SubCategoryOrder[1],
+            "t1_aj10_137" or "t2_rl10" or "t3_nstar_ion" or "t2_upper_stage" => SubCategoryOrder[2],
+            _ => "",
+        };
+    }
+
+    private HFlowContainer _tabs;
+    private string _category;
+
     private void BuildCards()
     {
-        foreach (Node child in Columns.GetChildren()) child.QueueFree();
-        _cards.Clear();
-        Columns.AddThemeConstantOverride("separation", Spacing * 2);
-
-        foreach (IGrouping<int, TechNode> tier in _tree.AllNodes.Where(n => n != null).GroupBy(n => n.Tier).OrderBy(g => g.Key))
+        Columns.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        if (Columns.GetParent()?.GetParent() is ScrollContainer sc) sc.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+        if (Columns.GetParent() is Godot.Control margin) margin.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        if (_tabs == null)
         {
-            var column = new VBoxContainer { CustomMinimumSize = new Vector2(CardWidth, 0f) };
-            column.AddThemeConstantOverride("separation", Spacing);
-            column.AddChild(TierHeader(tier.Key));
-            foreach (TechNode node in tier.OrderBy(n => n.CostRP)) column.AddChild(MakeCard(node));
-            Columns.AddChild(column);
+            // Tabs go above the scroll area (Layout > [tabs] > Scroll > Margin > Columns).
+            Node scroll = Columns.GetParent()?.GetParent();
+            Node layout = scroll?.GetParent();
+            _tabs = new HFlowContainer();
+            _tabs.AddThemeConstantOverride("h_separation", 6);
+            _tabs.AddThemeConstantOverride("v_separation", 6);
+            if (layout != null)
+            {
+                layout.AddChild(_tabs);
+                layout.MoveChild(_tabs, scroll.GetIndex());
+            }
+        }
+        foreach (Node child in _tabs.GetChildren()) child.QueueFree();
+
+        List<string> categories = _tree.AllNodes.Where(n => n != null).Select(DefaultCategory).Distinct()
+            .OrderBy(c => { int i = System.Array.IndexOf(CategoryOrder, c); return i < 0 ? 99 : i; }).ToList();
+        if (_category == null || !categories.Contains(_category)) _category = categories.FirstOrDefault();
+        foreach (string cat in categories)
+        {
+            string c = cat;
+            var tab = new Button { Text = cat, ToggleMode = true, ButtonPressed = cat == _category, FocusMode = FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(0f, 38f) };
+            tab.AddThemeFontSizeOverride("font_size", SmallFontSize + 2);
+            StyleButton(tab, cat == _category ? AccentColor : LockedColor);
+            tab.Pressed += () => { _category = c; BuildCards(); Refresh(); };
+            _tabs.AddChild(tab);
+        }
+        BuildTree();
+    }
+
+    /// <summary>Selected tab: one row per tier, cards side by side (no connector lines).</summary>
+    private void BuildTree()
+    {
+        foreach (Node child in Columns.GetChildren()) { Columns.RemoveChild(child); child.QueueFree(); }
+        _cards.Clear();
+
+        var rows = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        rows.AddThemeConstantOverride("separation", Spacing * 2);
+        Columns.AddChild(rows);
+        var nodes = _tree.AllNodes.Where(n => n != null && DefaultCategory(n) == _category).ToList();
+        foreach (IGrouping<string, TechNode> branch in nodes.GroupBy(DefaultSubCategory)
+                     .OrderBy(g => { int i = System.Array.IndexOf(SubCategoryOrder, g.Key); return g.Key.Length == 0 ? -1 : i < 0 ? 99 : i; }))
+        {
+            if (branch.Key.Length > 0)
+            {
+                rows.AddChild(MakeLabel(branch.Key.ToUpperInvariant(), TitleFontSize, AccentColor));
+                rows.AddChild(new ColorRect { Color = LockedColor, CustomMinimumSize = new Vector2(0f, 2f) });
+            }
+            foreach (IGrouping<int, TechNode> tier in branch.GroupBy(n => n.Tier).OrderBy(g => g.Key))
+            {
+                var row = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+                row.AddThemeConstantOverride("separation", Spacing);
+                var cards = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+                cards.AddThemeConstantOverride("h_separation", Spacing);
+                cards.AddThemeConstantOverride("v_separation", Spacing);
+                Label label = MakeLabel($"TIER {tier.Key}", SmallFontSize + 1, MutedTextColor);
+                label.CustomMinimumSize = new Vector2(TierLabelWidth, 0f);
+                label.VerticalAlignment = VerticalAlignment.Center;
+                row.AddChild(label);
+                row.AddChild(cards);
+                foreach (TechNode node in tier.OrderBy(n => n.CostRP).ThenBy(n => n.NodeId)) cards.AddChild(MakeCard(node));
+                rows.AddChild(row);
+            }
         }
     }
 
@@ -191,6 +297,7 @@ public partial class ResearchScreenRoot : Godot.Control
 
     private PanelContainer MakeCard(TechNode node)
     {
+        _currentCardId = node.NodeId;
         StyleBoxFlat style = MakeBox(CardColor, Padding);
         style.SetBorderWidthAll(2);
         style.ShadowColor = new Color(0f, 0f, 0f, 0.35f);
@@ -213,7 +320,7 @@ public partial class ResearchScreenRoot : Godot.Control
 
         if (node.PrerequisiteNodeIds.Length > 0)
         {
-            box.AddChild(MakeLabel("Requires " + string.Join(", ", node.PrerequisiteNodeIds.Select(NodeName)),
+            box.AddChild(MakeLabel("Cần: " + string.Join(", ", node.PrerequisiteNodeIds.Select(PrereqName)),
                 SmallFontSize, MutedTextColor, wrap: true));
         }
         if (node.UnlocksModelIds.Length > 0 || node.BuildWeightBonus > 0)
@@ -267,6 +374,11 @@ public partial class ResearchScreenRoot : Godot.Control
     private void ApplyStaticStyles()
     {
         if (Background != null) Background.Color = BackgroundColor;
+        if (GetNodeOrNull<Label>("Layout/HeaderPanel/Header/TitleBox/Subtitle") is Label sub)
+        {
+            sub.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            sub.CustomMinimumSize = new Vector2(120f, 0f);
+        }
         HeaderPanel?.AddThemeStyleboxOverride("panel", MakeBox(PanelColor, Padding));
         RPBadge?.AddThemeStyleboxOverride("panel", MakeBox(BackgroundColor, Padding / 2));
         WeightBadge?.AddThemeStyleboxOverride("panel", MakeBox(BackgroundColor, Padding / 2));
@@ -319,6 +431,15 @@ public partial class ResearchScreenRoot : Godot.Control
         return string.Join(" ", words);
     }
 
+    private string PrereqName(string nodeId)
+    {
+        TechNode pre = _tree?.GetNode(nodeId);
+        string cat = DefaultCategory(pre);
+        return pre != null && cat != DefaultCategory(_tree.GetNode(_currentCardId)) ? $"{NodeName(nodeId)} ({cat})" : NodeName(nodeId);
+    }
+
+    private string _currentCardId;
+
     private string NodeName(string nodeId)
     {
         TechNode node = _tree?.GetNode(nodeId);
@@ -335,7 +456,11 @@ public partial class ResearchScreenRoot : Godot.Control
 
     private void OnRPChanged(int newValue) => Refresh();
 
-    private void OnNodeUnlocked(string nodeId) => Refresh();
+    private void OnNodeUnlocked(string nodeId)
+    {
+        BuildTree();
+        Refresh();
+    }
 
     private void OnBuildButtonPressed()
     {

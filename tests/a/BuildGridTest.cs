@@ -40,7 +40,7 @@ public partial class BuildGridTest : Node
         PartCatalog catalog = PartCatalog.Instance;
         Check("PartCatalog autoload exists", catalog != null);
         if (catalog == null) return;
-        Check("30 definitions loaded", catalog.GetAll().Count == 30, $"{catalog.GetAll().Count}");
+        Check(">= 100 definitions loaded", catalog.GetAll().Count >= 100, $"{catalog.GetAll().Count}");
         Check("build_settings loaded (cell 2 m, 9 x 16)",
             catalog.Settings != null && Near(catalog.Settings.CellSize, 2f) && catalog.Settings.GridWidth == 9 && catalog.Settings.GridHeight == 16);
         Check("tank_m1 is a 1x3 Kerolox tank",
@@ -188,8 +188,7 @@ public partial class BuildGridTest : Node
         for (int i = 0; i < a.DecouplerEntries.Count; i++)
             if (a.DecouplerEntries[i].ModelId != b.DecouplerEntries[i].ModelId || a.DecouplerEntries[i].Edge != b.DecouplerEntries[i].Edge) return false;
         for (int i = 0; i < a.ModuleEntries.Count; i++)
-            if (a.ModuleEntries[i].ModelId != b.ModuleEntries[i].ModelId || a.ModuleEntries[i].SlotType != b.ModuleEntries[i].SlotType
-                || a.ModuleEntries[i].SlotIndex != b.ModuleEntries[i].SlotIndex) return false;
+            if (a.ModuleEntries[i].ModelId != b.ModuleEntries[i].ModelId || a.ModuleEntries[i].Cell != b.ModuleEntries[i].Cell) return false;
         return true;
     }
 

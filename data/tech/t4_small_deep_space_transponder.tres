@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_small_deep_space_transponder"
+DisplayName = "Small Deep Space Transponder"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t3_ku_band_tdrs")
+UnlocksModelIds = PackedStringArray("mod_small_deep_space_transponder")
+BuildWeightBonus = 0
+Category = "Liên lạc"

@@ -1,6 +1,19 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://control/flow/GameFlowManager.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/flight.tscn" id="2_flight"]
+[ext_resource type="PackedScene" path="res://scenes/research_screen.tscn" id="3_research"]
+[ext_resource type="PackedScene" path="res://scenes/build_screen.tscn" id="4_build"]
+[ext_resource type="PackedScene" path="res://scenes/debrief.tscn" id="5_debrief"]
+[ext_resource type="PackedScene" path="res://scenes/victory.tscn" id="6_victory"]
+[ext_resource type="Resource" path="res://data/missions/tutorial_mission.tres" id="7_tut"]
 
 [node name="GameFlowManager" type="Node"]
 script = ExtResource("1")
+BuildScreen = ExtResource("4_build")
+ResearchScreen = ExtResource("3_research")
+FlightScene = ExtResource("2_flight")
+DebriefScene = ExtResource("5_debrief")
+VictoryScene = ExtResource("6_victory")
+TutorialMission = ExtResource("7_tut")
+DebugLog = true

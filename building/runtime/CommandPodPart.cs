@@ -14,10 +14,28 @@ public partial class CommandPodPart : RocketPart
 
     public CommandPodPartDefinition PodDefinition => Definition as CommandPodPartDefinition;
 
+    /// <summary>Phase 2 (B12): pressure leak after a meteor hit; a module breaks every interval until SealHullBreach (V).</summary>
+    public bool IsHullBreached { get; set; }
+    /// <summary>Time left until the next module failure of the hull breach (s in flight, days in cruise). Physics writes it.</summary>
+    public float HullBreachTimer { get; set; }
+
+    /// <summary>Stops the hull breach.</summary>
+    public void SealHullBreach()
+    {
+        IsHullBreached = false;
+        HullBreachTimer = 0f;
+    }
+
+    protected override void ResetRuntimeState()
+    {
+        base.ResetRuntimeState();
+        SealHullBreach();
+    }
+
     /// <summary>Dry + payload + modules (kg).</summary>
     public override float GetCurrentMass()
     {
-        float mass = DryMass + PayloadMassKg;
+        float mass = GetEffectiveDryMass() + PayloadMassKg;
         foreach (PodModule module in Modules) mass += module.GetCurrentMass();
         return mass;
     }
@@ -29,6 +47,22 @@ public partial class CommandPodPart : RocketPart
         module.Pod = this;
         Modules.Add(module);
     }
+
+    /// <summary>Size of the module grid (columns, rows).</summary>
+    public Vector2I InventorySize => PodDefinition?.InventorySize ?? Vector2I.Zero;
+
+    /// <summary>Rectangles taken by the installed modules.</summary>
+    public List<PodInventory.Item> GetOccupiedCells(PodModule except = null)
+    {
+        var items = new List<PodInventory.Item>();
+        foreach (PodModule m in Modules)
+            if (m != except) items.Add(new PodInventory.Item(m.GridCell, PodInventory.SizeOf(m.Definition)));
+        return items;
+    }
+
+    /// <summary>True when a module of this definition fits at cell (inside the grid, on free cells).</summary>
+    public bool CanPlaceModule(ModuleDefinition def, Vector2I cell) =>
+        def != null && PodInventory.Fits(InventorySize, GetOccupiedCells(), cell, PodInventory.SizeOf(def));
 
     /// <summary>Installed modules of type T.</summary>
     public List<T> GetModules<T>() where T : PodModule

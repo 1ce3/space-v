@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t1_resistive_float_sensor"
+DisplayName = "Resistive Float Sensor"
+Tier = 1
+CostRP = 30
+PrerequisiteNodeIds = PackedStringArray("t1_sight_glass_dipstick")
+UnlocksModelIds = PackedStringArray("mod_resistive_float_sensor")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiên liệu"

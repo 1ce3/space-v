@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3]
+[gd_resource type="Resource" script_class="MissionSegmentDefinition" format=3 uid="uid://ycbo6twvn78v"]
 
-[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
+[ext_resource type="Script" uid="uid://bsgkvoibroawm" path="res://research/MissionSegmentDefinition.cs" id="1_seg"]
 [ext_resource type="Resource" path="res://data/bodies/mars_scaled.tres" id="2_body"]
 
 [resource]
@@ -9,11 +9,8 @@ SegmentId = "seg_mars_edl"
 DisplayName = "Mars Entry and Landing"
 Kind = 2
 Body = ExtResource("2_body")
-RewardRP = 0
-EnabledHazards = 0
-EntryAltitudeM = 100000.0
+EnabledHazards = 994
+EntryAltitudeM = 40000.0
 EntrySpeedMps = 1000.0
 EntryAngleDeg = -12.0
 MaxLandingTiltDeg = 15.0
-
-;https://eyes.nasa.gov/apps/mars2020/

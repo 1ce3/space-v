@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://ddn3bgofwybf2"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -9,5 +9,5 @@ DisplayName = "Frame III"
 Tier = 3
 CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_frame")
-UnlocksModelIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("pod_mk3")
 BuildWeightBonus = 10

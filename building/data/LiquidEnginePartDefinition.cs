@@ -18,4 +18,6 @@ public partial class LiquidEnginePartDefinition : EnginePartDefinition
     {
         PartGroup = PartGroup.LiquidEngine;
     }
+
+    public override string GetFormattedTooltip() => base.GetFormattedTooltip() + $"\nFuel: {PropellantType}, throttle {N(MinThrottle * 100f, "0")}–100 %, {MaxIgnitions} ignition(s)";
 }
