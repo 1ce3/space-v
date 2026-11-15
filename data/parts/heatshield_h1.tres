@@ -24,4 +24,4 @@ MaxShear = 2000000.0
 MaxBending = 2000000.0
 ImpactToleranceMps = 10.0
 MaxAblatorKg = 80.0
-HeatOfAblationJPerKg = 150000.0
+HeatOfAblationJPerKg = 700000.0

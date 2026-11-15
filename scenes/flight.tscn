@@ -35,11 +35,12 @@ Director = NodePath("FlightDirector")
 Cruise = NodePath("CruiseController")
 Vehicle = NodePath("VehicleRoot")
 
-[node name="Environment" type="Node3D" parent="." node_paths=PackedStringArray("WorldEnvironment", "FollowTarget")]
+[node name="Environment" type="Node3D" parent="." node_paths=PackedStringArray("WorldEnvironment", "FollowTarget", "CameraRig")]
 script = ExtResource("2_env")
 Settings = ExtResource("6_flightset")
 WorldEnvironment = NodePath("WorldEnvironment")
 FollowTarget = NodePath("../VehicleRoot")
+CameraRig = NodePath("../CameraRig")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
 environment = SubResource("Env_sky")

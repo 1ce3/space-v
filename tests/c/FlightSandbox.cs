@@ -46,6 +46,8 @@ public partial class FlightSandbox : Node
         }
 
         MissionDefinition mission = ResearchCampaignEngine.Instance?.CurrentMission ?? FallbackMission;
+        // The campaign mission may be the one-segment tutorial: a later start segment needs the full mission.
+        if (StartSegmentIndex > 0 && FallbackMission != null && (mission?.Segments?.Count ?? 0) <= StartSegmentIndex) mission = FallbackMission;
         var run = new MissionRun(mission, rocket);
         FlightScene scene;
         GameFlowManager flow = GameFlowManager.Instance;

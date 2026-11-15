@@ -56,8 +56,10 @@ func _process(_delta):
 		return
 
 	var chunk_world_size = chunk_size * grid_scale
-	var current_chunk_x = floori(player.global_position.x / chunk_world_size)
-	var current_chunk_z = floori(player.global_position.z / chunk_world_size)
+	# In this node's own frame: the flight bends the map onto the round planet under the rocket.
+	var p := to_local(player.global_position)
+	var current_chunk_x = floori(p.x / chunk_world_size)
+	var current_chunk_z = floori(p.z / chunk_world_size)
 	var current_coord = Vector2i(current_chunk_x, current_chunk_z)
 
 	if current_coord != last_player_chunk:

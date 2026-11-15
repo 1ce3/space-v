@@ -76,6 +76,23 @@ public partial class BodyEnvironmentVisual : Node3D
     private StandardMaterial3D _starMaterial;
 
     private Node3D _surfaceAnchor;
+    /// <summary>Root of Body.EnvironmentScene (authored landing site / launch site), or null.</summary>
+    private Node3D _envRoot;
+
+    /// <summary>
+    /// The physics ground is a sphere (centre at (0, -Radius)); an authored map is flat. On Mars the descent travels
+    /// ~100 km sideways, where the real surface is ~15 km below a flat map, so the rocket landed far under it.
+    /// When true, the map is laid on the tangent plane under the rocket every frame and shifted by the distance
+    /// travelled along the surface, so the ground matches the physics ground and does not slide with the rocket.
+    /// </summary>
+    [ExportGroup("Curvature")]
+    [Export] public bool BendMapToPlanetOnMars { get; set; } = true;
+    [Export] public bool BendMapToPlanetOnEarth { get; set; }
+    /// <summary>Rolled so screen-up is the local vertical while the map is bent (null = no roll).</summary>
+    [Export] public FlightCameraRig CameraRig { get; set; }
+
+    private MeshInstance3D _planet;
+    private MeshInstance3D _atmosphereShell;
     private Node3D _content;
     private Color _surfaceSky;
     private Environment _defaultEnv;
@@ -186,6 +203,11 @@ public partial class BodyEnvironmentVisual : Node3D
         _planetMat = null;
         _sun = null;
         _content = new Node3D { Name = "Content" };
+        _envRoot = null;
+        _planet = null;
+        _atmosphereShell = null;
+        if (CameraRig != null) CameraRig.RollRad = 0f;
+        if (WorldEnvironment?.Environment != null) WorldEnvironment.Environment.SkyRotation = Vector3.Zero;
         AddChild(_content);
 
         bool isMars = body != null && Settings != null && body.BodyId == Settings.MarsBodyId;
@@ -193,6 +215,7 @@ public partial class BodyEnvironmentVisual : Node3D
         {
             Node envRoot = body.EnvironmentScene.Instantiate();
             _content.AddChild(envRoot);
+            _envRoot = envRoot as Node3D;
             BindFollowTarget(envRoot);
             _sun = FindSun(envRoot);
             if (_sun != null) _sunBaseColor = _sun.LightColor;
@@ -211,6 +234,39 @@ public partial class BodyEnvironmentVisual : Node3D
         _isMars = isMars;
         _surfaceSky = isMars ? MarsSkyHorizon : EarthSkyHorizon;
         ApplySkyRatio(1f);
+    }
+
+    public override void _Process(double delta) => BendMapToPlanet();
+
+    /// <summary>Lays the authored map on the planet surface under FollowTarget (see BendMapToPlanetOnMars).</summary>
+    private void BendMapToPlanet()
+    {
+        if (FollowTarget == null || Body == null || Body.Radius <= 0f) return;
+        if (!(_isMars ? BendMapToPlanetOnMars : BendMapToPlanetOnEarth)) return;
+        float r = Body.Radius;
+        Vector3 p = FollowTarget.GlobalPosition;
+        // Planet centre is (0, -r): angle of the rocket from the vertical through the origin.
+        var n = new Vector2(p.X, p.Y + r);
+        if (n.LengthSquared() < 1f) return;
+        n = n.Normalized();
+        float theta = Mathf.Atan2(n.X, n.Y);
+        var surface = new Vector3(n.X * r, n.Y * r - r, 0f);
+        // Rotate the map's up (0,1) to the surface normal, then shift it back by the arc length so a map point
+        // keeps (to second order) the same world position while the rocket moves.
+        var tangentFrame = new Transform3D(new Basis(Vector3.Back, -theta), surface);
+        if (_envRoot != null && IsInstanceValid(_envRoot))
+            _envRoot.GlobalTransform = tangentFrame * new Transform3D(Basis.Identity, new Vector3(-r * theta, 0f, 0f));
+
+        // The backdrop sphere is drawn bigger than the physics planet: keep it tangent to the ground under the rocket
+        // so its horizon agrees with the bent map and the rolled camera.
+        var normal = new Vector3(n.X, n.Y, 0f);
+        float visualRadius = r * Mathf.Max(1f, VisualRadiusMultiplier);
+        Vector3 visualCenter = surface - normal * (visualRadius + PlanetSinkM);
+        if (_planet != null && IsInstanceValid(_planet)) _planet.GlobalPosition = visualCenter;
+        if (_atmosphereShell != null && IsInstanceValid(_atmosphereShell)) _atmosphereShell.GlobalPosition = visualCenter;
+        if (CameraRig != null) CameraRig.RollRad = -theta;
+        // The sky draws its horizon against world up: turn it with the local vertical too.
+        if (WorldEnvironment?.Environment != null) WorldEnvironment.Environment.SkyRotation = new Vector3(0f, 0f, -theta);
     }
 
     /// <summary>Gives the rocket to any node in the environment scene that has set_target_player (streaming terrain).</summary>
@@ -345,6 +401,7 @@ void fragment() {
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         _content.AddChild(planet);
+        _planet = planet;
 
         if (!EnableAtmosphereGlow || body.SeaLevelDensity <= 0f || AtmosphereShellFraction <= 0f) return;
         float ra = r * (1f + AtmosphereShellFraction * 0.35f);
@@ -361,14 +418,15 @@ void fragment() {
         };
         var mat = new ShaderMaterial { Shader = shader };
         mat.SetShaderParameter("glow", hazeCol);
-        _content.AddChild(new MeshInstance3D
+        _atmosphereShell = new MeshInstance3D
         {
             Name = "Atmosphere",
             Mesh = new SphereMesh { Radius = ra, Height = 2f * ra, RadialSegments = 128, Rings = 64 },
             Position = center,
             MaterialOverride = mat,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-        });
+        };
+        _content.AddChild(_atmosphereShell);
     }
 
     /// <summary>Star points on a big shell that follows the camera; fade in with altitude.</summary>
