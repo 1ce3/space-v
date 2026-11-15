@@ -58,6 +58,8 @@ public partial class VehicleRoot : RigidBody3D
     private bool _massDirty;
     private bool _onPad;
     private bool _frozen;
+    /// <summary>While frozen: when set, the body is moved to this transform each physics step (cruise meteor dodge).</summary>
+    public Transform3D? ScriptedTransform { get; set; }
 
     public override void _Ready()
     {
@@ -223,6 +225,7 @@ public partial class VehicleRoot : RigidBody3D
         {
             state.LinearVelocity = Vector3.Zero;
             state.AngularVelocity = Vector3.Zero;
+            if (ScriptedTransform is Transform3D scripted) state.Transform = scripted;
             return;
         }
 

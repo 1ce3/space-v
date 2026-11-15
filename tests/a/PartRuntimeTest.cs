@@ -45,18 +45,20 @@ public partial class PartRuntimeTest : Node
         Check("pod has IMU and battery", pod.GetModules<GyroscopeImuModule>().Count == 1 && pod.GetModules<BatteryModule>().Count == 1);
         Check("battery full (500 Wh)", Near(pod.GetModules<BatteryModule>()[0].StoredEnergyWh, 500f));
 
-        // 600 + 300 payload + 15 + 20 (pod) + 150 + 1000 (tank) + 300 (engine) = 2385 kg
+        // Pod 935 kg (600 + 300 payload + 35 modules), tank 150 + fuel from tank_s1.tres, engine 300.
+        float fuel = tree.GetParts<FuelTankPart>()[0].CurrentFuel;
+        float tankMass = 150f + fuel, total = 935f + tankMass + 300f;
         MassProperties mp = rocket.MassProperties;
-        Check("total mass 2385 kg", Near(mp.TotalMass, 2385f), $"{mp.TotalMass}");
-        // y: engine 1.0 m, tank 4.0 m, pod 7.0 m (cell 2 m) -> (300*1 + 1150*4 + 935*7) / 2385
-        float expectedY = (300f * 1f + 1150f * 4f + 935f * 7f) / 2385f;
+        Check($"total mass {total:0} kg", Near(mp.TotalMass, total), $"{mp.TotalMass}");
+        // y: engine 1.0 m, tank 4.0 m, pod 7.0 m (cell 2 m)
+        float expectedY = (300f * 1f + tankMass * 4f + 935f * 7f) / total;
         Check("CoM x = 9 m (column 4)", Near(mp.CenterOfMass.X, 9f), $"{mp.CenterOfMass}");
         Check("CoM y as expected", Near(mp.CenterOfMass.Y, expectedY, 0.01f), $"{mp.CenterOfMass.Y} vs {expectedY}");
         Check("inertia > 0", mp.MomentOfInertia > 0f, $"{mp.MomentOfInertia}");
 
         var engine = tree.GetParts<LiquidEnginePart>()[0];
         Check("stage 0 arms the engine", rocket.Stages.Count == 1 && rocket.Stages[0].EnginesToArm.Contains(engine));
-        Check("engine feeds from the tank", engine.FeedTanks.Count == 1 && Near(engine.GetAvailableFuel(), 1000f));
+        Check("engine feeds from the tank", engine.FeedTanks.Count == 1 && Near(engine.GetAvailableFuel(), fuel));
         Check("engine parent is tank", engine.ParentPart is FuelTankPart && engine.ParentJoint != null);
         FreeTree(tree);
     }
