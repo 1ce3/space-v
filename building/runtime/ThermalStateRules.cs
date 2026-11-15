@@ -15,6 +15,12 @@ public static class ThermalStateRules
     /// <summary>J/(kg*K) used for HeatCapacityJPerK = DryMass * this.</summary>
     public const float SpecificHeat = 900f;
 
+    /// <summary>
+    /// Share of a rocket part's dry mass that heats up in flight (its outer skin). 1 = the whole part; physics sets it
+    /// from PhysicsSettings.ThermalSkinFraction. With the whole mass, aero heating raised a pod only a few kelvin.
+    /// </summary>
+    public static float SkinMassFraction { get; set; } = 1f;
+
     /// <summary>MaxSafeTempK with the hull material of a part (B9); modules use the definition value.</summary>
     public static float MaxSafeTemp(IFlightComponent c) =>
         c is RocketPart part ? part.GetEffectiveMaxSafeTempK() : c?.BaseDefinition?.MaxSafeTempK ?? 0f;

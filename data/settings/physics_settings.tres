@@ -11,6 +11,7 @@ point_count = 3
 script = ExtResource("1_settings")
 MachDragCurve = SubResource("Curve_mach")
 PartEmissivity = 0.8
+ThermalSkinFraction = 0.04
 CruiseDutyFactor = 0.3
 BaseEmissivity = 0.8
 PodCrossAreaM2 = 3.1

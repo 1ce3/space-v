@@ -86,7 +86,7 @@ public partial class MaterialTest : Node
         Check("steel shear and bending x1.3",
             Mathf.IsEqualApprox(tank.GetEffectiveMaxShear(), d.MaxShear * 1.3f) &&
             Mathf.IsEqualApprox(tank.GetEffectiveMaxBending(), d.MaxBending * 1.3f));
-        Check("heat capacity follows the material mass", Mathf.IsEqualApprox(tank.HeatCapacityJPerK, d.DryMass * 1.4f * ThermalStateRules.SpecificHeat));
+        Check("heat capacity follows the material mass", Mathf.IsEqualApprox(tank.HeatCapacityJPerK, d.DryMass * 1.4f * ThermalStateRules.SpecificHeat * ThermalStateRules.SkinMassFraction));
 
         float massAfter = MassCenterCalculator.Calculate(tree.ActiveParts).TotalMass;
         float extra = d.DryMass * 0.4f;

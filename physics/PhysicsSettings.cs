@@ -31,6 +31,8 @@ public partial class PhysicsSettings : Resource
     [Export(PropertyHint.Range, "0,1,0.01")] public float HeatPartition { get; set; } = 0.5f;
     /// <summary>Emissivity of every part for radiative cooling (0..1).</summary>
     [Export(PropertyHint.Range, "0,1,0.01")] public float PartEmissivity { get; set; } = 0.8f;
+    /// <summary>Share of a part's dry mass that takes the heat in flight (skin), see ThermalStateRules.SkinMassFraction.</summary>
+    [Export(PropertyHint.Range, "0.005,1,0.005")] public float ThermalSkinFraction { get; set; } = 0.04f;
     /// <summary>Heat put into a burning engine at full throttle (W). P1.</summary>
     [Export] public float EngineHeatW { get; set; } = 20000f;
 
