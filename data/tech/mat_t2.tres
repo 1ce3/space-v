@@ -10,4 +10,5 @@ Tier = 2
 CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("mat_t1")
 UnlocksModelIds = PackedStringArray("mat_cfrp")
+BuildWeightBonus = 0
 Category = "Materials"

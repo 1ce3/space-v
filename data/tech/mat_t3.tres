@@ -10,4 +10,5 @@ Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("mat_t2")
 UnlocksModelIds = PackedStringArray("mat_titanium", "mat_whipple")
+BuildWeightBonus = 0
 Category = "Materials"
