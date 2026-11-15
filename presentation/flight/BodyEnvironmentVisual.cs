@@ -80,6 +80,18 @@ public partial class BodyEnvironmentVisual : Node3D
     private bool _useSceneEnv;
     private float _sceneFogDensity;
     private float _sceneVolFogDensity;
+    private float _sceneFogBegin;
+    private float _sceneFogEnd;
+    private float _sceneAmbient = 1f;
+    private DirectionalLight3D _sun;
+    private Color _sunBaseColor = Colors.White;
+    /// <summary>Ambient light energy in space (scene-authored environments only).</summary>
+    [ExportGroup("Altitude transition")]
+    [Export(PropertyHint.Range, "0,1,0.01")] public float SpaceAmbientEnergy { get; set; } = 0.08f;
+    /// <summary>Ground haze (scene-authored fog) is full below this altitude (m)...</summary>
+    [Export] public float GroundFogFadeStartM { get; set; } = 200f;
+    /// <summary>...and gone above this altitude (m).</summary>
+    [Export] public float GroundFogFadeEndM { get; set; } = 2500f;
 
     /// <summary>Uses the WorldEnvironment authored inside the environment scene (fog, sky) in place of the flight scene's one.</summary>
     private void AdoptSceneEnvironment(Node root)
@@ -93,6 +105,20 @@ public partial class BodyEnvironmentVisual : Node3D
         _useSceneEnv = true;
         _sceneFogDensity = WorldEnvironment.Environment.FogDensity;
         _sceneVolFogDensity = WorldEnvironment.Environment.VolumetricFogDensity;
+        _sceneFogBegin = WorldEnvironment.Environment.FogDepthBegin;
+        _sceneFogEnd = WorldEnvironment.Environment.FogDepthEnd;
+        _sceneAmbient = WorldEnvironment.Environment.AmbientLightEnergy;
+    }
+
+    private static DirectionalLight3D FindSun(Node node)
+    {
+        if (node is DirectionalLight3D sun) return sun;
+        foreach (Node child in node.GetChildren())
+        {
+            DirectionalLight3D found = FindSun(child);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private static WorldEnvironment FindWorldEnvironment(Node node)
@@ -118,6 +144,7 @@ public partial class BodyEnvironmentVisual : Node3D
         _content?.QueueFree();
         if (_useSceneEnv && _defaultEnv != null && WorldEnvironment != null) WorldEnvironment.Environment = _defaultEnv;
         _useSceneEnv = false;
+        _sun = null;
         _content = new Node3D { Name = "Content" };
         AddChild(_content);
 
@@ -127,6 +154,8 @@ public partial class BodyEnvironmentVisual : Node3D
             Node envRoot = body.EnvironmentScene.Instantiate();
             _content.AddChild(envRoot);
             BindFollowTarget(envRoot);
+            _sun = FindSun(envRoot);
+            if (_sun != null) _sunBaseColor = _sun.LightColor;
             AdoptSceneEnvironment(envRoot);
         }
         else
@@ -164,7 +193,20 @@ public partial class BodyEnvironmentVisual : Node3D
         {
             // Fog/sky authored in the environment scene: only thin the fog out with the air.
             if (env.VolumetricFogEnabled) env.VolumetricFogDensity = _sceneVolFogDensity * Mathf.Sqrt(ratio);
-            if (env.FogEnabled) env.FogDensity = _sceneFogDensity * Mathf.Sqrt(ratio);
+            if (env.FogEnabled)
+            {
+                float k = Mathf.Sqrt(ratio);
+                float alt = Mathf.Max(altitudeMeters, 0f);
+                // Ground haze keeps its authored begin/end (it must stay inside the loaded chunk area to hide the edge)
+                // and only thins out once the rocket is well above the ground.
+                float groundFade = 1f - Mathf.SmoothStep(GroundFogFadeStartM, GroundFogFadeEndM, alt);
+                env.FogDensity = _sceneFogDensity * Mathf.Min(k, groundFade);
+                env.FogDepthBegin = _sceneFogBegin;
+                env.FogDepthEnd = _sceneFogEnd;
+            }
+            // Ambient light fades with the air; sunlight loses its warm tint and turns harsh white in space.
+            env.AmbientLightEnergy = Mathf.Lerp(SpaceAmbientEnergy, _sceneAmbient, Mathf.Sqrt(ratio));
+            if (_sun != null) _sun.LightColor = Colors.White.Lerp(_sunBaseColor, Mathf.Sqrt(ratio));
         }
         else if (env != null)
         {
