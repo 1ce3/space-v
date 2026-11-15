@@ -19,6 +19,9 @@ const TerrainChunkScript = preload("res://scenes/earth_scene/earth_terrain_chunk
 @export var render_distance: int = 10
 ## Max finished chunks uploaded to the GPU per frame (spreads the cost).
 @export var max_commits_per_frame: int = 2
+## Chunks fade out between these camera distances (m) as the rocket climbs toward space.
+@export var chunk_fade_start: float = 8000.0
+@export var chunk_fade_end: float = 20000.0
 
 @export var regenerate: bool = false:
 	set(value):
@@ -150,6 +153,8 @@ func _spawn_chunk(coord: Vector2i):
 	chunk.tree_seed = tree_seed
 	chunk.flat_radius = flat_radius
 	chunk.flat_blend = flat_blend
+	chunk.fade_start = chunk_fade_start
+	chunk.fade_end = chunk_fade_end
 	var threaded = not Engine.is_editor_hint()
 	chunk.setup(coord, chunk_size, grid_scale, height_multiplier, noise, earth_material, threaded)
 	active_chunks[coord] = chunk

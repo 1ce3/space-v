@@ -19,6 +19,9 @@ const TerrainChunkScript = preload("res://scenes/mars_scene/terrain_chunk.gd")
 @export var render_distance: int = 3
 ## Max finished chunks uploaded to the GPU per frame (spreads the cost).
 @export var max_commits_per_frame: int = 2
+## Chunks fade out between these camera distances (m) as the rocket climbs toward space.
+@export var chunk_fade_start: float = 8000.0
+@export var chunk_fade_end: float = 20000.0
 
 @export var regenerate: bool = false:
 	set(value):
@@ -96,6 +99,8 @@ func _spawn_chunk(coord: Vector2i):
 	var chunk = MeshInstance3D.new()
 	chunk.set_script(TerrainChunkScript)
 	add_child(chunk)
+	chunk.fade_start = chunk_fade_start
+	chunk.fade_end = chunk_fade_end
 	var threaded = not Engine.is_editor_hint()
 	chunk.setup(coord, chunk_size, grid_scale, height_multiplier, noise, mars_material, threaded)
 	active_chunks[coord] = chunk

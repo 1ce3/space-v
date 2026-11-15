@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="MissionDefinition" format=3]
+[gd_resource type="Resource" script_class="MissionDefinition" format=3 uid="uid://bf3po3iyorpf5"]
 
-[ext_resource type="Script" path="res://research/MissionDefinition.cs" id="1_mission"]
-[ext_resource type="Script" path="res://research/MissionSegmentDefinition.cs" id="2_segscript"]
-[ext_resource type="Resource" path="res://data/missions/seg_tutorial_ascent.tres" id="3_seg1"]
+[ext_resource type="Script" uid="uid://cae0s52naxhy1" path="res://research/MissionDefinition.cs" id="1_mission"]
+[ext_resource type="Script" uid="uid://bsgkvoibroawm" path="res://research/MissionSegmentDefinition.cs" id="2_segscript"]
+[ext_resource type="Resource" uid="uid://bv01ekaxx0ijb" path="res://data/missions/seg_tutorial_ascent.tres" id="3_seg1"]
 
 [resource]
 script = ExtResource("1_mission")

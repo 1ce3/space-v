@@ -3,22 +3,30 @@
 [ext_resource type="Script" path="res://scenes/earth_scene/earth_terrain_manager.gd" id="1_mgr"]
 [ext_resource type="Material" path="res://scenes/earth_scene/earth_material.tres" id="2_mat"]
 [ext_resource type="Script" path="res://scenes/earth_scene/earth_site_props.gd" id="3_props"]
+[ext_resource type="PackedScene" path="res://assets/terrain/tree_1.glb" id="4_tree1"]
+[ext_resource type="PackedScene" path="res://assets/terrain/tree_2.glb" id="5_tree2"]
+[ext_resource type="PackedScene" path="res://assets/nasa_center/nasa_center.glb" id="7_nasa"]
 [ext_resource type="Script" path="res://scenes/earth_scene/earth_clouds.gd" id="8_clouds"]
 [ext_resource type="PackedScene" path="res://assets/cloudes/cloude_1.glb" id="9_c1"]
 [ext_resource type="PackedScene" path="res://assets/cloudes/cloude_2.glb" id="10_c2"]
 [ext_resource type="PackedScene" path="res://assets/cloudes/cloude_3.glb" id="11_c3"]
-[ext_resource type="PackedScene" path="res://assets/terrain/tree_1.glb" id="4_tree1"]
-[ext_resource type="PackedScene" path="res://assets/terrain/tree_2.glb" id="5_tree2"]
-[ext_resource type="PackedScene" path="res://assets/nasa_center/nasa_center.glb" id="7_nasa"]
+[ext_resource type="Shader" path="res://scenes/earth_scene/earth_atmosphere_sky.gdshader" id="12_skyshader"]
+[ext_resource type="Script" path="res://scenes/earth_scene/earth_atmosphere_controller.gd" id="13_atmoctrl"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_earth"]
-sky_top_color = Color(0.2, 0.42, 0.8, 1)
-sky_horizon_color = Color(0.65, 0.78, 0.92, 1)
-ground_bottom_color = Color(0.2, 0.28, 0.18, 1)
-ground_horizon_color = Color(0.65, 0.78, 0.92, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_earth_sky"]
+shader = ExtResource("12_skyshader")
+shader_parameter/rocket_altitude = 0.0
+shader_parameter/visual_planet_radius = 6000000.0
+shader_parameter/space_altitude = 50000.0
+shader_parameter/day_zenith_color = Color(0.12, 0.34, 0.76, 1)
+shader_parameter/high_alt_zenith_color = Color(0.015, 0.04, 0.14, 1)
+shader_parameter/space_color = Color(0.002, 0.003, 0.008, 1)
+shader_parameter/low_horizon_color = Color(0.76, 0.88, 0.98, 1)
+shader_parameter/limb_glow_color = Color(0.32, 0.68, 1, 1)
+shader_parameter/ground_nadir_color = Color(0.14, 0.28, 0.52, 1)
 
 [sub_resource type="Sky" id="Sky_earth"]
-sky_material = SubResource("ProceduralSkyMaterial_earth")
+sky_material = SubResource("ShaderMaterial_earth_sky")
 
 [sub_resource type="Environment" id="Environment_earth"]
 background_mode = 2
@@ -26,10 +34,10 @@ sky = SubResource("Sky_earth")
 tonemap_mode = 0
 fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.65, 0.78, 0.92, 1)
+fog_light_color = Color(0.76, 0.88, 0.98, 1)
 fog_density = 1.0
 fog_sky_affect = 0.0
-fog_depth_curve = 1.5
+fog_depth_curve = 1.2
 fog_depth_begin = 60.0
 fog_depth_end = 400.0
 
@@ -57,6 +65,9 @@ shadow_enabled = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_earth")
+
+[node name="AtmosphereController" type="Node3D" parent="."]
+script = ExtResource("13_atmoctrl")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("1_mgr")

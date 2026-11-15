@@ -21,6 +21,8 @@ var tree_scale_min: float = 0.8
 var tree_scale_max: float = 1.4
 var tree_clear_radius: float = 260.0
 var tree_seed: int = 1
+var fade_start: float = 8000.0
+var fade_end: float = 20000.0
 
 var _origin_x: float
 var _origin_z: float
@@ -62,6 +64,10 @@ func commit():
 		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
 		mesh = m
 		_arrays = []
+	if not Engine.is_editor_hint() and fade_end > 0.0:
+		visibility_range_end = fade_end
+		visibility_range_end_margin = maxf(1.0, fade_end - fade_start)
+		visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	_commit_trees()
 
 func _commit_trees():
@@ -78,6 +84,10 @@ func _commit_trees():
 				mm.set_instance_transform(k, list[k] * entry["xform"])
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
+			if not Engine.is_editor_hint() and fade_end > 0.0:
+				mmi.visibility_range_end = fade_end
+				mmi.visibility_range_end_margin = maxf(1.0, fade_end - fade_start)
+				mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			add_child(mmi)
 	_tree_xf = []
 
