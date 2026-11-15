@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3 uid="uid://va3oyu6ryj6h"]
 
 [ext_resource type="Script" uid="uid://cgm08fl0cduuh" path="res://physics/CelestialBodyDefinition.cs" id="1_body"]
-[ext_resource type="PackedScene" uid="uid://b2ho3gxovm328" path="res://assets/launch_site.tscn" id="1_rip7r"]
+[ext_resource type="PackedScene" uid="uid://bcca0eqjmujlk" path="res://scenes/mars_scene/mars_landingsite.tscn" id="1_rip7r"]
 
 [resource]
 script = ExtResource("1_body")
