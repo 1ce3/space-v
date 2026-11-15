@@ -1,3 +1,4 @@
+// AI-assisted: written with Claude (Anthropic); reviewed by The Neptunians.
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Godot;

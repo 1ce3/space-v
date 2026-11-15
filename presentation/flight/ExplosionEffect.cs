@@ -1,3 +1,4 @@
+// AI-assisted: parts of this file were written with Claude (Anthropic); reviewed by The Neptunians.
 using Godot;
 
 namespace RocketGame.Presentation;

@@ -1,3 +1,4 @@
+// AI-assisted: parts of this file were written with Claude (Anthropic); reviewed by The Neptunians.
 using System.Collections.Generic;
 using System.Text;
 using Godot;

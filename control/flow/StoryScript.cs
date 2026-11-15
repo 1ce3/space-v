@@ -8,7 +8,10 @@ public static class StoryScript
 {
     public readonly record struct Card(string Title, string Body, float Seconds = 6f);
 
-    public const string CompanyName = "Space-V";
+    /// <summary>The company in the story ("Icarus has grown into...").</summary>
+    public const string CompanyName = "Icarus";
+    /// <summary>The game's name where it stands alone (main menu, credits, window title).</summary>
+    public const string GameTitle = "Project: Icarus";
     public const string TelescopeName = "AURORA telescope";
 
     public static readonly Card[] SatelliteDeploy =
@@ -34,11 +37,12 @@ public static class StoryScript
     };
 
     public static readonly string Credits =
-        CompanyName + "\n\n\n" +
+        GameTitle + "\n\n\n" +
         "Programming\nDev A · Dev B · Dev C\n\n" +
-        "Design & 3D models\nSpace-V team\n\n" +
+        "Design & 3D models\nIcarus team\n\n" +
         "Data\nNASA (atmosphere, radiation, Mars)\n\n" +
-        "Tools\nGodot Engine 4.7 (.NET)\n\n\n" +
+        "Tools\nGodot Engine 4.7 (.NET)\n\n" +
+        "AI notice\nParts of the code, text and sound were created\nwith AI assistance (Claude by Anthropic).\nAll AI output was reviewed by The Neptunians.\n\n\n" +
         "Thanks for playing!";
 
     // ---- tutorial steps (build screen, then flight) ----

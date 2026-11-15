@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://yn6irhi88pjk"]
 
-[ext_resource type="PackedScene" uid="uid://2xstkesjv6q7" path="res://assets/terrain/terrain.blend" id="1_l6cm7"]
 [ext_resource type="PackedScene" uid="uid://c6nen4ri8q87f" path="res://assets/nasa_center/holder.glb" id="2_ekxnf"]
 [ext_resource type="PackedScene" uid="uid://dinvk3nwhcs36" path="res://assets/nasa_center/nasa_center.glb" id="3_bqqt6"]
 
@@ -97,13 +96,13 @@ offset_top = 12.079998
 offset_right = 0.031982422
 offset_bottom = -0.26400757
 theme_override_font_sizes/font_size = 56
-text = "Space - V"
+text = "Icarus"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Node3D" type="Node3D" parent="." unique_id=1224214370]
 
-[node name="terrain" parent="Node3D" unique_id=229053794 instance=ExtResource("1_l6cm7")]
+[node name="terrain" parent="Node3D" unique_id=229053794]
 transform = Transform3D(1, 0, 0, 0, 0.6, 0, 0, 0, 1, 0, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=1671306237]

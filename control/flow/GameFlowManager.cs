@@ -86,6 +86,8 @@ public partial class GameFlowManager : Node
         StoryProgress.Load();
         GameSettings.Load();
         GameSettings.Apply();
+        // Window title in code: renaming application/config/name would move user:// and lose every save.
+        GetWindow().Title = StoryScript.GameTitle;
         AddChild(new PauseMenu());
         Callable.From(StartIfMainScene).CallDeferred();
     }

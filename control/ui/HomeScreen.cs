@@ -1,3 +1,4 @@
+// AI-assisted: parts of this file were written with Claude (Anthropic); reviewed by The Neptunians.
 using Godot;
 
 namespace RocketGame.Control;
@@ -34,7 +35,7 @@ public partial class HomeScreen : Godot.Control
         top.SetAnchorsAndOffsetsPreset(LayoutPreset.CenterTop);
         top.OffsetTop = 48;
         top.GrowHorizontal = GrowDirection.Both;
-        var title = UiStyle.MakeLabel(StoryScript.CompanyName, 64);
+        var title = UiStyle.MakeLabel(StoryScript.GameTitle, 64);
         title.HorizontalAlignment = HorizontalAlignment.Center;
         title.AddThemeConstantOverride("outline_size", 8);
         title.AddThemeColorOverride("font_outline_color", new Color(0f, 0f, 0f, 0.6f));

@@ -1,3 +1,4 @@
+// AI-assisted: written with Claude (Anthropic); reviewed by The Neptunians.
 using Godot;
 using RocketGame.Presentation;
 
