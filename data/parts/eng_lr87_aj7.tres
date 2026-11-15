@@ -1,32 +1,24 @@
-[gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3]
+[gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3 uid="uid://ced2mwhmslx8g"]
 
-[ext_resource type="Script" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+[ext_resource type="Script" uid="uid://bpivdky3rtjvh" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://csnqujwfgqsxy" path="res://assets/models/thruster/LR87-AJ-7.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_script")
+PropellantType = 0
+MinThrottle = 0.6
+MaxThrustVac = 165000.0
+IspVacuum = 290.0
+IspSeaLevel = 258.0
+GimbalRangeDeg = 5.0
+PartGroup = 5
+AllowedTop = 16
+AllowedBottom = 280
+FrontalArea = 3.1
+DragCoefficient = 0.3
 ModelId = "eng_lr87_aj7"
 DisplayName = "LR87-AJ-7"
 Tier = 1
 BuildWeight = 2
 DryMass = 125.8
-PowerDrawW = 0.0
-MaxSafeTempK = 1200.0
-MinSafeTempK = 200.0
-PartGroup = 5
-Footprint = Vector2i(1, 1)
-AllowedTop = 16
-AllowedBottom = 280
-AllowedSides = 0
-FrontalArea = 3.1
-SideArea = 4.0
-DragCoefficient = 0.3
-MaxShear = 2000000.0
-MaxBending = 2000000.0
-ImpactToleranceMps = 10.0
-PropellantType = 0
-MaxThrustVac = 165000.0
-IspSeaLevel = 258.0
-IspVacuum = 290.0
-GimbalRangeDeg = 5.0
-MinThrottle = 0.6
-MaxIgnitions = 1
+Scene = ExtResource("2_model")

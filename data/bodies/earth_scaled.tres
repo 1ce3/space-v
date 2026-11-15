@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3]
+[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3 uid="uid://va3oyu6ryj6h"]
 
-[ext_resource type="Script" path="res://physics/CelestialBodyDefinition.cs" id="1_body"]
+[ext_resource type="Script" uid="uid://cgm08fl0cduuh" path="res://physics/CelestialBodyDefinition.cs" id="1_body"]
+[ext_resource type="PackedScene" uid="uid://b2ho3gxovm328" path="res://assets/launch_site.tscn" id="1_rip7r"]
 
 [resource]
 script = ExtResource("1_body")
@@ -17,5 +18,4 @@ SpeedOfSoundMps = 340.0
 AtmosphereTopM = 86000.0
 SuttonGravesConstant = 0.000174
 SolarFluxWm2 = 1361.0
-
-;https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
+EnvironmentScene = ExtResource("1_rip7r")

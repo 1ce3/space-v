@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3]
 
 [ext_resource type="Script" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://wft3wkfflw53" path="res://assets/models/thruster/J2.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_script")
@@ -30,3 +31,4 @@ IspVacuum = 421.0
 GimbalRangeDeg = 7.0
 MinThrottle = 0.6
 MaxIgnitions = 2
+Scene = ExtResource("2_model")
