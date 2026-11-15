@@ -1,14 +1,11 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://cocb8ypieomvv"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
 NodeId = "mat_t1"
 DisplayName = "Thép & nhôm-liti"
-Tier = 1
 CostRP = 30
-PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mat_steel304", "mat_alli2195")
-BuildWeightBonus = 0
 Category = "Vật liệu"

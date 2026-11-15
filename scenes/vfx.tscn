@@ -1,0 +1,88 @@
+[gd_scene format=3 uid="uid://ce5ci528y53gx"]
+
+[ext_resource type="AudioStream" uid="uid://3ukewpe5tuyu" path="res://scenes/rocket_roar.mp3" id="1_d7t0g"]
+
+[sub_resource type="Gradient" id="Gradient_hnd13"]
+offsets = PackedFloat32Array(0, 0.25668448, 0.70053476, 1)
+colors = PackedColorArray(1, 0.972549, 0.6901961, 1, 1, 0.6666667, 0, 1, 1, 0.2, 0, 1, 0.2901961, 0.05490196, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_bdiyi"]
+gradient = SubResource("Gradient_hnd13")
+
+[sub_resource type="Curve" id="Curve_mkq35"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_tsiwy"]
+curve = SubResource("Curve_mkq35")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_63gtc"]
+emission_shape = 1
+emission_sphere_radius = 0.12
+direction = Vector3(0, -1, 0)
+spread = 10.0
+initial_velocity_min = 10.0
+initial_velocity_max = 14.0
+angular_velocity_min = 7.999984
+angular_velocity_max = 11.999984
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_tsiwy")
+color_ramp = SubResource("GradientTexture1D_bdiyi")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tpm16"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 0.53333336, 0, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_l027w"]
+material = SubResource("StandardMaterial3D_tpm16")
+size = Vector2(0.25, 0.5)
+
+[sub_resource type="Curve" id="Curve_15wp8"]
+_data = [Vector2(0, 0.21348321), 0.0, 0.0, 0, 0, Vector2(0.87323946, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_tpm16"]
+curve = SubResource("Curve_15wp8")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_l027w"]
+emission_shape_scale = Vector3(1, 0, 1)
+emission_shape = 1
+emission_sphere_radius = 0.5
+direction = Vector3(0, -1, 0)
+spread = 10.0
+initial_velocity_min = 6.0
+initial_velocity_max = 10.0
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_tpm16")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1g7t6"]
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.8047426, 0.80474263, 0.8047426, 1)
+emission_enabled = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_n4xtq"]
+material = SubResource("StandardMaterial3D_1g7t6")
+radius = 0.4
+height = 0.8
+radial_segments = 16
+rings = 8
+
+[node name="Vfx" type="Node3D" unique_id=1732432485]
+
+[node name="fire" type="GPUParticles3D" parent="." unique_id=633541181]
+amount = 60
+lifetime = 0.2
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_63gtc")
+draw_pass_1 = SubResource("QuadMesh_l027w")
+
+[node name="smoke" type="GPUParticles3D" parent="." unique_id=1347501506]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07919803, 0)
+amount = 80
+lifetime = 0.5
+process_material = SubResource("ParticleProcessMaterial_l027w")
+draw_pass_1 = SubResource("SphereMesh_n4xtq")
+
+[node name="rocket_roar" type="AudioStreamPlayer3D" parent="." unique_id=2090759597]
+stream = ExtResource("1_d7t0g")
