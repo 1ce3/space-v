@@ -30,6 +30,15 @@ public partial class ResearchCampaignEngine : Node
     /// <summary>RP for a failure kind never seen before.</summary>
     [Export] public int NoveltyRP { get; set; } = 15;
 
+    [ExportGroup("Balance")]
+    /// <summary>Multiplies every reward (segments, records, novelty, altitude marks). 1 = original balance.</summary>
+    [Export(PropertyHint.Range, "0.1,5,0.1")] public float RewardMultiplier { get; set; } = 2f;
+    /// <summary>One-time bonuses the first time a flight passes these altitudes (km).</summary>
+    [Export] public float[] AltitudeMarksKm { get; set; } = { 10f, 30f, 50f, 70f };
+    [Export] public int AltitudeMarkRP { get; set; } = 10;
+    /// <summary>Every flight gives at least this much RP (after the multiplier), so stuck players still progress.</summary>
+    [Export] public int MinRewardRP { get; set; } = 5;
+
     /// <summary>Save file path.</summary>
     [ExportGroup("Save")]
     [Export] public string SavePath { get; set; } = "user://save.json";
@@ -77,6 +86,8 @@ public partial class ResearchCampaignEngine : Node
         return Mission.Segments[segmentIndex];
     }
 
+    private int Scaled(int rp) => Mathf.RoundToInt(rp * RewardMultiplier);
+
     /// <summary>Turns a finished flight into RP, updates records and failures, then saves.</summary>
     public RewardBreakdown ProcessMissionEnd(FlightResult result)
     {
@@ -87,9 +98,15 @@ public partial class ResearchCampaignEngine : Node
             return reward;
         }
 
-        reward.SegmentRP = CompletedSegmentRP(result.SegmentsCompleted);
-        reward.MilestoneRP = _milestones.EvaluateAltRecords(result) + _milestones.EvaluateSpeedRecords(result);
-        reward.NoveltyRP = _failures.CalculateNoveltyBonus(result);
+        // Altitude marks: first time past each mark (uses the best altitude before this flight).
+        int marks = 0;
+        foreach (float km in AltitudeMarksKm ?? System.Array.Empty<float>())
+            if (_milestones.BestAltitude < km * 1000f && result.MaxAltitude >= km * 1000f) marks += AltitudeMarkRP;
+
+        reward.SegmentRP = Scaled(CompletedSegmentRP(result.SegmentsCompleted));
+        reward.MilestoneRP = Scaled(_milestones.EvaluateAltRecords(result) + _milestones.EvaluateSpeedRecords(result) + marks);
+        reward.NoveltyRP = Scaled(_failures.CalculateNoveltyBonus(result));
+        if (reward.Total < MinRewardRP) reward.MilestoneRP += MinRewardRP - reward.Total;
         if (result.Outcome == MissionOutcome.Success) _isCampaignComplete = true;
 
         AddRP(reward.Total);
