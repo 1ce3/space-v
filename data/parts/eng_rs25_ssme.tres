@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3]
 
 [ext_resource type="Script" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://b5lxnjjxl1de4" path="res://assets/models/thruster/RS_25.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_script")
@@ -24,9 +25,11 @@ MaxShear = 2000000.0
 MaxBending = 2000000.0
 ImpactToleranceMps = 10.0
 PropellantType = 2
-MaxThrustVac = 341850.0
+MaxThrustVac = 211300.0
+RealThrustVacKN = 2279.0
 IspSeaLevel = 366.0
 IspVacuum = 452.0
 GimbalRangeDeg = 10.0
 MinThrottle = 0.67
 MaxIgnitions = 1
+Scene = ExtResource("2_model")

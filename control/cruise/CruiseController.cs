@@ -338,7 +338,7 @@ public partial class CruiseController : Node
         {
             _dodgeTimer = 0f;
             Hud.Visible = true;
-            Hud.ShowMessage($"Day {day}: {report}" + (hits > 0 ? " (B: reboot, V: seal leak)" : ""));
+            Hud.ShowMessage($"Day {day}: {report}" + (hits > 0 ? " (B: restart equipment, V: seal leaks)" : ""));
             RefreshDeltaV();
         };
         Vehicle.GetParent().AddChild(dodge);

@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://control/flight/FlightScene.cs" id="1_scene"]
 [ext_resource type="Script" path="res://presentation/flight/BodyEnvironmentVisual.cs" id="2_env"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://control/piloting/AnomalyResponseHandler.cs" id="14_anom"]
 [ext_resource type="Script" path="res://control/flight/StagingManager.cs" id="15_staging"]
 [ext_resource type="Script" path="res://control/flight/FlightDirector.cs" id="16_director"]
+[ext_resource type="PackedScene" path="res://scenes/Explosion.tscn" id="50_explosion"]
 [ext_resource type="Script" path="res://control/cruise/CruiseController.cs" id="17_cruise"]
 [ext_resource type="Script" path="res://presentation/flight/FlightCameraRig.cs" id="18_camera"]
 [ext_resource type="Script" path="res://control/ui/FlightHUD.cs" id="19_hud"]
@@ -106,6 +107,7 @@ script = ExtResource("15_staging")
 
 [node name="FlightDirector" type="Node" parent="." node_paths=PackedStringArray("Vehicle", "Coordinator", "InputHandler", "Hud", "CameraRig", "Environment")]
 script = ExtResource("16_director")
+ExplosionScene = ExtResource("50_explosion")
 Vehicle = NodePath("../VehicleRoot")
 Coordinator = NodePath("../Physics")
 InputHandler = NodePath("../VehicleRoot/FlightControlSubsystem/InputHandler")

@@ -381,7 +381,9 @@ public class RocketAssembler
         Aabb? target = null;
         foreach (Node n in meshRoot.FindChildren("*", nameof(MeshInstance3D), true, false))
         {
-            if (n is not MeshInstance3D m || m.Mesh == null) continue;
+            // Only the placeholder's own meshes (saved in its .tscn). Meshes a visual builds in code
+            // (engine plume, effects) have no owner: they must stay visible and must not change the box.
+            if (n is not MeshInstance3D m || m.Mesh == null || m.Owner != visual) continue;
             Aabb box = RelativeTransform(visual, m) * m.GetAabb();
             target = target == null ? box : target.Value.Merge(box);
             m.Visible = false;

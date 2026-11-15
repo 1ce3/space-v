@@ -43,18 +43,52 @@ public partial class DecouplerVisual : PartVisual
     private StandardMaterial3D _shellMaterial;
     private RocketGame.Building.MaterialDefinition _shellMaterialDef;
 
+    /// <summary>
+    /// Stage decoupler with an engine right above it (the upper stage's engine): the shell becomes a full interstage
+    /// that hides that engine completely, from just under the decoupler to the top of the engine cell. The shell
+    /// belongs to the decoupler, which leaves with the lower stage, so the engine shows up when the stage drops.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,0.5,0.05")] public float InterstageBelowCells { get; set; } = 0.15f;
+    [Export(PropertyHint.Range, "0,0.3,0.01")] public float InterstageAboveExtraCells { get; set; } = 0.04f;
+
+    /// <summary>True when the shell covers an engine above the decoupler (for tests).</summary>
+    public bool CoversEngine { get; private set; }
+
+    /// <summary>The engine whose cell sits directly above this Top-edge decoupler, or null.</summary>
+    private EnginePart FindEngineAbove()
+    {
+        if (Part is not DecouplerPart { Edge.Side: Side.Top } decoupler) return null;
+        Vector2I above = decoupler.Edge.Cell + new Vector2I(0, 1);
+        bool Above(RocketPart p) => p is EnginePart && p.Cell == above;
+        if (decoupler.Joint != null)
+        {
+            if (Above(decoupler.Joint.ParentPart)) return (EnginePart)decoupler.Joint.ParentPart;
+            if (Above(decoupler.Joint.ChildPart)) return (EnginePart)decoupler.Joint.ChildPart;
+        }
+        if (decoupler.Tree != null)
+            foreach (RocketPart p in decoupler.Tree.ActiveParts)
+                if (Above(p)) return (EnginePart)p;
+        return null;
+    }
+
     private void EnsureShell()
     {
         if (_shell != null) return;
         float cell = RocketPart.GetCellSize();
         float r = 0.5f * cell * ShellRadiusFactor;
+        CoversEngine = FindEngineAbove() != null;
+        // Default: a short band centred on the joint. Over an engine: from a little below the joint to the top of the engine cell.
+        float bottom = CoversEngine ? -InterstageBelowCells : -0.5f * ShellHeightCells;
+        float top = CoversEngine ? 1f + InterstageAboveExtraCells : 0.5f * ShellHeightCells;
+        float height = (top - bottom) * cell;
         _shellMaterial = new StandardMaterial3D { AlbedoColor = ShellDefaultColor, Roughness = 0.6f };
         // Children of the root (not MeshRoot): sizes are in meters.
         _shell = new MeshInstance3D
         {
             Name = "InterstageShell",
-            Mesh = new CylinderMesh { TopRadius = r, BottomRadius = r, Height = ShellHeightCells * cell, RadialSegments = 24 },
+            Mesh = new CylinderMesh { TopRadius = r, BottomRadius = r, Height = height, RadialSegments = 24 },
             MaterialOverride = _shellMaterial,
+            Position = new Vector3(0f, 0.5f * (top + bottom) * cell, 0f),
         };
         AddChild(_shell);
         UpdateShellColor();
