@@ -17,6 +17,8 @@ public partial class ResearchScreenRoot : Godot.Control
 {
     /// <summary>The player wants to go back to the build screen.</summary>
     [Signal] public delegate void BuildRequestedEventHandler();
+    /// <summary>The player pressed "Back" (bottom left): go to the home hub.</summary>
+    [Signal] public delegate void HomeRequestedEventHandler();
 
     /// <summary>"Go to Workshop" button.</summary>
     [ExportGroup("Nodes")]
@@ -106,6 +108,7 @@ public partial class ResearchScreenRoot : Godot.Control
 
         ApplyStaticStyles();
         BuildButton.Pressed += OnBuildButtonPressed;
+        AddBackButton();
         _campaign.RPChanged += OnRPChanged;
         _tree.NodeUnlocked += OnNodeUnlocked;
         if (DebugStartRP > 0) _campaign.AddRP(DebugStartRP);
@@ -119,6 +122,34 @@ public partial class ResearchScreenRoot : Godot.Control
         if (BuildButton != null) BuildButton.Pressed -= OnBuildButtonPressed;
         if (_campaign != null) _campaign.RPChanged -= OnRPChanged;
         if (_tree != null) _tree.NodeUnlocked -= OnNodeUnlocked;
+    }
+
+    /// <summary>"◀ Back" in the bottom-left corner (UI redesign): emits HomeRequested.</summary>
+    private void AddBackButton()
+    {
+        var back = new Button { Text = "◀  Back", FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(120, 42) };
+        var style = new StyleBoxFlat
+        {
+            BgColor = PanelColor, BorderColor = LockedColor,
+            BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1, BorderWidthBottom = 1,
+            CornerRadiusTopLeft = CornerRadius, CornerRadiusTopRight = CornerRadius,
+            CornerRadiusBottomLeft = CornerRadius, CornerRadiusBottomRight = CornerRadius,
+            ContentMarginLeft = Padding, ContentMarginRight = Padding,
+        };
+        var hover = (StyleBoxFlat)style.Duplicate();
+        hover.BorderColor = AccentColor;
+        back.AddThemeStyleboxOverride("normal", style);
+        back.AddThemeStyleboxOverride("hover", hover);
+        back.AddThemeStyleboxOverride("pressed", hover);
+        back.AddThemeColorOverride("font_color", TextColor);
+        back.AddThemeFontSizeOverride("font_size", 16);
+        AddChild(back);
+        back.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomLeft);
+        back.OffsetLeft = 20;
+        back.OffsetRight = 20 + 120;
+        back.OffsetTop = -62;
+        back.OffsetBottom = -20;
+        back.Pressed += () => EmitSignal(SignalName.HomeRequested);
     }
 
     /// <summary>Buys a node like the card button does. Returns true on success. Used by the buttons and by tests.</summary>
@@ -170,31 +201,31 @@ public partial class ResearchScreenRoot : Godot.Control
 
     /// <summary>Tab order; categories not listed here come after.</summary>
     public static readonly string[] CategoryOrder =
-        { "Động cơ", "Nhiên liệu", "Vật liệu", "Khung & khoang", "Điều khiển", "Liên lạc", "Cảm biến nhiên liệu", "Cảm biến áp suất", "Cảm biến nhiệt", "Năng lượng & nhiệt", "Hạ cánh" };
+        { "Engines", "Fuel", "Materials", "Frame & pod", "Control", "Comms", "Fuel sensors", "Pressure sensors", "Temperature sensors", "Power & thermal", "Landing" };
 
     /// <summary>Category of a node without one set in its .tres.</summary>
     public static string DefaultCategory(TechNode node)
     {
-        if (node == null) return "Khác";
+        if (node == null) return "Other";
         if (!string.IsNullOrEmpty(node.Category)) return node.Category;
         string id = node.NodeId;
-        if (id.StartsWith("fuel_")) return "Nhiên liệu";
-        if (id.StartsWith("mat_")) return "Vật liệu";
-        if (id.StartsWith("comm_")) return "Liên lạc";
-        if (id.StartsWith("sensor_")) return "Cảm biến";
+        if (id.StartsWith("fuel_")) return "Fuel";
+        if (id.StartsWith("mat_")) return "Materials";
+        if (id.StartsWith("comm_")) return "Comms";
+        if (id.StartsWith("sensor_")) return "Sensors";
         return id switch
         {
-            "t1_heavy" or "t2_main_engine" or "t2_upper_stage" => "Động cơ",
-            "t1_frame" or "t2_frame" or "t3_frame" or "t2_pod" => "Khung & khoang",
-            "t1_avionics" or "t3_navigation" => "Điều khiển",
-            "t2_power" or "t3_thermal" or "t4_rtg" => "Năng lượng & nhiệt",
-            "t3_edl" or "t3_lander" => "Hạ cánh",
-            _ => "Khác",
+            "t1_heavy" or "t2_main_engine" or "t2_upper_stage" => "Engines",
+            "t1_frame" or "t2_frame" or "t3_frame" or "t2_pod" => "Frame & pod",
+            "t1_avionics" or "t3_navigation" => "Control",
+            "t2_power" or "t3_thermal" or "t4_rtg" => "Power & thermal",
+            "t3_edl" or "t3_lander" => "Landing",
+            _ => "Other",
         };
     }
 
     /// <summary>Branch order inside a tab; empty branch = no sub-header.</summary>
-    public static readonly string[] SubCategoryOrder = { "Tầng thấp (mặt đất – 50 km)", "Tầng giữa (30 km – quỹ đạo thấp)", "Tầng trên & không gian sâu" };
+    public static readonly string[] SubCategoryOrder = { "Low stage (ground – 50 km)", "Mid stage (30 km – low orbit)", "Upper stage & deep space" };
 
     public static string DefaultSubCategory(TechNode node)
     {
@@ -320,7 +351,7 @@ public partial class ResearchScreenRoot : Godot.Control
 
         if (node.PrerequisiteNodeIds.Length > 0)
         {
-            box.AddChild(MakeLabel("Cần: " + string.Join(", ", node.PrerequisiteNodeIds.Select(PrereqName)),
+            box.AddChild(MakeLabel("Requires: " + string.Join(", ", node.PrerequisiteNodeIds.Select(PrereqName)),
                 SmallFontSize, MutedTextColor, wrap: true));
         }
         if (node.UnlocksModelIds.Length > 0 || node.BuildWeightBonus > 0)

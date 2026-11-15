@@ -9,41 +9,41 @@ public static class StoryScript
     public readonly record struct Card(string Title, string Body, float Seconds = 6f);
 
     public const string CompanyName = "Space-V";
-    public const string TelescopeName = "Kính viễn vọng AURORA";
+    public const string TelescopeName = "AURORA telescope";
 
     public static readonly Card[] SatelliteDeploy =
     {
-        new("Tách tầng", "Phần mũi tên lửa mở ra ở độ cao quỹ đạo..."),
-        new(TelescopeName, "Kính viễn vọng AURORA bung tấm pin và hướng về bầu trời sâu. Sứ mệnh đầu tiên của " + CompanyName + " thành công!"),
+        new("Stage separation", "The rocket nose opens at orbital altitude..."),
+        new(TelescopeName, "The AURORA telescope unfolds its panels and turns to the deep sky. The first mission of " + CompanyName + " is a success!"),
     };
 
     public static readonly Card[] Discovery =
     {
-        new("5 năm sau", CompanyName + " đã trở thành một công ty vũ trụ nhỏ nhưng đầy tham vọng.", 5f),
-        new("Tín hiệu lạ", "Đêm 14/3, AURORA ghi lại một vệt sáng lao xuống bề mặt sao Hỏa, gần miệng núi lửa Jezero. Không có tàu nào của Trái Đất ở đó."),
-        new("Quyết định", "Không ai biết nó là gì. Ban lãnh đạo quyết định: chế tạo một con tàu đưa robot lên sao Hỏa để tận mắt kiểm tra."),
-        new("Nhiệm vụ của bạn", "Nghiên cứu công nghệ, thiết kế tên lửa và đưa robot hạ cánh an toàn xuống sao Hỏa. Mỗi lần thất bại là một bài học."),
+        new("5 years later", CompanyName + " has grown into a small but ambitious space company.", 5f),
+        new("A strange signal", "On the night of March 14, AURORA recorded a streak of light falling onto Mars near Jezero crater. No spacecraft from Earth was there."),
+        new("The decision", "Nobody knows what it is. The board decides to build a ship that will carry a robot to Mars to see it up close."),
+        new("Your mission", "Research technology, design rockets and land the robot safely on Mars. Every failure is a lesson."),
     };
 
     public static readonly Card[] MarsEnding =
     {
-        new("Chạm đất", "Robot mở mắt camera. Bụi đỏ lắng xuống quanh chân tàu."),
-        new("Dấu vết", "Cách bãi đáp 400 m là một rãnh cày dài trên mặt đất... và ở cuối rãnh, một vật thể kim loại nhẵn bóng, không giống bất cứ thứ gì con người từng chế tạo."),
-        new("Phát hiện", "Khi robot tiến lại gần, vật thể phát ra một nhịp sáng xanh, lặp lại đều đặn như đang chờ ai đó trả lời..."),
-        new("Còn tiếp?", "Dữ liệu được gửi về Trái Đất. Thế giới sẽ không bao giờ như cũ.", 5f),
+        new("Touchdown", "The robot opens its camera eyes. Red dust settles around the lander's legs."),
+        new("Tracks", "400 m from the landing site there is a long furrow in the ground... and at its end, a smooth metal object unlike anything humans have ever built."),
+        new("Discovery", "As the robot comes closer, the object gives off a blue pulse of light, repeating steadily as if waiting for someone to answer..."),
+        new("To be continued?", "The data is sent back to Earth. The world will never be the same.", 5f),
     };
 
     public static readonly string Credits =
         CompanyName + "\n\n\n" +
-        "Lập trình\nDev A · Dev B · Dev C\n\n" +
-        "Thiết kế & mô hình 3D\nNhóm Space-V\n\n" +
-        "Dữ liệu\nNASA (khí quyển, bức xạ, sao Hỏa)\n\n" +
-        "Công cụ\nGodot Engine 4.7 (.NET)\n\n\n" +
-        "Cảm ơn bạn đã chơi!";
+        "Programming\nDev A · Dev B · Dev C\n\n" +
+        "Design & 3D models\nSpace-V team\n\n" +
+        "Data\nNASA (atmosphere, radiation, Mars)\n\n" +
+        "Tools\nGodot Engine 4.7 (.NET)\n\n\n" +
+        "Thanks for playing!";
 
     // ---- tutorial steps (build screen, then flight) ----
     public static readonly string[] TutorialIntro =
     {
-        "Chào mừng tới " + CompanyName + "! Nhiệm vụ đầu tiên: phóng kính viễn vọng AURORA lên quỹ đạo.",
+        "Welcome to " + CompanyName + "! First mission: launch the AURORA telescope into orbit.",
     };
 }

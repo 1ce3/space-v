@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "fairing_n1"
-DisplayName = "Chóp bảo vệ N1"
+DisplayName = "Fairing N1"
 Tier = 0
 BuildWeight = 1
 DryMass = 120.0

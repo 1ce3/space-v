@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "radiator_a1"
-DisplayName = "Tản nhiệt chủ động A1"
+DisplayName = "Active radiator A1"
 Tier = 3
 BuildWeight = 1
 DryMass = 25.0

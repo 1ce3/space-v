@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "tank_h1"
-DisplayName = "Bình Hydrolox H1"
+DisplayName = "Hydrolox tank H1"
 Tier = 2
 BuildWeight = 2
 DryMass = 150.0

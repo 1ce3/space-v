@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_seg")
 SegmentId = "seg_tutorial_ascent"
-DisplayName = "Phóng kính viễn vọng AURORA"
+DisplayName = "Launch the AURORA telescope"
 Body = ExtResource("2_body")
 RewardRP = 0
 EnabledHazards = 0

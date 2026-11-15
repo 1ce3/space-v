@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_venera4_barometer")
 UnlocksModelIds = PackedStringArray("mod_pioneer_venus_asi")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

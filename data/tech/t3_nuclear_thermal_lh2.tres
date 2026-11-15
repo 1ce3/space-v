@@ -11,4 +11,4 @@ CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_hydrolox")
 UnlocksModelIds = PackedStringArray("eng_nerva")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

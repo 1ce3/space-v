@@ -81,6 +81,9 @@ public partial class GameFlowManager : Node
     public override void _Ready()
     {
         StoryProgress.Load();
+        GameSettings.Load();
+        GameSettings.Apply();
+        AddChild(new PauseMenu());
         Callable.From(StartIfMainScene).CallDeferred();
     }
 
@@ -211,6 +214,8 @@ public partial class GameFlowManager : Node
         }
         debrief.TotalSegments = CurrentRun?.Mission?.Segments.Count ?? 3;
         debrief.Show(LastResult, LastReward);
+        if (LastResult != null)
+            StoryProgress.SetLastLog(debrief.TitleLabel?.Text, debrief.SummaryLabel?.Text, debrief.RewardLabel?.Text, (int)LastResult.Outcome);
         SetState(GameState.Debrief);
     }
 
@@ -225,7 +230,11 @@ public partial class GameFlowManager : Node
     /// <summary>Switch to the research screen.</summary>
     public void GoToResearch()
     {
-        var research = SwitchScreen<ResearchScreenRoot>(ResearchScreen, r => r.BuildRequested += OnBuildRequested);
+        var research = SwitchScreen<ResearchScreenRoot>(ResearchScreen, r =>
+        {
+            r.BuildRequested += OnBuildRequested;
+            r.HomeRequested += OnHubRequested;
+        });
         if (research == null)
         {
             GoToBuild();
@@ -256,6 +265,7 @@ public partial class GameFlowManager : Node
             if (b.Building != null) b.Building.DesignConfirmed += OnDesignConfirmed;
             else GD.PushError("[Control] GameFlowManager: BuildScreenRoot.Building is not set");
             b.ResearchRequested += OnResearchRequested;
+            b.HomeRequested += OnHubRequested;
         });
         if (build != null) SetState(GameState.Build);
     }
@@ -291,14 +301,40 @@ public partial class GameFlowManager : Node
         var home = new HomeScreen { WinSummary = win };
         home.PlayRequested += () => Callable.From(() =>
         {
-            if (StoryProgress.TutorialDone) GoToResearch();
+            if (StoryProgress.TutorialDone) GoToHub();
             else StartTutorial();
         }).CallDeferred();
+        home.NewGameRequested += () => Callable.From(StartNewGame).CallDeferred();
         home.TutorialRequested += () => Callable.From(StartTutorial).CallDeferred();
         home.CreditsRequested += () => Callable.From(() => PlayCutscenes(new[] { CreditsStep() }, GoToHome)).CallDeferred();
         home.QuitRequested += OnQuitRequested;
         ShowNode(home);
         SetState(GameState.Home);
+    }
+
+    /// <summary>Home hub: last flight log, research, rocket design (Continue lands here).</summary>
+    public void GoToHub()
+    {
+        _researchGuide?.QueueFree();
+        _researchGuide = null;
+        var hub = new HubScreen();
+        hub.ResearchRequested += () => Callable.From(GoToResearch).CallDeferred();
+        hub.BuildRequested += () => Callable.From(GoToBuild).CallDeferred();
+        hub.MenuRequested += () => Callable.From(GoToHome).CallDeferred();
+        ShowNode(hub);
+        SetState(GameState.Home);
+    }
+
+    private void OnHubRequested() => Callable.From(GoToHub).CallDeferred();
+
+    /// <summary>New game from the menu: wipes research, story flags, the last log and the saved design, then the tutorial.</summary>
+    public void StartNewGame()
+    {
+        ResearchCampaignEngine.Instance?.ResetSave();
+        StoryProgress.Reset();
+        string design = ProjectSettings.GlobalizePath(RocketDesign.SavePath);
+        if (System.IO.File.Exists(design)) System.IO.File.Delete(design);
+        StartTutorial();
     }
 
     public void StartTutorial()
@@ -378,13 +414,13 @@ public partial class GameFlowManager : Node
 
     private static string WinText(FlightResult r)
     {
-        if (r == null) return "Robot đã đáp xuống sao Hỏa!";
+        if (r == null) return "The robot has landed on Mars!";
         int s = Mathf.Max(0, Mathf.RoundToInt(r.FlightTime));
-        return "Robot đã đáp xuống sao Hỏa và gửi dữ liệu về Trái Đất!\n\n" +
-               $"Tốc độ chạm đất   {r.LandingSpeedMps:0.0} m/s\n" +
-               $"Thời gian bay     {s / 60}:{s % 60:00}\n" +
-               $"Ngày hành trình   {r.CruiseDaysSurvived:0}\n" +
-               $"Độ cao lớn nhất   {r.MaxAltitude / 1000f:0.0} km";
+        return "The robot has landed on Mars and sent data back to Earth!\n\n" +
+               $"Landing speed     {r.LandingSpeedMps:0.0} m/s\n" +
+               $"Flight time       {s / 60}:{s % 60:00}\n" +
+               $"Cruise days       {r.CruiseDaysSurvived:0}\n" +
+               $"Max altitude      {r.MaxAltitude / 1000f:0.0} km";
     }
 
     /// <summary>Shows a screen created in code (no PackedScene).</summary>
@@ -399,6 +435,7 @@ public partial class GameFlowManager : Node
     private void SetState(GameState state)
     {
         State = state;
+        if (state is not (GameState.Flight or GameState.Cruise)) GetTree().Paused = false;
         if (DebugLog) GD.Print($"[Control] GameState -> {state}");
         EmitSignal(SignalName.StateChanged, (int)state);
     }

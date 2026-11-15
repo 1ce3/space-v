@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "rhu_h1"
-DisplayName = "Bộ sưởi đồng vị H1"
+DisplayName = "Radioisotope heater H1"
 Tier = 3
 BuildWeight = 1
 DryMass = 5.0

@@ -33,7 +33,7 @@ public class RocketAssembler
         var errors = new List<string>();
         if (design == null || design.PartEntries.Count == 0)
         {
-            errors.Add("Tên lửa chưa có part nào.");
+            errors.Add("Rocket has no parts.");
             return errors;
         }
 
@@ -48,13 +48,13 @@ public class RocketAssembler
             {
                 if (GetDefinition(entry.ModelId) is not PartDefinition def || def is DecouplerPartDefinition)
                 {
-                    errors.Add($"Không có part '{entry.ModelId}'.");
+                    errors.Add($"No part '{entry.ModelId}'.");
                     continue;
                 }
                 weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlace(def, entry.Cell))
                 {
-                    errors.Add($"{Name(def)} ở ô {CellText(entry.Cell)} đặt sai chỗ (chồng ô, ra ngoài lưới hoặc hàng xóm không hợp lệ).");
+                    errors.Add($"{Name(def)} at cell {CellText(entry.Cell)} is misplaced (overlapping, outside the grid or invalid neighbours).");
                     continue;
                 }
                 RocketPart part = RocketPart.Create(def);
@@ -65,11 +65,11 @@ public class RocketAssembler
 
             // Exactly one pod.
             var pods = parts.FindAll(p => p is CommandPodPart);
-            if (pods.Count == 0) errors.Add("Cần đúng một khoang điều khiển (command pod).");
-            else if (pods.Count > 1) errors.Add($"Chỉ được có một khoang điều khiển (đang có {pods.Count}).");
+            if (pods.Count == 0) errors.Add("Exactly one command pod is required.");
+            else if (pods.Count > 1) errors.Add($"Only one command pod is allowed (found {pods.Count}).");
 
             // At least one engine.
-            if (!parts.Exists(p => p is EnginePart)) errors.Add("Cần ít nhất một động cơ hoặc tên lửa đẩy.");
+            if (!parts.Exists(p => p is EnginePart)) errors.Add("At least one engine or booster is required.");
 
             // Everything connected to the pod.
             if (pods.Count >= 1)
@@ -81,7 +81,7 @@ public class RocketAssembler
                     foreach (RocketPart n in grid.GetNeighbors(queue.Dequeue()))
                         if (reached.Add(n)) queue.Enqueue(n);
                 foreach (RocketPart part in parts)
-                    if (!reached.Contains(part)) errors.Add($"{Name(part.Definition)} ở ô {CellText(part.Cell)} không nối với khoang điều khiển.");
+                    if (!reached.Contains(part)) errors.Add($"{Name(part.Definition)} at cell {CellText(part.Cell)} is not connected to the command pod.");
             }
 
             // Liquid engines touch a tank of their propellant.
@@ -90,7 +90,7 @@ public class RocketAssembler
                 if (part is not LiquidEnginePart engine) continue;
                 FuelType fuel = engine.LiquidDefinition?.PropellantType ?? FuelType.Kerolox;
                 bool fed = grid.GetNeighbors(engine).Exists(n => n is FuelTankPart tank && tank.PropellantType == fuel);
-                if (!fed) errors.Add($"{Name(part.Definition)} ở ô {CellText(part.Cell)} phải chạm trực tiếp một bình {fuel}.");
+                if (!fed) errors.Add($"{Name(part.Definition)} at cell {CellText(part.Cell)} must touch a {fuel} tank directly.");
             }
 
             // Decouplers on valid contact edges, one per edge.
@@ -98,13 +98,13 @@ public class RocketAssembler
             {
                 if (GetDefinition(entry.ModelId) is not DecouplerPartDefinition def)
                 {
-                    errors.Add($"Không có bộ tách tầng '{entry.ModelId}'.");
+                    errors.Add($"No decoupler '{entry.ModelId}'.");
                     continue;
                 }
                 weight += def.BuildWeight + (PartCatalog.Instance?.ResolveMaterial(def, entry.MaterialId)?.BuildWeightCost ?? 0);
                 if (!grid.CanPlaceDecoupler(def, entry.Edge))
                 {
-                    errors.Add($"Bộ tách tầng ở cạnh {EdgeText(entry.Edge)} không nằm giữa hai part tiếp xúc (hoặc bị trùng).");
+                    errors.Add($"Decoupler on edge {EdgeText(entry.Edge)} is not between two touching parts (or is duplicated).");
                     continue;
                 }
                 var decoupler = (DecouplerPart)RocketPart.Create(def);
@@ -113,9 +113,9 @@ public class RocketAssembler
             }
 
             // At most one fairing, parachute, heat shield.
-            CheckMaxOne<FairingPart>(parts, "chóp bảo vệ (fairing)", errors);
-            CheckMaxOne<ParachutePart>(parts, "dù", errors);
-            CheckMaxOne<HeatShieldPart>(parts, "khiên nhiệt", errors);
+            CheckMaxOne<FairingPart>(parts, "fairing", errors);
+            CheckMaxOne<ParachutePart>(parts, "parachute", errors);
+            CheckMaxOne<HeatShieldPart>(parts, "heat shield", errors);
 
             // Modules: inside the pod inventory grid, no two modules on the same cell (Unplaced = first free cell).
             var pod = pods.Count > 0 ? (CommandPodPart)pods[0] : null;
@@ -124,29 +124,29 @@ public class RocketAssembler
             {
                 if (GetDefinition(entry.ModelId) is not ModuleDefinition def)
                 {
-                    errors.Add($"Không có module '{entry.ModelId}'.");
+                    errors.Add($"No module '{entry.ModelId}'.");
                     continue;
                 }
                 weight += def.BuildWeight;
                 if (pod == null)
                 {
-                    errors.Add($"Module {Name(def)} cần có khoang điều khiển.");
+                    errors.Add($"Module {Name(def)} needs a command pod.");
                     continue;
                 }
                 Vector2I size = PodInventory.SizeOf(def);
                 Vector2I inventory = pod.InventorySize;
                 Vector2I? cell = entry.Cell == PodInventory.Unplaced ? PodInventory.FindFreeCell(inventory, occupied, size) : entry.Cell;
                 if (cell == null || !PodInventory.InBounds(inventory, cell.Value, size))
-                    errors.Add($"Module {Name(def)} ({size.X}x{size.Y} ô) không vừa lưới {inventory.X}x{inventory.Y} của {Name(pod.Definition)}.");
+                    errors.Add($"Module {Name(def)} ({size.X}x{size.Y} cells) does not fit the {inventory.X}x{inventory.Y} grid of {Name(pod.Definition)}.");
                 else if (!PodInventory.Fits(inventory, occupied, cell.Value, size))
-                    errors.Add($"Module {Name(def)} chồng lên module khác ở ô ({cell.Value.X}, {cell.Value.Y}).");
+                    errors.Add($"Module {Name(def)} overlaps another module at cell ({cell.Value.X}, {cell.Value.Y}).");
                 else
                     occupied.Add(new PodInventory.Item(cell.Value, size));
             }
 
             // Weight.
             int max = maxWeight == MaxWeightFromTechTree ? GetTechTreeMaxWeight() : maxWeight;
-            if (weight > max) errors.Add($"Tổng weight {weight} vượt giới hạn {max}.");
+            if (weight > max) errors.Add($"Total weight {weight} exceeds the limit {max}.");
         }
         finally
         {
@@ -546,7 +546,7 @@ public class RocketAssembler
     private static void CheckMaxOne<T>(List<RocketPart> parts, string label, List<string> errors) where T : RocketPart
     {
         int count = parts.FindAll(p => p is T).Count;
-        if (count > 1) errors.Add($"Chỉ được có một {label} (đang có {count}).");
+        if (count > 1) errors.Add($"Only one {label} is allowed (found {count}).");
     }
 
     private static int GetTechTreeMaxWeight()
@@ -577,6 +577,6 @@ public class RocketAssembler
     private static string EdgeText(Edge edge)
     {
         Edge e = BuildGrid.Normalize(edge);
-        return e.Side == Side.Top ? $"trên ô {CellText(e.Cell)}" : $"phải ô {CellText(e.Cell)}";
+        return e.Side == Side.Top ? $"top of cell {CellText(e.Cell)}" : $"right of cell {CellText(e.Cell)}";
     }
 }

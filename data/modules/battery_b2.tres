@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "battery_b2"
-DisplayName = "Pin B2"
+DisplayName = "Battery B2"
 Tier = 2
 BuildWeight = 1
 DryMass = 30.0

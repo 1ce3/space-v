@@ -5,7 +5,9 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "mat_t1"
-DisplayName = "Thép & nhôm-liti"
+DisplayName = "Steel & aluminium-lithium"
+Tier = 1
 CostRP = 30
 UnlocksModelIds = PackedStringArray("mat_steel304", "mat_alli2195")
-Category = "Vật liệu"
+BuildWeightBonus = 0
+Category = "Materials"

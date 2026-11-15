@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_rp1_lox")
 UnlocksModelIds = PackedStringArray("eng_nk_33", "eng_rd_170_180", "eng_yf_100", "eng_merlin_1d", "eng_merlin_mvac", "eng_rutherford")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

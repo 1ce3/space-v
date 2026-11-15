@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "tank_lm1"
-DisplayName = "Bình Methalox LM1"
+DisplayName = "Methalox tank LM1"
 Tier = 3
 BuildWeight = 1
 DryMass = 80.0

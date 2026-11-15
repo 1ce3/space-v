@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "eng_nerva"
-DisplayName = "NERVA (nhiệt hạt nhân)"
+DisplayName = "NERVA (nuclear thermal)"
 Tier = 3
 BuildWeight = 3
 DryMass = 2721.6

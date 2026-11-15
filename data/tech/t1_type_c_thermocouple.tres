@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_type_c_thermocouple")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

@@ -67,7 +67,7 @@ public partial class CutscenePlayer : Godot.Control
             center.AddChild(_cardBox);
             NextCard();
         }
-        _hint = new Label { Text = "Space: tiếp   Esc: bỏ qua", Modulate = new Color(1f, 1f, 1f, 0.45f) };
+        _hint = new Label { Text = "Space: next   Esc: skip", Modulate = new Color(1f, 1f, 1f, 0.45f) };
         AddChild(_hint);
         _hint.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.Minsize, 16);
     }

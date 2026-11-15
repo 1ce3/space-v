@@ -32,7 +32,6 @@ public partial class InputHandler : Node
         public const string DeployToggle = "flight_deploy_toggle";
         public const string SceToAux = "flight_sce_to_aux";
         public const string SealLeak = "flight_seal_leak";
-        public const string Abort = "flight_abort";
         public const string ZoomIn = "flight_zoom_in";
         public const string ZoomOut = "flight_zoom_out";
     }
@@ -42,15 +41,16 @@ public partial class InputHandler : Node
     /// <summary>False while input is locked (segment ended, cruise menus...).</summary>
     public bool IsInputEnabled { get; private set; } = true;
 
-    /// <summary>Abort needs the key held this long (a Vietnamese IME such as Unikey sends Backspace while typing).</summary>
-    [Export(PropertyHint.Range, "0,3,0.1")] public float AbortHoldSeconds { get; set; } = 1f;
+    /// <summary>Kept for the HUD; always 0 now that abort comes from the pause menu (Esc).</summary>
+    public float AbortHoldProgress => 0f;
 
-    /// <summary>0..1 while the abort key is held, for the HUD.</summary>
-    public float AbortHoldProgress { get; private set; }
+    /// <summary>Set by the pause menu's "Quit flight"; consumed by the next Poll.</summary>
+    private static bool _abortRequested;
+
+    /// <summary>Asks the active flight to abort (pause menu → Quit flight).</summary>
+    public static void RequestAbort() => _abortRequested = true;
 
     private PilotInput _pending;
-    private ulong _abortHeldSinceMs;
-    private bool _abortFired;
 
     /// <summary>Input for this tick. Returns PilotInput.Empty when disabled.</summary>
     public PilotInput Poll()
@@ -58,7 +58,8 @@ public partial class InputHandler : Node
         if (!IsInputEnabled)
         {
             _pending = PilotInput.Empty;
-            return PilotInput.Empty;
+            // Abort still works when the pilot is locked out (autopilot, cutscene camera...).
+            return new PilotInput { AbortPressed = ConsumeAbort() };
         }
 
         PilotInput input = _pending;
@@ -66,27 +67,15 @@ public partial class InputHandler : Node
         input.PitchAxis = Input.GetAxis(Actions.PitchLeft, Actions.PitchRight);
         input.ThrottleAxis = Input.GetAxis(Actions.ThrottleDown, Actions.ThrottleUp);
         input.RcsTranslateAxis = Input.GetAxis(Actions.RcsLeft, Actions.RcsRight);
-        input.AbortPressed = PollAbortHold();
+        input.AbortPressed = ConsumeAbort();
         return input;
     }
 
-    /// <summary>True once when the abort key has been held for AbortHoldSeconds.</summary>
-    private bool PollAbortHold()
+    private static bool ConsumeAbort()
     {
-        if (!Input.IsActionPressed(Actions.Abort))
-        {
-            _abortHeldSinceMs = 0;
-            _abortFired = false;
-            AbortHoldProgress = 0f;
-            return false;
-        }
-        ulong now = Time.GetTicksMsec();
-        if (_abortHeldSinceMs == 0) _abortHeldSinceMs = now;
-        float held = (now - _abortHeldSinceMs) / 1000f;
-        AbortHoldProgress = AbortHoldSeconds > 0f ? Mathf.Clamp(held / AbortHoldSeconds, 0f, 1f) : 1f;
-        if (_abortFired || AbortHoldProgress < 1f) return false;
-        _abortFired = true;
-        return true;
+        bool abort = _abortRequested;
+        _abortRequested = false;
+        return abort;
     }
 
     /// <summary>Enables or locks pilot input.</summary>
@@ -94,9 +83,6 @@ public partial class InputHandler : Node
     {
         IsInputEnabled = enabled;
         _pending = PilotInput.Empty;
-        _abortHeldSinceMs = 0;
-        _abortFired = false;
-        AbortHoldProgress = 0f;
     }
 
     public override void _UnhandledInput(InputEvent @event)

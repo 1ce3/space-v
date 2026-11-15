@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray("t0_compressed_nitrogen")
 UnlocksModelIds = PackedStringArray("eng_lr87_aj7", "eng_lr91", "eng_aj10_137", "rcs_r4d", "tank_hg1")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

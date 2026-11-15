@@ -97,7 +97,7 @@ public partial class ControlChainTest : Node
 
         // Segment 1 thrust bookkeeping.
         Check("before launch: can still thrust (stage 0 left)", _scene.Director.CanStillThrust());
-        Check("debrief text for TargetNotReached", DebriefScreen.CauseText(FailureCause.TargetNotReached) == "không đạt quỹ đạo");
+        Check("debrief text for TargetNotReached", DebriefScreen.CauseText(FailureCause.TargetNotReached) == "orbit not reached");
 
         sas.SetMode(SasMode.Off);
         _step = 1;

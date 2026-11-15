@@ -117,7 +117,7 @@ public partial class FlightDirector : Node
                 InputHandler.SetInputEnabled(true);
                 Phase = FlightPhase.PreLaunch; // force the PhaseChanged emit below
                 SetPhase(FlightPhase.Entry);
-                Hud.ShowWarning("Vào khí quyển sao Hỏa: quay tấm chắn nhiệt về phía trước");
+                Hud.ShowWarning("Entering Mars atmosphere: turn the heat shield forward");
                 break;
             default:
                 GD.PushError($"[Control] FlightDirector.StartSegment: {segment.Kind} is not a flown segment");
@@ -169,7 +169,7 @@ public partial class FlightDirector : Node
         if (frame.MachNumber >= def.MaxDeployMach || frame.DynamicPressure >= def.MaxDeployDynamicPressure) return;
         _chuteHintShown = true;
         bool fairing = Vehicle.PartTree.GetParts<FairingPart>().Exists(f => f.IsAttached);
-        Hud.ShowWarning(fairing ? "Có thể bung dù: tách fairing (F) rồi bấm P" : "Có thể bung dù: bấm P");
+        Hud.ShowWarning(fairing ? "Parachute ready: jettison the fairing (F), then press P" : "Parachute ready: press P");
     }
 
     private bool AnyChuteDeployed()
@@ -186,7 +186,7 @@ public partial class FlightDirector : Node
         if (segment != null && Phase != FlightPhase.PreLaunch &&
             frame.AltitudeM >= segment.TargetAltitudeM && frame.HorizontalSpeedMps >= segment.TargetSpeedMps)
         {
-            CompleteSegment(FlightPhase.OrbitReached, "Đã vào quỹ đạo chờ!");
+            CompleteSegment(FlightPhase.OrbitReached, "Parking orbit reached!");
             return;
         }
 
@@ -198,7 +198,7 @@ public partial class FlightDirector : Node
         _outOfThrustTimer += (float)GetPhysicsProcessDeltaTime();
         if (_outOfThrustTimer < OutOfThrustDelaySec) return;
         BlackBox.RecordFailure(FailureCause.TargetNotReached, null);
-        Hud.ShowWarning("Hết lực đẩy trước khi vào quỹ đạo");
+        Hud.ShowWarning("Out of thrust before reaching orbit");
         EndMission(MissionOutcome.Failed);
     }
 
@@ -232,7 +232,7 @@ public partial class FlightDirector : Node
         if (!OS.IsDebugBuild() || Run == null || _hasEnded || _segmentDone) return;
         if (@event is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.K })
         {
-            CompleteSegment(FlightPhase.OrbitReached, "[DEBUG K] Bỏ qua đoạn bay");
+            CompleteSegment(FlightPhase.OrbitReached, "[DEBUG K] Skipped segment");
             GetViewport().SetInputAsHandled();
         }
     }
@@ -275,7 +275,7 @@ public partial class FlightDirector : Node
         if (_hasEnded || _segmentDone || Run == null) return;
         BlackBox.RecordFailure(cause, part);
         _failPart = part;
-        Hud.ShowWarning($"Hỏng: {cause} ở {part?.Definition?.DisplayName ?? part?.ModelId}");
+        Hud.ShowWarning($"Failed: {cause} at {part?.Definition?.DisplayName ?? part?.ModelId}");
         EndMission(MissionOutcome.Failed);
     }
 
@@ -305,17 +305,17 @@ public partial class FlightDirector : Node
         if (!podOk || tilt > maxTilt)
         {
             BlackBox.RecordFailure(FailureCause.TippedOver, part);
-            Hud.ShowWarning(podOk ? $"Lật khi đáp: nghiêng {tilt:0}° (tối đa {maxTilt:0}°)" : "Mất khoang điều khiển");
+            Hud.ShowWarning(podOk ? $"Tipped over on landing: tilt {tilt:0}° (max {maxTilt:0}°)" : "Command pod lost");
             EndMission(MissionOutcome.Failed);
             return;
         }
         BlackBox.LandingSpeedMps = contactSpeed;
-        Hud.ShowWarning($"Đã đáp! {contactSpeed:0.0} m/s");
+        Hud.ShowWarning($"Landed! {contactSpeed:0.0} m/s");
         Run.Advance(); // the landing completes segment 3
         EndMission(MissionOutcome.Success);
     }
 
-    /// <summary>Player abort (flight_abort).</summary>
+    /// <summary>Player abort (pause menu → Quit flight).</summary>
     public void Abort()
     {
         if (_hasEnded || _segmentDone || Run == null) return;

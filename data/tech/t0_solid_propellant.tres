@@ -11,4 +11,4 @@ CostRP = 0
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("eng_castor_1")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

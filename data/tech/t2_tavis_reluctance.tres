@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_venera4_barometer")
 UnlocksModelIds = PackedStringArray("mod_tavis_reluctance")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

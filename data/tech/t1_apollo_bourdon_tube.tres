@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_apollo_bourdon_tube")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

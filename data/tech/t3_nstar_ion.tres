@@ -11,4 +11,4 @@ CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_rl10")
 UnlocksModelIds = PackedStringArray("eng_nstar_ion")
 BuildWeightBonus = 0
-Category = "Động cơ"
+Category = "Engines"

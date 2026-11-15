@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_node")
 NodeId = "mat_t3"
-DisplayName = "Titan & giáp Whipple"
+DisplayName = "Titanium & Whipple shield"
 Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("mat_t2")
 UnlocksModelIds = PackedStringArray("mat_titanium", "mat_whipple")
-Category = "Vật liệu"
+BuildWeightBonus = 0
+Category = "Materials"

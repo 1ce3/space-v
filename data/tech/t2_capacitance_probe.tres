@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_resistive_float_sensor")
 UnlocksModelIds = PackedStringArray("mod_capacitance_probe")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiên liệu"
+Category = "Fuel sensors"

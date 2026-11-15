@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("eng_rocketdyne_j2")
 BuildWeightBonus = 0
-Category = "Động cơ"
+Category = "Engines"

@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t4_small_deep_space_transponder")
 UnlocksModelIds = PackedStringArray("mod_delta_dor_navigation")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

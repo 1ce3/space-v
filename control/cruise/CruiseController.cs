@@ -106,7 +106,7 @@ public partial class CruiseController : Node
         Hud.ResetControls();
         Hud.ShowProgress(0, TotalDays);
         RefreshDeltaV();
-        Hud.ShowMessage("Bấm \"Đốt chuyển quỹ đạo\" (hoặc Z). Có thể tách tầng (Space) và mở pin (G) trước.");
+        Hud.ShowMessage("Press \"Transfer burn\" (or Z). You can stage (Space) and open solar panels (G) first.");
         SetProcess(true);
         if (DebugLog) GD.Print($"[Control] Cruise started: {TotalDays} days, delta-v {_sim.GetRemainingDeltaV():0} / {RequiredDeltaV:0} m/s");
     }
@@ -119,20 +119,20 @@ public partial class CruiseController : Node
         if (!_solarWarned && CountSolarArrays(deployed: false) > 0)
         {
             _solarWarned = true;
-            Hud.ShowMessage("Pin mặt trời chưa mở, sẽ cạn điện giữa đường. Bấm G để mở rồi đốt; bấm đốt lần nữa để bỏ qua.");
+            Hud.ShowMessage("Solar panels are closed, power will run out on the way. Press G to open them, then burn; press burn again to skip.");
             return;
         }
         float before = _sim.GetRemainingDeltaV();
         if (!_sim.ExecuteTransferBurn())
         {
-            Hud.ShowMessage($"Không đủ delta-v: còn {before:0} m/s, cần {RequiredDeltaV:0} m/s");
+            Hud.ShowMessage($"Not enough delta-v: {before:0} m/s left, {RequiredDeltaV:0} m/s needed");
             EndMission(FailureCause.InsufficientDeltaV);
             return;
         }
         HasBurned = true;
         Hud.SetBurnDone(true);
         RefreshDeltaV();
-        Hud.ShowMessage("Đã đốt chuyển quỹ đạo. Đang bay tới sao Hỏa...");
+        Hud.ShowMessage("Transfer burn done. Flying to Mars...");
         if (DebugLog) GD.Print($"[Control] Transfer burn done, delta-v left {_sim.GetRemainingDeltaV():0} m/s");
     }
 
@@ -161,7 +161,7 @@ public partial class CruiseController : Node
 
             if (_run.PartTree?.RootPart is CommandPodPart pod && pod.State == ComponentState.Broken)
             {
-                Hud.ShowMessage("Khoang điều khiển hỏng vì nhiệt");
+                Hud.ShowMessage("Command pod failed from heat");
                 EndMission(FailureCause.Thermal, pod);
                 return;
             }
@@ -192,7 +192,7 @@ public partial class CruiseController : Node
         {
             Vehicle.FlightControl?.ToggleDeployables();
             int open = CountSolarArrays(deployed: true), closed = CountSolarArrays(deployed: false);
-            if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"Đã mở {open} pin mặt trời." : "Đã gập pin mặt trời.");
+            if (open + closed > 0) Hud.ShowMessage(open > 0 ? $"Opened {open} solar panel(s)." : "Solar panels folded.");
         }
         if (input.ThrottleFull) RequestTransferBurn();
         if (input.SealLeakPressed && _sim != null && _sim.HasLeak)
@@ -229,23 +229,23 @@ public partial class CruiseController : Node
                 if (e.Type == FlightEventType.SolarFlare && e.Severity > 0f) _holdTimer = EventHoldSeconds; // time to read the damage
                 continue;
             }
-            Hud.ShowMessage($"Ngày {step.Day}: {EventText(e)}");
+            Hud.ShowMessage($"Day {step.Day}: {EventText(e)}");
             if (DebugLog) GD.Print($"[Control] Cruise event day {step.Day}: {e.Type}");
         }
         if (step.DamagedModules is { Count: > 0 })
-            Hud.ShowMessage($"Ngày {step.Day}: thiết bị hỏng: {string.Join(", ", step.DamagedModules)}");
+            Hud.ShowMessage($"Day {step.Day}: equipment failed: {string.Join(", ", step.DamagedModules)}");
     }
 
     /// <summary>B11/B12: text of a cruise event, with the flare warning (Severity 0) and the damaged parts.</summary>
     public static string EventText(FlightEvent e) => e.Type switch
     {
-        FlightEventType.SolarFlare when e.Severity < 1f => $"cảm biến {e.SourceId} báo bão mặt trời sắp tới",
-        FlightEventType.SolarFlare => "bão mặt trời" + (string.IsNullOrEmpty(e.SourceId) ? ", không thiết bị nào hỏng" : ""),
-        FlightEventType.InstrumentFailure => $"lỗi thiết bị {e.SourceId}",
-        FlightEventType.CryoLeak => $"bình {e.SourceId} bị rò (bấm V để bịt)",
-        FlightEventType.HullBreach => "thủng vỏ khoang lái (bấm V để bịt)",
-        FlightEventType.EngineFlameout => $"động cơ {e.SourceId} tắt giữa chừng, đã đốt lại",
-        FlightEventType.MeteorField => "phía trước có bãi thiên thạch",
+        FlightEventType.SolarFlare when e.Severity < 1f => $"sensor {e.SourceId} warns of an incoming solar storm",
+        FlightEventType.SolarFlare => "solar storm" + (string.IsNullOrEmpty(e.SourceId) ? ", no equipment failed" : ""),
+        FlightEventType.InstrumentFailure => $"equipment fault {e.SourceId}",
+        FlightEventType.CryoLeak => $"tank {e.SourceId} is leaking (press V to seal)",
+        FlightEventType.HullBreach => "pod hull breach (press V to seal)",
+        FlightEventType.EngineFlameout => $"engine {e.SourceId} cut out mid-burn, reignited",
+        FlightEventType.MeteorField => "meteoroid field ahead",
         _ => EventText(e.Type),
     };
 
@@ -259,7 +259,7 @@ public partial class CruiseController : Node
         {
             _waitForEnter = false;
             _holdTimer = 0f;
-            Hud.ShowMessage("Tiếp tục hành trình...");
+            Hud.ShowMessage("Continuing the journey...");
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -275,7 +275,7 @@ public partial class CruiseController : Node
         {
             HasBurned = true; // debug: skip the transfer burn (no fuel used)
             Hud.SetBurnDone(true);
-            Hud.ShowMessage("[DEBUG K] Bỏ qua đốt chuyển quỹ đạo");
+            Hud.ShowMessage("[DEBUG K] Skipped transfer burn");
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -283,7 +283,7 @@ public partial class CruiseController : Node
         {
             StormShelter = !StormShelter;
             _sim.PowerDownForFlare(StormShelter);
-            Hud.ShowMessage(StormShelter ? "Chế độ trú bão: tắt toàn bộ thiết bị để tránh bức xạ" : "Đã bật lại thiết bị");
+            Hud.ShowMessage(StormShelter ? "Storm shelter mode: all equipment off to avoid radiation" : "Equipment back on");
             GetViewport().SetInputAsHandled();
         }
     }
@@ -300,14 +300,14 @@ public partial class CruiseController : Node
             if (e.Severity <= 0f)
             {
                 _slowTimer = FlareWarningSlowSeconds;
-                Hud.ShowMessage($"Ngày {day}: cảm biến báo BÃO MẶT TRỜI sắp tới! Bấm H để trú bão.");
+                Hud.ShowMessage($"Day {day}: sensors warn of an incoming SOLAR STORM! Press H to shelter.");
                 return true;
             }
             StormShelter = false;
             var broke = _lastBroken;
             Hud.ShowMessage(broke.Count == 0
-                ? $"Ngày {day}: bão mặt trời đi qua, không thiết bị nào hỏng."
-                : $"Ngày {day}: bão mặt trời làm hỏng {string.Join(", ", broke)}. Bấm B để khởi động lại.");
+                ? $"Day {day}: the solar storm passed, no equipment failed."
+                : $"Day {day}: the solar storm damaged {string.Join(", ", broke)}. Press B to restart.");
             return true;
         }
         if (e.Type != FlightEventType.MeteorField) return false;
@@ -338,7 +338,7 @@ public partial class CruiseController : Node
         {
             _dodgeTimer = 0f;
             Hud.Visible = true;
-            Hud.ShowMessage($"Ngày {day}: {report}" + (hits > 0 ? " (B: khởi động lại, V: bịt rò rỉ)" : ""));
+            Hud.ShowMessage($"Day {day}: {report}" + (hits > 0 ? " (B: reboot, V: seal leak)" : ""));
             RefreshDeltaV();
         };
         Vehicle.GetParent().AddChild(dodge);
@@ -354,7 +354,7 @@ public partial class CruiseController : Node
         RocketPart hit = targets[_rng.RandiRange(0, targets.Count - 1)];
         string name = string.IsNullOrEmpty(hit.Definition?.DisplayName) ? hit.ModelId : hit.Definition.DisplayName;
         bool damaged = MeteorImpact.Resolve(hit, _rng.RandfRange(4f, 30f));
-        Hud.ShowMessage(damaged ? $"{prefix} Thiên thạch làm hư {name} (B để khởi động lại thiết bị hỏng)" : $"{prefix} Thiên thạch va vào {name}, vỏ chịu được");
+        Hud.ShowMessage(damaged ? $"{prefix} Meteoroid damaged {name} (B to restart broken equipment)" : $"{prefix} Meteoroid hit {name}, the hull held");
         RefreshDeltaV();
     }
 
@@ -373,10 +373,10 @@ public partial class CruiseController : Node
     /// <summary>Player-facing text for a cruise event.</summary>
     public static string EventText(FlightEventType type) => type switch
     {
-        FlightEventType.PowerBrownout => "mất điện, pin cạn (mở pin mặt trời bằng G)",
-        FlightEventType.ComponentOverheat => "linh kiện quá nhiệt",
-        FlightEventType.DebrisWarning => "cảnh báo mảnh vỡ",
-        FlightEventType.SeuGlitch => "lỗi bức xạ trong máy tính",
+        FlightEventType.PowerBrownout => "power lost, battery empty (open solar panels with G)",
+        FlightEventType.ComponentOverheat => "component overheating",
+        FlightEventType.DebrisWarning => "debris warning",
+        FlightEventType.SeuGlitch => "radiation fault in the computer",
         _ => type.ToString(),
     };
 

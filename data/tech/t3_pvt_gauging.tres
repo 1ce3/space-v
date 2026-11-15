@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_flow_burn_integrator")
 UnlocksModelIds = PackedStringArray("mod_pvt_gauging")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiên liệu"
+Category = "Fuel sensors"

@@ -108,8 +108,8 @@ public partial class PodInventoryGrid : Godot.Control
         Vector2I? cell = CellAt(atPosition);
         Vector2I? anchor = cell == null ? null : Building?.GetModuleCellAt(cell.Value);
         if (anchor == null || !Building.InstalledModules.TryGetValue(anchor.Value, out ModuleDefinition def))
-            return "Kéo module từ danh sách vào đây";
-        return def.GetFormattedTooltip() + "\nKéo để di chuyển, kéo ra ngoài hoặc chuột phải để gỡ";
+            return "Drag modules from the list here";
+        return def.GetFormattedTooltip() + "\nDrag to move; drag out or right-click to remove";
     }
 
     public override Variant _GetDragData(Vector2 atPosition)

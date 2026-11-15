@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_venera4_barometer")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

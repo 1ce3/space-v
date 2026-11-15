@@ -11,4 +11,4 @@ CostRP = 90
 PrerequisiteNodeIds = PackedStringArray("t2_subcooled_rp1")
 UnlocksModelIds = PackedStringArray("eng_be_4", "eng_raptor_2_3", "eng_raptor_center", "eng_rvac")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

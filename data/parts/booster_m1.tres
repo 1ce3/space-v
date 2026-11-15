@@ -9,7 +9,7 @@ point_count = 2
 [resource]
 script = ExtResource("1_script")
 ModelId = "booster_m1"
-DisplayName = "Tên lửa đẩy rắn M1"
+DisplayName = "Solid booster M1"
 Tier = 1
 BuildWeight = 3
 DryMass = 500.0

@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_zarya_vhf_uhf")
 UnlocksModelIds = PackedStringArray("mod_unified_s_band")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

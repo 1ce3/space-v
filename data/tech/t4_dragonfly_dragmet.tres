@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t4_vaisala_barocap")
 UnlocksModelIds = PackedStringArray("mod_dragonfly_dragmet")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

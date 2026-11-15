@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_sight_glass_dipstick")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiên liệu"
+Category = "Fuel sensors"

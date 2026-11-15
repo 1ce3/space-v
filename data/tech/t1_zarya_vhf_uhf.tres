@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray("t1_d200_pulse_beacon")
 UnlocksModelIds = PackedStringArray("mod_zarya_vhf_uhf")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

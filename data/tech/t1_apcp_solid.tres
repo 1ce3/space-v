@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray("t0_solid_propellant")
 UnlocksModelIds = PackedStringArray("eng_thiokol_srb")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

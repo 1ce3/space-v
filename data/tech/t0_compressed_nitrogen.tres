@@ -8,4 +8,5 @@ NodeId = "t0_compressed_nitrogen"
 DisplayName = "Compressed Nitrogen (Cold Gas)"
 Tier = 0
 UnlocksModelIds = PackedStringArray("rcs_cold_gas")
-Category = "Nhiên liệu"
+BuildWeightBonus = 0
+Category = "Fuel"
