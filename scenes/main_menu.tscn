@@ -1,0 +1,107 @@
+[gd_scene format=3 uid="uid://yn6irhi88pjk"]
+
+[ext_resource type="PackedScene" uid="uid://2xstkesjv6q7" path="res://assets/terrain.blend" id="1_l6cm7"]
+[ext_resource type="PackedScene" uid="uid://c6nen4ri8q87f" path="res://assets/holder.glb" id="2_ekxnf"]
+[ext_resource type="PackedScene" uid="uid://dinvk3nwhcs36" path="res://assets/nasa_center.glb" id="3_bqqt6"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vue75"]
+bg_color = Color(0.23537049, 0.23537055, 0.23537043, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_l6cm7"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_ekxnf"]
+sky_material = SubResource("ProceduralSkyMaterial_l6cm7")
+
+[sub_resource type="Environment" id="Environment_bqqt6"]
+background_mode = 2
+sky = SubResource("Sky_ekxnf")
+sky_rotation = Vector3(0, 0, -0.08552113)
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="MainMenu" type="Control" unique_id=1313533055]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=578723175]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.072000004
+anchor_top = 0.545
+anchor_right = 0.34500003
+anchor_bottom = 0.82900006
+offset_left = 0.055992126
+offset_top = -0.16000366
+offset_right = 0.55996704
+offset_bottom = -0.1920166
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="Button" type="Button" parent="VBoxContainer" unique_id=324829690]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 35
+theme_override_styles/normal = SubResource("StyleBoxFlat_vue75")
+text = "Start"
+
+[node name="Button2" type="Button" parent="VBoxContainer" unique_id=544574534]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 35
+theme_override_styles/normal = SubResource("StyleBoxFlat_vue75")
+text = "Credits"
+
+[node name="Button3" type="Button" parent="VBoxContainer" unique_id=957126119]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 35
+theme_override_styles/normal = SubResource("StyleBoxFlat_vue75")
+text = "Exit"
+
+[node name="Label" type="Label" parent="." unique_id=1335050146]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.63100004
+anchor_top = 0.040000003
+anchor_right = 0.934
+anchor_bottom = 0.21800001
+offset_left = 0.08795166
+offset_top = 12.079998
+offset_right = 0.031982422
+offset_bottom = -0.26400757
+theme_override_font_sizes/font_size = 56
+text = "Space - V"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Node3D" type="Node3D" parent="." unique_id=1224214370]
+
+[node name="terrain" parent="Node3D" unique_id=683280704 instance=ExtResource("1_l6cm7")]
+transform = Transform3D(1, 0, 0, 0, 0.6, 0, 0, 0, 1, 624.36066, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=1671306237]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -80.30658, 24.956028, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Node3D" unique_id=667037339]
+transform = Transform3D(-0.2933773, -0.28747094, -0.91175115, -0.94619787, 0.22351585, 0.23398776, 0.13652611, 0.9313438, -0.33757904, 0, 283.2806, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Node3D" unique_id=1357568757]
+environment = SubResource("Environment_bqqt6")
+
+[node name="holder" parent="Node3D" unique_id=66506750 instance=ExtResource("2_ekxnf")]
+transform = Transform3D(0.2991524, 0, -0.022535387, 0, 0.29999998, 0, 0.022535387, 0, 0.2991524, -65.54657, 10.141527, 11.357555)
+
+[node name="nasa_center" parent="Node3D" unique_id=392264443 instance=ExtResource("3_bqqt6")]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, -33.09155, 18.313799, -16.445778)

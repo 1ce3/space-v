@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://biow4qlndk4eq"]
+
+[ext_resource type="PackedScene" uid="uid://2xstkesjv6q7" path="res://assets/terrain.blend" id="1_b0j75"]
+[ext_resource type="PackedScene" uid="uid://dinvk3nwhcs36" path="res://assets/nasa_center.glb" id="3_a0ket"]
+[ext_resource type="Script" uid="uid://kwbob8eje3k8" path="res://scenes/testing_camera_3d.gd" id="3_vjhlg"]
+[ext_resource type="PackedScene" uid="uid://c6nen4ri8q87f" path="res://assets/holder.glb" id="4_tw12r"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_bl13t"]
+sky_horizon_color = Color(0.6742094, 0.68190944, 0.6973067, 1)
+sky_curve = 0.02389801
+ground_bottom_color = Color(0.39634135, 0.49978268, 0.38575086, 1)
+ground_curve = 0.014142174
+
+[sub_resource type="Sky" id="Sky_iyx0m"]
+sky_material = SubResource("ProceduralSkyMaterial_bl13t")
+
+[sub_resource type="Environment" id="Environment_74lek"]
+background_mode = 2
+sky = SubResource("Sky_iyx0m")
+ambient_light_energy = 0.0
+tonemap_mode = 2
+fog_enabled = true
+fog_mode = 1
+fog_density = 0.667
+fog_sky_affect = 0.0
+fog_height = -160.79
+fog_depth_curve = 0.7320439
+fog_depth_begin = 0.0
+fog_depth_end = 1173.6
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0
+
+[node name="Test" type="Node3D" unique_id=373174049]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1789753248]
+environment = SubResource("Environment_74lek")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=414119697]
+transform = Transform3D(-0.8090412, 0.57114404, -0.13873349, -0.54478806, -0.64012367, 0.5417081, 0.22058682, 0.5138445, 0.82903874, 0, 27.724487, 0)
+shadow_enabled = true
+
+[node name="terrain" parent="." unique_id=683280704 instance=ExtResource("1_b0j75")]
+transform = Transform3D(1.31, 0, 0, 0, 0.645, 0, 0, 0, 1.145, 709.2456, 10.800708, -10.557186)
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=2046143666 node_paths=PackedStringArray("world_environment", "terrain_node")]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -104.39622, 28.800972, -4.7378707)
+script = ExtResource("3_vjhlg")
+fly_speed = 30.0
+world_environment = NodePath("../WorldEnvironment")
+terrain_node = NodePath("../terrain")
+normal_density = 0.0
+target_z_rotation_degrees = -40.0
+rotation_distance = 350.0
+darken_distance = 300.0
+
+[node name="nasa_center" parent="." unique_id=392264443 instance=ExtResource("3_a0ket")]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, -61.250504, 31.064625, -42.09668)
+
+[node name="holder" parent="." unique_id=66506750 instance=ExtResource("4_tw12r")]
+transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, -75.09133, 21.072529, 2.9891224)
