@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://bcca0eqjmujlk"]
+
+[ext_resource type="Script" uid="uid://c0rxea6psjphr" path="res://scenes/mars_scene/terrain_manager.gd" id="1_v6vxf"]
+[ext_resource type="Material" uid="uid://dfl31jd0qw5et" path="res://scenes/mars_scene/mars_material.res" id="2_vml0l"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_vml0l"]
+sky_top_color = Color(0.65234184, 0.35524192, 0.26380816, 1)
+sky_horizon_color = Color(0.90344805, 0.58026904, 0.4053732, 1)
+ground_bottom_color = Color(0.3599311, 0.23073435, 0.13452712, 1)
+ground_horizon_color = Color(0.83781934, 0.60570997, 0.34449184, 1)
+
+[sub_resource type="Sky" id="Sky_jsjqu"]
+sky_material = SubResource("ProceduralSkyMaterial_vml0l")
+
+[sub_resource type="Environment" id="Environment_4j5e4"]
+background_mode = 2
+sky = SubResource("Sky_jsjqu")
+tonemap_mode = 2
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.8903308, 0.55242723, 0.38347548, 1)
+fog_density = 1.0
+fog_sky_affect = 0.0
+fog_depth_curve = 1.5
+fog_depth_begin = 120.0
+fog_depth_end = 420.0
+volumetric_fog_enabled = false
+volumetric_fog_density = 0.01
+volumetric_fog_emission = Color(0.37036085, 0.16121525, 0.11764351, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_v6vxf"]
+noise_type = 0
+
+[node name="MarsLandingsite" type="Node3D" unique_id=150423962]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2050551887]
+transform = Transform3D(-0.16622715, -0.9745852, 0.15017438, 0.9548346, -0.19711901, -0.22234039, 0.24629186, 0.10643269, 0.9633341, 0, 203.45575, 5.1984253)
+light_energy = 0.127
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1476574852]
+environment = SubResource("Environment_4j5e4")
+
+[node name="Node3D" type="Node3D" parent="." unique_id=900282803]
+transform = Transform3D(1, 0, 0, 0, 0.33, 0, 0, 0, 1, 0, 0, -351.03613)
+script = ExtResource("1_v6vxf")
+mars_material = ExtResource("2_vml0l")
+noise = SubResource("FastNoiseLite_v6vxf")
+render_distance = 10

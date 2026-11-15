@@ -14,6 +14,8 @@ public partial class BodyEnvironmentVisual : Node3D
 {
     [Export] public FlightSettings Settings { get; set; }
     [Export] public WorldEnvironment WorldEnvironment { get; set; }
+    /// <summary>Node the streaming terrain follows (the rocket's VehicleRoot).</summary>
+    [Export] public Node3D FollowTarget { get; set; }
     /// <summary>Half width of the generated ground strip (m).</summary>
     [Export] public float GroundHalfWidthM { get; set; } = 50000f;
     /// <summary>Depth of the generated ground strip (m, along Z).</summary>
@@ -74,6 +76,35 @@ public partial class BodyEnvironmentVisual : Node3D
     private Node3D _surfaceAnchor;
     private Node3D _content;
     private Color _surfaceSky;
+    private Environment _defaultEnv;
+    private bool _useSceneEnv;
+    private float _sceneFogDensity;
+    private float _sceneVolFogDensity;
+
+    /// <summary>Uses the WorldEnvironment authored inside the environment scene (fog, sky) in place of the flight scene's one.</summary>
+    private void AdoptSceneEnvironment(Node root)
+    {
+        WorldEnvironment sceneWe = FindWorldEnvironment(root);
+        if (sceneWe?.Environment == null || WorldEnvironment == null) return;
+        _defaultEnv ??= WorldEnvironment.Environment;
+        WorldEnvironment.Environment = sceneWe.Environment;
+        sceneWe.GetParent().RemoveChild(sceneWe); // only one WorldEnvironment may be active
+        sceneWe.QueueFree();
+        _useSceneEnv = true;
+        _sceneFogDensity = WorldEnvironment.Environment.FogDensity;
+        _sceneVolFogDensity = WorldEnvironment.Environment.VolumetricFogDensity;
+    }
+
+    private static WorldEnvironment FindWorldEnvironment(Node node)
+    {
+        if (node is WorldEnvironment we) return we;
+        foreach (Node child in node.GetChildren())
+        {
+            WorldEnvironment found = FindWorldEnvironment(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
     public override void _Ready()
     {
@@ -85,13 +116,18 @@ public partial class BodyEnvironmentVisual : Node3D
     {
         Body = body;
         _content?.QueueFree();
+        if (_useSceneEnv && _defaultEnv != null && WorldEnvironment != null) WorldEnvironment.Environment = _defaultEnv;
+        _useSceneEnv = false;
         _content = new Node3D { Name = "Content" };
         AddChild(_content);
 
         bool isMars = body != null && Settings != null && body.BodyId == Settings.MarsBodyId;
         if (body?.EnvironmentScene != null)
         {
-            _content.AddChild(body.EnvironmentScene.Instantiate());
+            Node envRoot = body.EnvironmentScene.Instantiate();
+            _content.AddChild(envRoot);
+            BindFollowTarget(envRoot);
+            AdoptSceneEnvironment(envRoot);
         }
         else
         {
@@ -108,6 +144,14 @@ public partial class BodyEnvironmentVisual : Node3D
         ApplySkyRatio(1f);
     }
 
+    /// <summary>Gives the rocket to any node in the environment scene that has set_target_player (streaming terrain).</summary>
+    private void BindFollowTarget(Node node)
+    {
+        if (FollowTarget == null) return;
+        if (node.HasMethod("set_target_player")) node.Call("set_target_player", FollowTarget);
+        foreach (Node child in node.GetChildren()) BindFollowTarget(child);
+    }
+
     /// <summary>Blends the sky toward space color as the air thins.</summary>
     public void UpdateSky(float altitudeMeters, float airDensity)
     {
@@ -116,7 +160,13 @@ public partial class BodyEnvironmentVisual : Node3D
         ApplySkyRatio(Mathf.Sqrt(ratio));
 
         Environment env = WorldEnvironment?.Environment;
-        if (env != null)
+        if (env != null && _useSceneEnv)
+        {
+            // Fog/sky authored in the environment scene: only thin the fog out with the air.
+            if (env.VolumetricFogEnabled) env.VolumetricFogDensity = _sceneVolFogDensity * Mathf.Sqrt(ratio);
+            if (env.FogEnabled) env.FogDensity = _sceneFogDensity * Mathf.Sqrt(ratio);
+        }
+        else if (env != null)
         {
             env.FogEnabled = EnableFog && ratio > 0.001f;
             env.FogMode = Environment.FogModeEnum.Depth;
