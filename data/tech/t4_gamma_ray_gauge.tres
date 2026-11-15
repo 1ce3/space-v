@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://dk1t6pv7p37fp"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 4
 CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_ultrasonic_optical_sensor", "t3_pvt_gauging")
 UnlocksModelIds = PackedStringArray("mod_gamma_ray_gauge")
-BuildWeightBonus = 0
 Category = "Fuel sensors"

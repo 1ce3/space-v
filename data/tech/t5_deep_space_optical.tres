@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://qakvfmdlm72w"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 5
 CostRP = 200
 PrerequisiteNodeIds = PackedStringArray("t4_small_deep_space_transponder", "t4_delta_dor_navigation")
 UnlocksModelIds = PackedStringArray("mod_deep_space_optical")
-BuildWeightBonus = 0
 Category = "Comms"

@@ -1,14 +1,12 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://dstxhc2r3dcmx"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
 NodeId = "t1_hypergolic"
 DisplayName = "Aerozine 50 / MMH + N2O4 (Hypergolic)"
-Tier = 1
 CostRP = 30
 PrerequisiteNodeIds = PackedStringArray("t0_compressed_nitrogen")
 UnlocksModelIds = PackedStringArray("eng_lr87_aj7", "eng_lr91", "eng_aj10_137", "rcs_r4d", "tank_hg1")
-BuildWeightBonus = 0
 Category = "Fuel"

@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://bfspumbdqarve"]
 
-[ext_resource type="PackedScene" uid="uid://lbd3hs6xyby8" path="res://assets/tree_2.glb" id="1_0c70g"]
+[ext_resource type="PackedScene" uid="uid://lbd3hs6xyby8" path="res://assets/terrain/tree_2.glb" id="1_0c70g"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hdnud"]
 resource_name = "branch"

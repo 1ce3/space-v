@@ -1,8 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dtl0yqq47v4vq"]
 
-[ext_resource type="Script" path="res://research/ui/ResearchScreenRoot.cs" id="1_root"]
+[ext_resource type="Script" uid="uid://due4t8imbk41u" path="res://research/ui/ResearchScreenRoot.cs" id="1_root"]
 
-[node name="ResearchScreenRoot" type="Control" node_paths=PackedStringArray("BuildButton", "RPLabel", "WeightLabel", "StatusLabel", "Columns", "Background", "HeaderPanel", "RPBadge", "WeightBadge")]
+[node name="ResearchScreenRoot" type="Control" unique_id=738885256 node_paths=PackedStringArray("BuildButton", "RPLabel", "WeightLabel", "StatusLabel", "Columns", "Background", "HeaderPanel", "RPBadge", "WeightBadge")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ HeaderPanel = NodePath("Layout/HeaderPanel")
 RPBadge = NodePath("Layout/HeaderPanel/Header/RPBadge")
 WeightBadge = NodePath("Layout/HeaderPanel/Header/WeightBadge")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1851223255]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -29,7 +29,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.055, 0.067, 0.094, 1)
 
-[node name="Layout" type="VBoxContainer" parent="."]
+[node name="Layout" type="VBoxContainer" parent="." unique_id=319306110]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -42,94 +42,94 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 18
 
-[node name="HeaderPanel" type="PanelContainer" parent="Layout"]
+[node name="HeaderPanel" type="PanelContainer" parent="Layout" unique_id=778382397]
 layout_mode = 2
 
-[node name="Header" type="HBoxContainer" parent="Layout/HeaderPanel"]
+[node name="Header" type="HBoxContainer" parent="Layout/HeaderPanel" unique_id=1551870475]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TitleBox" type="VBoxContainer" parent="Layout/HeaderPanel/Header"]
+[node name="TitleBox" type="VBoxContainer" parent="Layout/HeaderPanel/Header" unique_id=1608650859]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Layout/HeaderPanel/Header/TitleBox"]
+[node name="Title" type="Label" parent="Layout/HeaderPanel/Header/TitleBox" unique_id=997093197]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Research"
 
-[node name="Subtitle" type="Label" parent="Layout/HeaderPanel/Header/TitleBox"]
+[node name="Subtitle" type="Label" parent="Layout/HeaderPanel/Header/TitleBox" unique_id=309477516]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
 theme_override_font_sizes/font_size = 14
 text = "Spend research points to unlock better parts and a bigger build budget."
 
-[node name="RPBadge" type="PanelContainer" parent="Layout/HeaderPanel/Header"]
+[node name="RPBadge" type="PanelContainer" parent="Layout/HeaderPanel/Header" unique_id=1158422479]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
-[node name="Box" type="VBoxContainer" parent="Layout/HeaderPanel/Header/RPBadge"]
+[node name="Box" type="VBoxContainer" parent="Layout/HeaderPanel/Header/RPBadge" unique_id=1790809089]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Caption" type="Label" parent="Layout/HeaderPanel/Header/RPBadge/Box"]
+[node name="Caption" type="Label" parent="Layout/HeaderPanel/Header/RPBadge/Box" unique_id=1088784641]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
 theme_override_font_sizes/font_size = 12
 text = "RESEARCH POINTS"
 horizontal_alignment = 1
 
-[node name="Value" type="Label" parent="Layout/HeaderPanel/Header/RPBadge/Box"]
+[node name="Value" type="Label" parent="Layout/HeaderPanel/Header/RPBadge/Box" unique_id=1930275819]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "0"
 horizontal_alignment = 1
 
-[node name="WeightBadge" type="PanelContainer" parent="Layout/HeaderPanel/Header"]
+[node name="WeightBadge" type="PanelContainer" parent="Layout/HeaderPanel/Header" unique_id=1636692215]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
-[node name="Box" type="VBoxContainer" parent="Layout/HeaderPanel/Header/WeightBadge"]
+[node name="Box" type="VBoxContainer" parent="Layout/HeaderPanel/Header/WeightBadge" unique_id=466667701]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Caption" type="Label" parent="Layout/HeaderPanel/Header/WeightBadge/Box"]
+[node name="Caption" type="Label" parent="Layout/HeaderPanel/Header/WeightBadge/Box" unique_id=1737834531]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.565, 0.604, 0.671, 1)
 theme_override_font_sizes/font_size = 12
 text = "MAX BUILD WEIGHT"
 horizontal_alignment = 1
 
-[node name="Value" type="Label" parent="Layout/HeaderPanel/Header/WeightBadge/Box"]
+[node name="Value" type="Label" parent="Layout/HeaderPanel/Header/WeightBadge/Box" unique_id=1309342630]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "20"
 horizontal_alignment = 1
 
-[node name="BuildButton" type="Button" parent="Layout/HeaderPanel/Header"]
+[node name="BuildButton" type="Button" parent="Layout/HeaderPanel/Header" unique_id=1870510191]
 custom_minimum_size = Vector2(190, 52)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 17
 text = "Go to Workshop  ›"
 
-[node name="Scroll" type="ScrollContainer" parent="Layout"]
+[node name="Scroll" type="ScrollContainer" parent="Layout" unique_id=1959918811]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Margin" type="MarginContainer" parent="Layout/Scroll"]
+[node name="Margin" type="MarginContainer" parent="Layout/Scroll" unique_id=1028536899]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 12
 
-[node name="Columns" type="HBoxContainer" parent="Layout/Scroll/Margin"]
+[node name="Columns" type="HBoxContainer" parent="Layout/Scroll/Margin" unique_id=1527123240]
 layout_mode = 2
 
-[node name="StatusLabel" type="Label" parent="Layout"]
+[node name="StatusLabel" type="Label" parent="Layout" unique_id=408096556]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Pick a node to unlock."

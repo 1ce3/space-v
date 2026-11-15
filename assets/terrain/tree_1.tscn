@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://cei5o4x5wl0aq"]
 
-[ext_resource type="PackedScene" uid="uid://823j20h87hn5" path="res://assets/tree_1.glb" id="1_lb21w"]
+[ext_resource type="PackedScene" uid="uid://823j20h87hn5" path="res://assets/terrain/tree_1.glb" id="1_lb21w"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_snb0m"]
 resource_name = "leaf"

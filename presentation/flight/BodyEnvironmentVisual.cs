@@ -14,6 +14,8 @@ public partial class BodyEnvironmentVisual : Node3D
 {
     [Export] public FlightSettings Settings { get; set; }
     [Export] public WorldEnvironment WorldEnvironment { get; set; }
+    /// <summary>Node the streaming terrain follows (the rocket's VehicleRoot).</summary>
+    [Export] public Node3D FollowTarget { get; set; }
     /// <summary>Half width of the generated ground strip (m).</summary>
     [Export] public float GroundHalfWidthM { get; set; } = 50000f;
     /// <summary>Depth of the generated ground strip (m, along Z).</summary>
@@ -28,7 +30,7 @@ public partial class BodyEnvironmentVisual : Node3D
     [ExportGroup("Altitude transition")]
     [Export] public bool EnableFog { get; set; } = true;
     [Export] public bool EnablePlanet { get; set; } = true;
-    [Export] public bool EnableAtmosphereGlow { get; set; } = false;
+    [Export] public bool EnableAtmosphereGlow { get; set; } = true;
     [Export] public bool EnableStars { get; set; } = true;
     /// <summary>Local map (EnvironmentScene or the boxes) fades out by camera distance between these (m).</summary>
     [Export] public float LocalFadeStartM { get; set; } = 8000f;
@@ -37,18 +39,20 @@ public partial class BodyEnvironmentVisual : Node3D
     [Export(PropertyHint.Range, "0,0.01,0.00001")] public float SurfaceFogDensity { get; set; } = 0.00025f;
     /// <summary>Planet sphere sits this far below y = 0 so the local map always covers it near the pad.</summary>
     [Export] public float PlanetSinkM { get; set; } = 30f;
+    /// <summary>Visual multiplier on Body.Radius for the rendered planet sphere so 2-15 km altitude has realistic wide curvature instead of a tight dome.</summary>
+    [Export(PropertyHint.Range, "1,15,0.5")] public float VisualRadiusMultiplier { get; set; } = 10f;
     [Export] public Texture2D EarthTexture { get; set; }
     [Export] public Texture2D MarsTexture { get; set; }
-    [Export] public Color EarthPlanetColor { get; set; } = new(0.18f, 0.32f, 0.55f);
+    [Export] public Color EarthPlanetColor { get; set; } = new(0.18f, 0.36f, 0.62f);
     [Export] public Color MarsPlanetColor { get; set; } = new(0.66f, 0.36f, 0.22f);
-    [Export] public Color EarthAtmosphereColor { get; set; } = new(0.45f, 0.7f, 1f, 0.55f);
-    [Export] public Color MarsAtmosphereColor { get; set; } = new(0.95f, 0.65f, 0.45f, 0.35f);
+    [Export] public Color EarthAtmosphereColor { get; set; } = new(0.76f, 0.88f, 0.98f, 1.0f);
+    [Export] public Color MarsAtmosphereColor { get; set; } = new(0.95f, 0.65f, 0.45f, 0.85f);
     /// <summary>Atmosphere shell thickness as a share of the radius.</summary>
     [Export(PropertyHint.Range, "0,0.1,0.001")] public float AtmosphereShellFraction { get; set; } = 0.012f;
     [Export] public int StarCount { get; set; } = 1500;
     /// <summary>Stars appear between these altitudes (m).</summary>
-    [Export] public float StarsStartM { get; set; } = 25000f;
-    [Export] public float StarsFullM { get; set; } = 60000f;
+    [Export] public float StarsStartM { get; set; } = 15000f;
+    [Export] public float StarsFullM { get; set; } = 45000f;
 
     [ExportGroup("Sky")]
     /// <summary>True: keep the WorldEnvironment sky as set up in the scene (Godot default procedural sky if none) and only dim it with altitude.</summary>
@@ -74,6 +78,96 @@ public partial class BodyEnvironmentVisual : Node3D
     private Node3D _surfaceAnchor;
     private Node3D _content;
     private Color _surfaceSky;
+    private Environment _defaultEnv;
+    private bool _useSceneEnv;
+    private float _sceneFogDensity;
+    private float _sceneVolFogDensity;
+    private float _sceneFogBegin;
+    private float _sceneFogEnd;
+    private float _sceneAmbient = 1f;
+    private ProceduralSkyMaterial _sceneSkyMat;
+    private ShaderMaterial _sceneShaderSkyMat;
+    private ShaderMaterial _planetMat;
+    private Color _sceneFogColor;
+    private Color _sceneSkyTop;
+    private Color _sceneSkyHorizon;
+    private Color _sceneGroundBottom;
+    private Color _sceneGroundHorizon;
+    private float _sceneSkyCurve = 0.15f;
+    private float _sceneGroundCurve = 0.02f;
+    private DirectionalLight3D _sun;
+    private Color _sunBaseColor = Colors.White;
+    /// <summary>Ambient light energy in space (scene-authored environments only).</summary>
+    [ExportGroup("Altitude transition")]
+    [Export(PropertyHint.Range, "0,1,0.01")] public float SpaceAmbientEnergy { get; set; } = 0.08f;
+    /// <summary>Ground haze (scene-authored fog) is full below this altitude (m)...</summary>
+    [Export] public float GroundFogFadeStartM { get; set; } = 200f;
+    /// <summary>...and gone above this altitude (m).</summary>
+    [Export] public float GroundFogFadeEndM { get; set; } = 2500f;
+    /// <summary>Altitude at which the sky and horizon finish transitioning into space black (m).</summary>
+    [Export] public float SpaceTransitionAltitudeM { get; set; } = 50000f;
+
+    /// <summary>Uses the WorldEnvironment authored inside the environment scene (fog, sky) in place of the flight scene's one.</summary>
+    private void AdoptSceneEnvironment(Node root)
+    {
+        WorldEnvironment sceneWe = FindWorldEnvironment(root);
+        if (sceneWe?.Environment == null || WorldEnvironment == null) return;
+        _defaultEnv ??= WorldEnvironment.Environment;
+        Environment clonedEnv = (Environment)sceneWe.Environment.Duplicate(true);
+        WorldEnvironment.Environment = clonedEnv;
+        sceneWe.GetParent().RemoveChild(sceneWe); // only one WorldEnvironment may be active
+        sceneWe.QueueFree();
+        _useSceneEnv = true;
+        _sceneFogDensity = clonedEnv.FogDensity;
+        _sceneVolFogDensity = clonedEnv.VolumetricFogDensity;
+        _sceneFogBegin = clonedEnv.FogDepthBegin;
+        _sceneFogEnd = clonedEnv.FogDepthEnd;
+        _sceneFogColor = clonedEnv.FogLightColor;
+        _sceneAmbient = clonedEnv.AmbientLightEnergy;
+        if (clonedEnv.Sky?.SkyMaterial is ShaderMaterial sm)
+        {
+            _sceneShaderSkyMat = sm;
+            _sceneSkyMat = null;
+        }
+        else if (clonedEnv.Sky?.SkyMaterial is ProceduralSkyMaterial psm)
+        {
+            _sceneSkyMat = psm;
+            _sceneShaderSkyMat = null;
+            _sceneSkyTop = psm.SkyTopColor;
+            _sceneSkyHorizon = psm.SkyHorizonColor;
+            _sceneGroundBottom = psm.GroundBottomColor;
+            _sceneGroundHorizon = psm.GroundHorizonColor;
+            _sceneSkyCurve = psm.SkyCurve;
+            _sceneGroundCurve = psm.GroundCurve;
+        }
+        else
+        {
+            _sceneSkyMat = null;
+            _sceneShaderSkyMat = null;
+        }
+    }
+
+    private static DirectionalLight3D FindSun(Node node)
+    {
+        if (node is DirectionalLight3D sun) return sun;
+        foreach (Node child in node.GetChildren())
+        {
+            DirectionalLight3D found = FindSun(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static WorldEnvironment FindWorldEnvironment(Node node)
+    {
+        if (node is WorldEnvironment we) return we;
+        foreach (Node child in node.GetChildren())
+        {
+            WorldEnvironment found = FindWorldEnvironment(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
     public override void _Ready()
     {
@@ -85,13 +179,24 @@ public partial class BodyEnvironmentVisual : Node3D
     {
         Body = body;
         _content?.QueueFree();
+        if (_useSceneEnv && _defaultEnv != null && WorldEnvironment != null) WorldEnvironment.Environment = _defaultEnv;
+        _useSceneEnv = false;
+        _sceneSkyMat = null;
+        _sceneShaderSkyMat = null;
+        _planetMat = null;
+        _sun = null;
         _content = new Node3D { Name = "Content" };
         AddChild(_content);
 
         bool isMars = body != null && Settings != null && body.BodyId == Settings.MarsBodyId;
         if (body?.EnvironmentScene != null)
         {
-            _content.AddChild(body.EnvironmentScene.Instantiate());
+            Node envRoot = body.EnvironmentScene.Instantiate();
+            _content.AddChild(envRoot);
+            BindFollowTarget(envRoot);
+            _sun = FindSun(envRoot);
+            if (_sun != null) _sunBaseColor = _sun.LightColor;
+            AdoptSceneEnvironment(envRoot);
         }
         else
         {
@@ -108,15 +213,63 @@ public partial class BodyEnvironmentVisual : Node3D
         ApplySkyRatio(1f);
     }
 
-    /// <summary>Blends the sky toward space color as the air thins.</summary>
+    /// <summary>Gives the rocket to any node in the environment scene that has set_target_player (streaming terrain).</summary>
+    private void BindFollowTarget(Node node)
+    {
+        if (FollowTarget == null) return;
+        if (node.HasMethod("set_target_player")) node.Call("set_target_player", FollowTarget);
+        foreach (Node child in node.GetChildren()) BindFollowTarget(child);
+    }
+
+    /// <summary>Blends the sky toward space color as the air thins and altitude increases.</summary>
     public void UpdateSky(float altitudeMeters, float airDensity)
     {
         if (Body == null || Settings == null) return;
         float ratio = Body.SeaLevelDensity > 0f ? Mathf.Clamp(airDensity / Body.SeaLevelDensity, 0f, 1f) : 0f;
-        ApplySkyRatio(Mathf.Sqrt(ratio));
+        float alt = Mathf.Max(altitudeMeters, 0f);
+        float altFactor = 1f - Mathf.Clamp(alt / Mathf.Max(1f, SpaceTransitionAltitudeM), 0f, 1f);
+        float skyFactor = Mathf.Min(Mathf.Pow(ratio, 0.35f), altFactor);
+        float visualRadius = Body.Radius * Mathf.Max(1f, VisualRadiusMultiplier);
+        if (_sceneShaderSkyMat != null)
+        {
+            _sceneShaderSkyMat.SetShaderParameter("rocket_altitude", alt);
+            _sceneShaderSkyMat.SetShaderParameter("visual_planet_radius", visualRadius);
+            _sceneShaderSkyMat.SetShaderParameter("space_altitude", SpaceTransitionAltitudeM);
+        }
+        if (_planetMat != null)
+        {
+            float limbStrength = 1f - Mathf.SmoothStep(32000f, SpaceTransitionAltitudeM * 1.3f, alt);
+            Color lowHaze = _isMars ? new Color(0.92f, 0.68f, 0.50f) : new Color(0.76f, 0.88f, 0.98f);
+            Color highLimb = _isMars ? new Color(0.75f, 0.42f, 0.22f) : new Color(0.32f, 0.68f, 1.0f);
+            Color limbCol = lowHaze.Lerp(highLimb, Mathf.SmoothStep(3000f, 25000f, alt));
+            _planetMat.SetShaderParameter("haze_color", limbCol);
+            _planetMat.SetShaderParameter("haze_strength", limbStrength);
+        }
+        ApplySkyRatio(skyFactor);
 
         Environment env = WorldEnvironment?.Environment;
-        if (env != null)
+        if (env != null && _useSceneEnv)
+        {
+            // Fog/sky authored in the environment scene: thin the fog out with the air and altitude.
+            if (env.VolumetricFogEnabled) env.VolumetricFogDensity = _sceneVolFogDensity * skyFactor;
+            if (env.FogEnabled)
+            {
+                // Ground haze keeps its authored begin/end near the pad (to hide terrain chunk edges),
+                // then transitions into wide aerial-perspective haze matched to the horizon band.
+                float groundFade = 1f - Mathf.SmoothStep(GroundFogFadeStartM, GroundFogFadeEndM, alt);
+                float highAerial = Mathf.Clamp(1f - alt / 28000f, 0f, 1f) * 0.65f;
+                env.FogDensity = _sceneFogDensity * Mathf.Max(groundFade, highAerial * skyFactor);
+                env.FogDepthBegin = Mathf.Lerp(_sceneFogBegin, _sceneFogBegin + alt * 0.35f, 1f - groundFade);
+                env.FogDepthEnd = Mathf.Lerp(_sceneFogEnd, Mathf.Max(_sceneFogEnd, alt * 3.2f + 1800f), 1f - groundFade);
+                Color lowHaze = _isMars ? _sceneFogColor : new Color(0.76f, 0.88f, 0.98f);
+                Color highLimb = _isMars ? _sceneFogColor : new Color(0.32f, 0.68f, 1.0f);
+                env.FogLightColor = lowHaze.Lerp(highLimb, Mathf.SmoothStep(3000f, 25000f, alt));
+            }
+            // Ambient light fades with the air; sunlight loses its warm tint and turns harsh white in space.
+            env.AmbientLightEnergy = Mathf.Lerp(SpaceAmbientEnergy, _sceneAmbient, skyFactor);
+            if (_sun != null) _sun.LightColor = Colors.White.Lerp(_sunBaseColor, skyFactor);
+        }
+        else if (env != null)
         {
             env.FogEnabled = EnableFog && ratio > 0.001f;
             env.FogMode = Environment.FogModeEnum.Depth;
@@ -130,16 +283,12 @@ public partial class BodyEnvironmentVisual : Node3D
         Camera3D cam = GetViewport()?.GetCamera3D();
         if (cam != null && Body != null && EnablePlanet)
         {
-            // Only as far as the horizon (plus margin): keeps depth precision for the rocket and the local map.
+            // Keep the entire visual planet horizon inside the camera frustum so the sphere never clips into a chord.
             float h = Mathf.Max(altitudeMeters, 0f) + 100f;
-            float horizon = Mathf.Sqrt(2f * Body.Radius * h + h * h);
-            cam.Far = Mathf.Clamp(horizon * 1.3f + 20000f, 20000f, Body.Radius * 3f);
-            // Far/Near must stay below ~1e5 or Godot's frustum math fails (create_frustum_points errors, blank screen).
-            // Near must stay well in front of the rocket (camera is ~30-400 m away), so cap it by the camera distance
-            // and shrink Far instead: Far/Near must stay under ~5e4 or Godot's frustum math fails.
+            float horizon = Mathf.Sqrt(2f * visualRadius * h + h * h);
             float camDist = Mathf.Max(5f, cam.Position.Length());
-            cam.Near = Mathf.Clamp(cam.Far / 50000f, 0.5f, camDist * 0.2f);
-            cam.Far = Mathf.Min(cam.Far, cam.Near * 50000f);
+            cam.Near = Mathf.Clamp(camDist * 0.1f, 1.0f, 50f);
+            cam.Far = Mathf.Clamp(horizon * 1.35f + 25000f, 50000f, cam.Near * 80000f);
         }
         UpdateStars(altitudeMeters, cam);
     }
@@ -158,43 +307,60 @@ public partial class BodyEnvironmentVisual : Node3D
         foreach (Node child in node.GetChildren()) ApplyLocalFade(child);
     }
 
-    /// <summary>Planet sphere (curved horizon) and a thin glowing atmosphere shell, centred under the pad.</summary>
+    /// <summary>Planet sphere (curved horizon) with built-in Rayleigh/Mie rim scattering so the horizon edge blends seamlessly into the sky.</summary>
     private void AddPlanet(CelestialBodyDefinition body, bool isMars)
     {
         if (!EnablePlanet || body == null || body.Radius <= 0f) return;
-        float r = body.Radius;
+        float r = body.Radius * Mathf.Max(1f, VisualRadiusMultiplier);
         var center = new Vector3(0f, -r - PlanetSinkM, 0f);
-        Texture2D tex = isMars ? MarsTexture : EarthTexture;
+        Color surfaceCol = isMars ? MarsPlanetColor : EarthPlanetColor;
+        Color hazeCol = isMars ? MarsAtmosphereColor : EarthAtmosphereColor;
+        var planetShader = new Shader
+        {
+            Code = @"shader_type spatial;
+render_mode specular_disabled, fog_disabled;
+uniform vec4 surface_color : source_color = vec4(0.18, 0.36, 0.62, 1.0);
+uniform vec4 haze_color : source_color = vec4(0.76, 0.88, 0.98, 1.0);
+uniform float haze_strength = 1.0;
+void fragment() {
+    float ndotv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+    // Grazing angles near the limb smoothly turn into bright atmospheric haze
+    float rim = pow(1.0 - ndotv, 2.2);
+    float edge_fade = smoothstep(0.0, 0.18, ndotv);
+    ALBEDO = mix(surface_color.rgb, haze_color.rgb, clamp(rim * 1.15, 0.0, 1.0) * haze_strength);
+    EMISSION = haze_color.rgb * (rim * 0.55 * haze_strength);
+    ROUGHNESS = 1.0;
+}",
+        };
+        _planetMat = new ShaderMaterial { Shader = planetShader };
+        _planetMat.SetShaderParameter("surface_color", surfaceCol);
+        _planetMat.SetShaderParameter("haze_color", hazeCol);
+        _planetMat.SetShaderParameter("haze_strength", 1.0f);
         var planet = new MeshInstance3D
         {
             Name = "Planet",
             Mesh = new SphereMesh { Radius = r, Height = 2f * r, RadialSegments = 256, Rings = 128 },
             Position = center,
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = tex != null ? Colors.White : (isMars ? MarsPlanetColor : EarthPlanetColor),
-                AlbedoTexture = tex,
-                Roughness = 1f,
-            },
+            MaterialOverride = _planetMat,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         _content.AddChild(planet);
 
         if (!EnableAtmosphereGlow || body.SeaLevelDensity <= 0f || AtmosphereShellFraction <= 0f) return;
-        float ra = r * (1f + AtmosphereShellFraction);
+        float ra = r * (1f + AtmosphereShellFraction * 0.35f);
         var shader = new Shader
         {
             Code = @"shader_type spatial;
-render_mode unshaded, cull_front, blend_add, depth_draw_never;
+render_mode unshaded, cull_front, blend_add, depth_draw_never, fog_disabled;
 uniform vec4 glow : source_color;
 void fragment() {
-    float rim = pow(1.0 - abs(dot(NORMAL, VIEW)), 3.0);
+    float rim = pow(1.0 - abs(dot(NORMAL, VIEW)), 3.5);
     ALBEDO = glow.rgb;
-    ALPHA = glow.a * rim;
+    ALPHA = glow.a * rim * 0.65;
 }",
         };
         var mat = new ShaderMaterial { Shader = shader };
-        mat.SetShaderParameter("glow", isMars ? MarsAtmosphereColor : EarthAtmosphereColor);
+        mat.SetShaderParameter("glow", hazeCol);
         _content.AddChild(new MeshInstance3D
         {
             Name = "Atmosphere",
@@ -248,6 +414,29 @@ void fragment() {
     {
         Environment env = WorldEnvironment?.Environment;
         if (env == null) return;
+        if (_useSceneEnv && _sceneShaderSkyMat != null)
+        {
+            env.BackgroundEnergyMultiplier = 1.0f;
+            return;
+        }
+        if (_useSceneEnv && _sceneSkyMat != null)
+        {
+            // Upper sky darkens first (k^1.6), while the horizon keeps a thin atmospheric band longer (sqrt(k)).
+            float topT = Mathf.Pow(k, 1.6f);
+            float horT = Mathf.Sqrt(k);
+            Color deepSpace = new(0.002f, 0.003f, 0.008f);
+            Color limbColor = _isMars ? new Color(0.55f, 0.28f, 0.14f) : new Color(0.12f, 0.38f, 0.85f);
+            Color midHorizon = limbColor.Lerp(_sceneSkyHorizon, k);
+            _sceneSkyMat.SkyTopColor = deepSpace.Lerp(_sceneSkyTop, topT);
+            _sceneSkyMat.SkyHorizonColor = deepSpace.Lerp(midHorizon, horT);
+            _sceneSkyMat.GroundHorizonColor = deepSpace.Lerp(midHorizon, horT);
+            _sceneSkyMat.GroundBottomColor = deepSpace.Lerp(_sceneGroundBottom, topT);
+            // Tighten the horizon band as we climb so it looks like a thin atmospheric limb from high altitude.
+            _sceneSkyMat.SkyCurve = Mathf.Lerp(0.025f, _sceneSkyCurve, k);
+            _sceneSkyMat.GroundCurve = Mathf.Lerp(0.01f, _sceneGroundCurve, k);
+            env.BackgroundEnergyMultiplier = Mathf.Lerp(0.25f, 1f, horT);
+            return;
+        }
         if (UseSceneSky)
         {
             if (env.Sky == null)

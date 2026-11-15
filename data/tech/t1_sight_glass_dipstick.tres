@@ -1,14 +1,11 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://lh07ki7fekht"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
 NodeId = "t1_sight_glass_dipstick"
 DisplayName = "Sight Glass & Mechanical Dipstick"
-Tier = 1
 CostRP = 30
-PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_sight_glass_dipstick")
-BuildWeightBonus = 0
 Category = "Fuel sensors"
