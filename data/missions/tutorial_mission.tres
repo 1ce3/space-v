@@ -7,6 +7,6 @@
 [resource]
 script = ExtResource("1_mission")
 MissionId = "tutorial_mission"
-DisplayName = "Kính viễn vọng AURORA"
+DisplayName = "AURORA telescope"
 PayloadMassKg = 100.0
 Segments = Array[ExtResource("2_segscript")]([ExtResource("3_seg1")])

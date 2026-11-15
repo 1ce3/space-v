@@ -59,7 +59,7 @@ public partial class AnomalyResponseHandler : Node
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.B } || _tree == null) return;
-        _pendingMessage = ModuleReboot.TryRebootNext(PowerSolver.FindPod(_tree)) ?? "Không có thiết bị hỏng";
+        _pendingMessage = ModuleReboot.TryRebootNext(PowerSolver.FindPod(_tree)) ?? "No broken equipment";
         GetViewport().SetInputAsHandled();
     }
 
@@ -140,15 +140,15 @@ public partial class AnomalyResponseHandler : Node
     /// <summary>Player-facing line for the HUD: what happened, which key, how long.</summary>
     public static string Describe(ActiveAnomaly a) => a.Type switch
     {
-        FlightEventType.LightningStrike => "SÉT ĐÁNH: mất điện điều khiển, bấm C (SCE → AUX)",
-        FlightEventType.CryoLeak => $"RÒ NHIÊN LIỆU {a.SourceId}: bấm V để bịt",
-        FlightEventType.DebrisWarning => $"MẢNH VỠ trong {a.TimeRemaining:0.0} s: né bằng Q/E (RCS bật bằng R)",
-        FlightEventType.SeuGlitch => "LỖI BỨC XẠ: chế độ an toàn, bấm T để khởi động lại",
-        FlightEventType.MaxQExceeded => "Áp suất động quá cao: giảm ga",
-        FlightEventType.GLimitExceeded => "Gia tốc quá giới hạn khoang lái: giảm ga",
-        FlightEventType.ComponentOverheat => $"Quá nhiệt: {a.SourceId}",
-        FlightEventType.PowerBrownout => "Mất điện: pin cạn",
-        FlightEventType.EngineFlameout => $"Động cơ tắt: {a.SourceId}",
+        FlightEventType.LightningStrike => "LIGHTNING STRIKE: control power lost, press C (SCE → AUX)",
+        FlightEventType.CryoLeak => $"FUEL LEAK {a.SourceId}: press V to seal",
+        FlightEventType.DebrisWarning => $"DEBRIS in {a.TimeRemaining:0.0} s: dodge with Q/E (RCS on with R)",
+        FlightEventType.SeuGlitch => "RADIATION FAULT: safe mode, press T to restart",
+        FlightEventType.MaxQExceeded => "Dynamic pressure too high: throttle down",
+        FlightEventType.GLimitExceeded => "Acceleration over the pod limit: throttle down",
+        FlightEventType.ComponentOverheat => $"Overheating: {a.SourceId}",
+        FlightEventType.PowerBrownout => "Power lost: battery empty",
+        FlightEventType.EngineFlameout => $"Engine off: {a.SourceId}",
         _ => a.Type.ToString(),
     };
 

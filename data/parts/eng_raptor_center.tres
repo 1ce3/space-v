@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "eng_raptor_center"
-DisplayName = "Raptor (tầm trung)"
+DisplayName = "Raptor (mid-size)"
 Tier = 3
 BuildWeight = 3
 DryMass = 240.0

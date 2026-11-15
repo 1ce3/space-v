@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("eng_rd_107", "eng_rd_108", "eng_lr79", "eng_rocketdyne_f1")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

@@ -50,7 +50,7 @@ theme_override_constants/separation = 18
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.7, 0.4, 1)
 theme_override_font_sizes/font_size = 34
-text = "Chiến thắng!"
+text = "Victory!"
 horizontal_alignment = 1
 
 [node name="Summary" type="Label" parent="Center/Panel/Margin/Box"]
@@ -66,10 +66,10 @@ theme_override_constants/separation = 12
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Tiếp tục chơi"
+text = "Keep playing"
 
 [node name="Quit" type="Button" parent="Center/Panel/Margin/Box/Buttons"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Thoát"
+text = "Quit"

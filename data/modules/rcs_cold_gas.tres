@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "rcs_cold_gas"
-DisplayName = "RCS khí nén N2"
+DisplayName = "RCS cold gas N2"
 Tier = 0
 BuildWeight = 1
 DryMass = 10.0

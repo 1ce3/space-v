@@ -62,8 +62,8 @@ public partial class ThrottleController : Node
                 engine.Ignite();
                 if (!engine.IsIgnited && engine.IsAttached && _warned.Add(engine))
                     _warning = engine.RemainingIgnitions <= 0
-                        ? $"{engine.Definition?.DisplayName ?? engine.ModelId}: hết lượt khởi động lại (tối đa {engine.LiquidDefinition?.MaxIgnitions ?? 0} lần)"
-                        : $"{engine.Definition?.DisplayName ?? engine.ModelId}: không khởi động được (hết nhiên liệu?)";
+                        ? $"{engine.Definition?.DisplayName ?? engine.ModelId}: no restarts left (max {engine.LiquidDefinition?.MaxIgnitions ?? 0})"
+                        : $"{engine.Definition?.DisplayName ?? engine.ModelId}: failed to ignite (out of fuel?)";
             }
             else if (engine.IsIgnited) _warned.Remove(engine);
             else if (Throttle <= 0f && engine.IsIgnited) engine.Shutdown();

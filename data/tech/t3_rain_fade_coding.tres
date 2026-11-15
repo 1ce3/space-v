@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t3_ku_band_tdrs")
 UnlocksModelIds = PackedStringArray("mod_rain_fade_coding")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

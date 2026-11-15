@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "eng_rutherford"
-DisplayName = "Rutherford (bơm điện)"
+DisplayName = "Rutherford (electric pump)"
 Tier = 2
 BuildWeight = 3
 DryMass = 5.2

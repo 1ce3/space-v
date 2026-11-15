@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "tank_s1"
-DisplayName = "Bình Kerolox S1"
+DisplayName = "Kerolox tank S1"
 Tier = 0
 BuildWeight = 2
 DryMass = 150.0

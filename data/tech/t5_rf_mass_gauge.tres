@@ -11,4 +11,4 @@ CostRP = 200
 PrerequisiteNodeIds = PackedStringArray("t4_gamma_ray_gauge", "t4_thermal_propellant_gauging")
 UnlocksModelIds = PackedStringArray("mod_rf_mass_gauge")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiên liệu"
+Category = "Fuel sensors"

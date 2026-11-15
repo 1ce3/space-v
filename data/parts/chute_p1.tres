@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "chute_p1"
-DisplayName = "Dù P1"
+DisplayName = "Parachute P1"
 Tier = 3
 BuildWeight = 1
 DryMass = 60.0

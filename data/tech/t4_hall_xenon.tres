@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_ionized_xenon")
 UnlocksModelIds = PackedStringArray("eng_aeps")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

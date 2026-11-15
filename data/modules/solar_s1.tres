@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "solar_s1"
-DisplayName = "Pin mặt trời S1"
+DisplayName = "Solar panel S1"
 Tier = 2
 BuildWeight = 1
 DryMass = 25.0

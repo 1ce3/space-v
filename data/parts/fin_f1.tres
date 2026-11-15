@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "fin_f1"
-DisplayName = "Cánh lái F1"
+DisplayName = "Fin F1"
 Tier = 0
 BuildWeight = 1
 DryMass = 40.0

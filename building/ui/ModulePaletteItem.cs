@@ -15,7 +15,7 @@ public partial class ModulePaletteItem : Button
         _cellPixels = cellPixels;
         Vector2I size = PodInventory.SizeOf(module);
         Text = $"{PodInventoryGrid.ShortName(module)}  {size.X}x{size.Y}  w{module.BuildWeight}";
-        TooltipText = module.GetFormattedTooltip() + "\nKéo vào lưới, hoặc bấm để đặt vào ô trống đầu tiên";
+        TooltipText = module.GetFormattedTooltip() + "\nDrag onto the grid, or click to place in the first free cell";
         Alignment = HorizontalAlignment.Left;
         FocusMode = FocusModeEnum.None;
         Disabled = !available;

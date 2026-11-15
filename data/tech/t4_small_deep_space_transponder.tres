@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_ku_band_tdrs")
 UnlocksModelIds = PackedStringArray("mod_small_deep_space_transponder")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

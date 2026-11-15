@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t2_ysi_ntc_thermistor")
 UnlocksModelIds = PackedStringArray("mod_ad590mf")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

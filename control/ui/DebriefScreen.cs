@@ -43,65 +43,68 @@ public partial class DebriefScreen : Godot.Control
         {
             (string title, Color color) = result.Outcome switch
             {
-                MissionOutcome.Success => ("Nhiệm vụ thành công", SuccessColor),
-                MissionOutcome.Aborted => ("Đã huỷ chuyến bay", AbortColor),
-                _ => ("Chuyến bay thất bại", FailureColor),
+                MissionOutcome.Success => ("Mission successful", SuccessColor),
+                MissionOutcome.Aborted => ("Flight aborted", AbortColor),
+                _ => ("Flight failed", FailureColor),
             };
             TitleLabel.Text = title;
             TitleLabel.AddThemeColorOverride("font_color", color);
         }
 
         var summary = new System.Text.StringBuilder();
-        summary.AppendLine($"Chặng hoàn thành: {result.SegmentsCompleted} / {TotalSegments}");
+        summary.AppendLine($"Segments completed: {result.SegmentsCompleted} / {TotalSegments}");
         if (result.FailureCause != FailureCause.None)
         {
-            summary.Append($"Nguyên nhân: {CauseText(result.FailureCause)}");
+            summary.Append($"Cause: {CauseText(result.FailureCause)}");
             if (!string.IsNullOrEmpty(result.FailedModelId)) summary.Append($" ({result.FailedModelId})");
             summary.AppendLine();
         }
         summary.AppendLine();
-        summary.AppendLine($"Độ cao lớn nhất   {result.MaxAltitude / 1000f:0.0} km");
-        summary.AppendLine($"Tốc độ lớn nhất   {result.MaxSpeed:0} m/s");
+        summary.AppendLine($"Max altitude      {result.MaxAltitude / 1000f:0.0} km");
+        summary.AppendLine($"Max speed         {result.MaxSpeed:0} m/s");
         summary.AppendLine($"Max Q             {result.MaxQ / 1000f:0.0} kPa");
-        summary.AppendLine($"G lớn nhất        {result.MaxG:0.0}");
-        summary.AppendLine($"Thời gian bay     {FormatTime(result.FlightTime)}");
-        if (result.CruiseDaysSurvived > 0f) summary.AppendLine($"Ngày hành trình   {result.CruiseDaysSurvived:0}");
-        if (result.Outcome == MissionOutcome.Success) summary.AppendLine($"Tốc độ chạm đất   {result.LandingSpeedMps:0.0} m/s");
+        summary.AppendLine($"Max G             {result.MaxG:0.0}");
+        summary.AppendLine($"Flight time       {FormatTime(result.FlightTime)}");
+        if (result.CruiseDaysSurvived > 0f) summary.AppendLine($"Cruise days       {result.CruiseDaysSurvived:0}");
+        if (result.Outcome == MissionOutcome.Success) summary.AppendLine($"Landing speed     {result.LandingSpeedMps:0.0} m/s");
         SummaryLabel.Text = summary.ToString().TrimEnd();
 
         if (RewardLabel != null)
         {
             if (reward == null)
             {
-                RewardLabel.Text = "Không có chiến dịch nghiên cứu (chạy thử).";
+                RewardLabel.Text = "No research campaign (test run).";
             }
             else
             {
                 int total = ResearchCampaignEngine.Instance?.CurrentRP ?? reward.Total;
                 RewardLabel.Text =
-                    $"Điểm nghiên cứu nhận được\n" +
-                    $"  Chặng hoàn thành   +{reward.SegmentRP}\n" +
-                    $"  Kỷ lục             +{reward.MilestoneRP}\n" +
-                    $"  Bài học mới        +{reward.NoveltyRP}\n" +
-                    $"  Tổng               +{reward.Total} RP   (hiện có {total} RP)";
+                    $"Research points earned\n" +
+                    $"  Segments completed   +{reward.SegmentRP}\n" +
+                    $"  Records              +{reward.MilestoneRP}\n" +
+                    $"  New lessons          +{reward.NoveltyRP}\n" +
+                    $"  Total                +{reward.Total} RP   (now {total} RP)";
             }
         }
+        // UI redesign: names on the left, values on the right (the labels keep the text for the flight log).
+        StatList.ReplaceLabel(SummaryLabel);
+        if (RewardLabel != null) StatList.ReplaceLabel(RewardLabel, SuccessColor);
         ContinueButton?.GrabFocus();
     }
 
     /// <summary>Vietnamese text of a failure cause.</summary>
     public static string CauseText(FailureCause cause) => cause switch
     {
-        FailureCause.Shear => "gãy do lực cắt",
-        FailureCause.Bending => "gãy do uốn",
-        FailureCause.JointOverload => "khớp nối quá tải",
-        FailureCause.Thermal => "quá nhiệt",
-        FailureCause.Collision => "va chạm",
-        FailureCause.TargetNotReached => "không đạt quỹ đạo",
-        FailureCause.InsufficientDeltaV => "không đủ delta-v",
-        FailureCause.TippedOver => "lật khi đáp",
-        FailureCause.Aborted => "người chơi huỷ",
-        _ => "không rõ",
+        FailureCause.Shear => "shear failure",
+        FailureCause.Bending => "bending failure",
+        FailureCause.JointOverload => "joint overload",
+        FailureCause.Thermal => "overheating",
+        FailureCause.Collision => "collision",
+        FailureCause.TargetNotReached => "orbit not reached",
+        FailureCause.InsufficientDeltaV => "not enough delta-v",
+        FailureCause.TippedOver => "tipped over on landing",
+        FailureCause.Aborted => "aborted by player",
+        _ => "unknown",
     };
 
     private static string FormatTime(float seconds)

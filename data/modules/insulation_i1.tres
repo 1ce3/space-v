@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "insulation_i1"
-DisplayName = "Lớp cách nhiệt I1"
+DisplayName = "Insulation I1"
 Tier = 3
 BuildWeight = 1
 DryMass = 15.0

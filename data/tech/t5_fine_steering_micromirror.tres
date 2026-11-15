@@ -11,4 +11,4 @@ CostRP = 200
 PrerequisiteNodeIds = PackedStringArray("t5_deep_space_optical")
 UnlocksModelIds = PackedStringArray("mod_fine_steering_micromirror")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

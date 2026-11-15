@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t3_ku_band_tdrs")
 UnlocksModelIds = PackedStringArray("mod_gimbal_stabilizer")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_ad590mf", "t3_lakeshore_silicon_diode")
 UnlocksModelIds = PackedStringArray("mod_cernox_oxynitride")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

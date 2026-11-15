@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "pod_mk3"
-DisplayName = "Khoang điều khiển Mk3"
+DisplayName = "Command pod Mk3"
 Tier = 3
 BuildWeight = 3
 DryMass = 800.0

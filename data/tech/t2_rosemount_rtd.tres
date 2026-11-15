@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_type_c_thermocouple", "t1_type_k_thermocouple")
 UnlocksModelIds = PackedStringArray("mod_rosemount_rtd")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

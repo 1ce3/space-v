@@ -144,14 +144,14 @@ public partial class MeteorDodge : Node3D
 
         float firstArrival = WarningSeconds - _time;
         _hud.Text = firstArrival > 0f
-            ? $"⚠ THIÊN THẠCH từ bên {(_from.X > 0 ? "PHẢI" : "TRÁI")} trong {firstArrival:0.0} s\n" + Controls()
-            : $"NÉ THIÊN THẠCH!  còn {alive} viên   trúng {_hits}\n" + Controls();
+            ? $"⚠ METEOROIDS from the {(_from.X > 0 ? "RIGHT" : "LEFT")} in {firstArrival:0.0} s\n" + Controls()
+            : $"DODGE THE METEOROIDS!  {alive} left   hits {_hits}\n" + Controls();
         if (alive == 0) Finish();
     }
 
     private string Controls() => AutoDodge
-        ? "Ăng-ten + RCS đang tự né..."
-        : "A/D xoay · Shift/W đốt động cơ chính" + (HasRcs ? " · Q/E RCS đẩy ngang" : " · (không có RCS)");
+        ? "Antenna + RCS auto-dodging..."
+        : "A/D rotate · Shift/W main engine" + (HasRcs ? " · Q/E RCS strafe" : " · (no RCS)");
 
     /// <summary>Strafes away from the nearest meteor that will pass close (auto-dodge from comms + RCS).</summary>
     private void AutoSteer(ref float strafe)
@@ -185,7 +185,7 @@ public partial class MeteorDodge : Node3D
             _hits++;
             string name = string.IsNullOrEmpty(part.Definition?.DisplayName) ? part.ModelId : part.Definition.DisplayName;
             bool damaged = MeteorImpact.Resolve(part, speed);
-            _report.Add(damaged ? $"{name} bị hư" : $"{name} chịu được");
+            _report.Add(damaged ? $"{name} damaged" : $"{name} held");
             RocketGame.Presentation.ExplosionEffect.Spawn(this, meteor.GlobalPosition, 0.4f);
             return true;
         }
@@ -197,7 +197,7 @@ public partial class MeteorDodge : Node3D
         if (_done) return;
         _done = true;
         Vehicle.ScriptedTransform = null;
-        string report = _hits == 0 ? "Né thành công cả bãi thiên thạch!" : $"Trúng {_hits} viên: {string.Join(", ", _report)}";
+        string report = _hits == 0 ? "Dodged the whole meteoroid field!" : $"Hit {_hits} time(s): {string.Join(", ", _report)}";
         EmitSignal(SignalName.Finished, _hits, report);
         QueueFree();
     }

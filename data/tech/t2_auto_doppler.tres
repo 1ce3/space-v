@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t2_unified_s_band")
 UnlocksModelIds = PackedStringArray("mod_auto_doppler")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

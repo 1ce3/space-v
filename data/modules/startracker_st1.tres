@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "startracker_st1"
-DisplayName = "Cảm biến sao ST1"
+DisplayName = "Star tracker ST1"
 Tier = 3
 BuildWeight = 1
 DryMass = 10.0
