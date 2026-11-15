@@ -102,9 +102,13 @@ func _put_tri(verts: PackedVector3Array, normals: PackedVector3Array, colors: Pa
 	normals[i] = normal
 	normals[i + 1] = normal
 	normals[i + 2] = normal
-	colors[i] = _get_mars_color(v1.y)
-	colors[i + 1] = _get_mars_color(v2.y)
-	colors[i + 2] = _get_mars_color(v3.y)
+	var c := _get_mars_color((v1.y + v2.y + v3.y) / 3.0)
+	var r := fposmod(sin((v1.x + _origin_x) * 12.9898 + (v1.z + _origin_z) * 78.233 + v2.x * 3.1 + v3.z * 1.7) * 43758.5453, 1.0)
+	c = c * (0.9 + 0.2 * r)
+	c.a = 1.0
+	colors[i] = c
+	colors[i + 1] = c
+	colors[i + 2] = c
 	return i + 3
 
 func _get_procedural_crater(wx: float, wz: float) -> float:

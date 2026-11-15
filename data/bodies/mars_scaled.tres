@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3]
+[gd_resource type="Resource" script_class="CelestialBodyDefinition" format=3 uid="uid://8jwekm25q82x"]
 
-[ext_resource type="Script" path="res://physics/CelestialBodyDefinition.cs" id="1_body"]
+[ext_resource type="Script" uid="uid://cgm08fl0cduuh" path="res://physics/CelestialBodyDefinition.cs" id="1_body"]
+[ext_resource type="PackedScene" uid="uid://bcca0eqjmujlk" path="res://scenes/mars_scene/mars_landingsite.tscn" id="1_w7xgh"]
 
 [resource]
 script = ExtResource("1_body")
@@ -8,7 +9,6 @@ BodyId = "mars_scaled"
 DisplayName = "Mars"
 Mass = 5.692e+21
 Radius = 320000.0
-UsesLayerTable = false
 SeaLevelDensity = 0.02
 SeaLevelPressure = 610.0
 ScaleHeight = 11100.0
@@ -17,5 +17,4 @@ SpeedOfSoundMps = 230.0
 AtmosphereTopM = 120000.0
 SuttonGravesConstant = 0.00019
 SolarFluxWm2 = 590.0
-
-;https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html
+EnvironmentScene = ExtResource("1_w7xgh")
