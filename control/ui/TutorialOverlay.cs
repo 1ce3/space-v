@@ -40,13 +40,13 @@ public partial class TutorialOverlay : CanvasLayer
         _panel.AddThemeStyleboxOverride("panel", style);
         var v = new VBoxContainer();
         v.AddThemeConstantOverride("separation", 10);
-        var head = new Label { Text = "HƯỚNG DẪN", Modulate = new Color(0.5f, 0.75f, 1f) };
+        var head = new Label { Text = "TUTORIAL", Modulate = new Color(0.5f, 0.75f, 1f) };
         _text = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(410, 0) };
         _text.AddThemeFontSizeOverride("font_size", 15);
         var row = new HBoxContainer();
-        _next = new Button { Text = "Tiếp  ›", FocusMode = Godot.Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(110, 34) };
+        _next = new Button { Text = "Next  ›", FocusMode = Godot.Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(110, 34) };
         _next.Pressed += () => Advance();
-        var skip = new Button { Text = "Bỏ qua hướng dẫn", Flat = true, FocusMode = Godot.Control.FocusModeEnum.None };
+        var skip = new Button { Text = "Skip tutorial", Flat = true, FocusMode = Godot.Control.FocusModeEnum.None };
         skip.Pressed += () => EmitSignal(SignalName.SkipRequested);
         row.AddChild(skip);
         row.AddChild(new Godot.Control { SizeFlagsHorizontal = Godot.Control.SizeFlags.ExpandFill });
@@ -80,27 +80,27 @@ public partial class TutorialOverlay : CanvasLayer
         if (ResearchOnly)
         {
             _flightStep = int.MaxValue;
-            _steps.Add(new("MÀN NGHIÊN CỨU\nMỗi chuyến bay, kể cả thất bại, cho Research Points (RP) theo độ cao, tốc độ và kỷ lục mới. Số RP hiện ở góc trên phải.", null));
-            _steps.Add(new("CÁC TAB\nĐộng cơ (chia tầng thấp / giữa / trên), Nhiên liệu, Vật liệu, Khung & khoang, Liên lạc, các loại Cảm biến...\nMỗi hàng là một TIER: tier cao mạnh hơn nhưng đắt hơn.", null));
-            _steps.Add(new("THẺ NGHIÊN CỨU\n• Giá RP và các part / thiết bị được mở khoá.\n• \"Cần:\" là node phải mua trước (có thể ở tab khác).\n• Viền xanh dương: mua được · xanh lá: đã có · xám: chưa đủ điều kiện.", null));
-            _steps.Add(new("MAX BUILD WEIGHT\nNgân sách lắp ráp. Các node Khung (Frame) tăng ngân sách để chế tạo tên lửa lớn hơn.", null));
-            _steps.Add(new("ĐƯỜNG TỚI SAO HỎA\nCần: động cơ tầng trên + bình Hydrolox (Upper Stage), khiên nhiệt và dù (Entry, Descent and Landing), điện cho 210 ngày bay (pin mặt trời). Thiết bị liên lạc / cảm biến giúp xử lý sự cố.\n\nBấm \"Go to Workshop\" để lắp ráp.", null));
+            _steps.Add(new("RESEARCH SCREEN\nEvery flight, even a failed one, earns Research Points (RP) for altitude, speed and new records. Your RP is shown at the top right.", null));
+            _steps.Add(new("TABS\nEngines (split into low / mid / upper stage), Fuel, Materials, Frame & pod, Comms, Sensors...\nEach row is a TIER: higher tiers are stronger but cost more.", null));
+            _steps.Add(new("RESEARCH CARDS\n• RP cost and the parts / equipment it unlocks.\n• \"Requires:\" lists nodes to buy first (possibly in another tab).\n• Blue border: can buy · green: owned · grey: not available yet.", null));
+            _steps.Add(new("MAX BUILD WEIGHT\nYour assembly budget. Frame nodes raise it so you can build bigger rockets.", null));
+            _steps.Add(new("ROAD TO MARS\nYou need: an upper-stage engine + Hydrolox tank (Upper Stage), a heat shield and parachute (Entry, Descent and Landing), and power for 210 days of flight (solar panels). Comms / sensor equipment helps handle failures.\n\nPress \"Go to Workshop\" to build.", null));
             return;
         }
         // ---- workshop ----
-        _steps.Add(new(StoryScript.TutorialIntro[0] + "\n\nĐây là XƯỞNG LẮP RÁP. Bên trái là danh sách part, ở giữa là lưới lắp ráp, bên phải là thông số tên lửa.", null));
-        _steps.Add(new("CÁC LOẠI PART\n• Khoang điều khiển: đầu tên lửa, chứa thiết bị và vệ tinh.\n• Bình nhiên liệu: Kerolox, Hydrolox, Methalox...\n• Động cơ lỏng / tên lửa đẩy rắn (gắn hai bên).\n• Bộ tách tầng (decoupler), cánh lái, chóp mũi (fairing), dù, khiên nhiệt.", null));
-        _steps.Add(new("MỘT TÊN LỬA CƠ BẢN (từ trên xuống)\nChóp mũi → Khoang điều khiển → Bình nhiên liệu → Động cơ.\nTên lửa nhiều tầng: chèn bộ tách tầng (phím Tab) giữa các tầng để bỏ tầng đã hết nhiên liệu.", null));
-        _steps.Add(new("NGUYÊN TẮC LẮP RÁP\n• Cần đúng 1 khoang điều khiển, mọi part phải nối liền với nó.\n• Động cơ phải chạm trực tiếp bình CÙNG loại nhiên liệu.\n• Tổng weight không vượt ngân sách (Weight ở bảng phải).\n• Trọng tâm cao, cánh lái ở dưới giúp tên lửa ổn định (thử Wind tunnel).", null));
-        _steps.Add(new("TÚI ĐỒ KHOANG LÁI (bảng phải)\nKéo thiết bị vào lưới: IMU để bật SAS giữ thăng bằng, pin để có điện, cảm biến và ăng-ten để xử lý sự cố. Vật liệu vỏ đổi độ bền / khối lượng.", null));
-        _steps.Add(new("Thử lắp: Khoang điều khiển Mk1 → Bình Kerolox S1 → Động cơ LV1, kéo IMU G1 vào túi đồ.\nKhi \"Kiểm tra thiết kế\" báo hợp lệ, bấm \"Phóng\".", () => Flow?.State == Core.GameState.Flight));
+        _steps.Add(new(StoryScript.TutorialIntro[0] + "\n\nThis is the WORKSHOP. Parts are on the left, the build grid in the middle and rocket stats on the right.", null));
+        _steps.Add(new("PART TYPES\n• Command pod: top of the rocket, holds equipment and the payload.\n• Fuel tanks: Kerolox, Hydrolox, Methalox...\n• Liquid engines / solid boosters (mounted on the sides).\n• Decouplers, fins, fairings, parachutes, heat shields.", null));
+        _steps.Add(new("A BASIC ROCKET (top to bottom)\nFairing → Command pod → Fuel tank → Engine.\nMulti-stage rockets: put a decoupler (Tab key) between stages to drop the empty ones.", null));
+        _steps.Add(new("BUILD RULES\n• Exactly 1 command pod; every part must connect to it.\n• Engines must touch a tank of the SAME fuel type.\n• Total weight must stay within budget (Weight on the right panel).\n• A high centre of mass and fins at the bottom keep the rocket stable (try the wind tunnel).", null));
+        _steps.Add(new("POD INVENTORY (right panel)\nDrag equipment onto the grid: an IMU enables SAS, batteries give power, sensors and antennas help handle failures. The hull material (Material tab) changes strength / mass.", null));
+        _steps.Add(new("Try: Command pod Mk1 → Kerolox tank S1 → Engine LV1, and drag IMU G1 into the inventory.\nWhen the Launch tab says the design is valid, press \"Launch\".", () => Flow?.State == Core.GameState.Flight));
         _launchStep = _steps.Count - 1;
         // ---- launch pad ----
         _flightStep = _steps.Count;
-        _steps.Add(new("BỆ PHÓNG\nThông số bên trái màn hình:\n• Độ cao / Tốc độ (đứng, ngang)\n• Góc: hướng mũi tên lửa (90° = thẳng đứng)\n• Ga và nhiên liệu còn lại\n• q: áp suất động, Mach, G: gia tốc\n• Nhiệt / tải: quá 100% là part hỏng.", null));
-        _steps.Add(new("QUY TRÌNH PHÓNG\n1. T: bật SAS (giữ hướng).\n2. Z: ga tối đa (Shift/Ctrl tăng/giảm, X tắt máy).\n3. Space: kích hoạt tầng đầu, phóng!", () => Flight?.Director != null && Flight.Director.Phase != Core.FlightPhase.PreLaunch));
-        _steps.Add(new("KHI BAY\n• Qua ~3 km: nghiêng nhẹ bằng A/D để bay xiên (gravity turn).\n• Chú ý q lớn nhất (Max-Q) và nhiệt: giảm ga nếu quá cao.\n• Hết nhiên liệu: Space để tách tầng.", () => (Flight?.Director?.LastFrame.AltitudeM ?? 0f) > 3000f));
-        _steps.Add(new($"Bay lên độ cao {TargetAltitudeM / 1000f:0} km để đưa kính viễn vọng AURORA vào quỹ đạo!", null));
+        _steps.Add(new("LAUNCH PAD\nStats on the left of the screen:\n• Altitude / Speed (vertical, horizontal)\n• Pitch: where the nose points (90° = straight up)\n• Throttle and fuel left\n• q: dynamic pressure, Mach, G: acceleration\n• Heat / load: over 100% breaks the part.", null));
+        _steps.Add(new("LAUNCH STEPS\n1. T: turn on SAS (holds direction).\n2. Z: full throttle (Shift/Ctrl up/down, X cuts the engine).\n3. Space: fire the first stage, liftoff!", () => Flight?.Director != null && Flight.Director.Phase != Core.FlightPhase.PreLaunch));
+        _steps.Add(new("IN FLIGHT\n• Past ~3 km: tilt gently with A/D to fly at an angle (gravity turn).\n• Watch max q (Max-Q) and heat: throttle down if too high.\n• Out of fuel: Space to drop the stage.", () => (Flight?.Director?.LastFrame.AltitudeM ?? 0f) > 3000f));
+        _steps.Add(new($"Climb to {TargetAltitudeM / 1000f:0} km to put the AURORA telescope into orbit!", null));
     }
 
     /// <summary>Bottom-left corner, right of the build palette (250 px). Re-run when the text changes size.</summary>
@@ -118,7 +118,7 @@ public partial class TutorialOverlay : CanvasLayer
         _text.Text = _prefix + _steps[_index].Text;
         bool last = _index == _steps.Count - 1;
         _next.Visible = _steps[_index].Done == null && (!last || ResearchOnly);
-        _next.Text = last && ResearchOnly ? "Xong" : "Tiếp  ›";
+        _next.Text = last && ResearchOnly ? "Xong" : "Next  ›";
         Callable.From(PlacePanel).CallDeferred();
     }
 
@@ -139,7 +139,7 @@ public partial class TutorialOverlay : CanvasLayer
     /// <summary>The tutorial flight failed: back to the launch step with a hint.</summary>
     public void OnRetry(string why)
     {
-        _prefix = $"Chưa thành công ({why}). Chỉnh lại tên lửa rồi thử lại!\n\n";
+        _prefix = $"Not there yet ({why}). Adjust the rocket and try again!\n\n";
         Show(_launchStep);
     }
 }

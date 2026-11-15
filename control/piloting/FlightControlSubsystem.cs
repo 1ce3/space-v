@@ -95,14 +95,14 @@ public partial class FlightControlSubsystem : Node
         }
         if (AttitudeController.SetMode(AttitudeController.LastActiveMode)) return;
         if (AttitudeController.SetMode(SasMode.StabilityAssist)) return;
-        Warn(Estimator.HasValidAttitude ? "SAS: cảm biến không hỗ trợ chế độ này" : "SAS: không có cảm biến tư thế hoạt động");
+        Warn(Estimator.HasValidAttitude ? "SAS: the sensors don't support this mode" : "SAS: no working attitude sensor");
     }
 
     /// <summary>1..4: switch to a SAS mode if the sensors allow it.</summary>
     public void RequestSasMode(SasMode mode)
     {
         if (AttitudeController.SetMode(mode)) return;
-        Warn(Estimator.HasValidAttitude ? $"SAS: cần cảm biến tốt hơn cho {mode}" : "SAS: không có cảm biến tư thế hoạt động");
+        Warn(Estimator.HasValidAttitude ? $"SAS: better sensors needed for {mode}" : "SAS: no working attitude sensor");
     }
 
     /// <summary>R: turns every RCS on or off together.</summary>
@@ -113,12 +113,12 @@ public partial class FlightControlSubsystem : Node
             if (pod.IsAttached) all.AddRange(pod.GetModules<RcsThrusterModule>());
         if (all.Count == 0)
         {
-            Warn("Không có RCS");
+            Warn("No RCS");
             return;
         }
         bool enable = !all.Exists(r => r.IsEnabled);
         foreach (RcsThrusterModule rcs in all) rcs.IsEnabled = enable;
-        Warn(enable ? "RCS bật" : "RCS tắt");
+        Warn(enable ? "RCS on" : "RCS off");
     }
 
     /// <summary>G: deploys solar arrays and radiators, or stows them all if any is out.</summary>
@@ -134,13 +134,13 @@ public partial class FlightControlSubsystem : Node
         }
         if (solars.Count == 0 && radiators.Count == 0)
         {
-            Warn("Không có pin mặt trời hay tản nhiệt để mở");
+            Warn("No solar panels or radiators to deploy");
             return;
         }
         bool deploy = !solars.Exists(s => s.IsDeployed) && !radiators.Exists(r => r.IsPanelExtended);
         foreach (SolarArrayModule solar in solars) solar.SetDeployed(deploy);
         foreach (ActiveRadiatorModule radiator in radiators) radiator.SetExtended(deploy);
-        Warn(deploy ? "Mở pin mặt trời / tản nhiệt" : "Thu pin mặt trời / tản nhiệt");
+        Warn(deploy ? "Deploy solar panels / radiators" : "Retract solar panels / radiators");
     }
 
     private void Warn(string message)

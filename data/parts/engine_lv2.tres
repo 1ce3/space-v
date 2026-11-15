@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "engine_lv2"
-DisplayName = "Động cơ LV2"
+DisplayName = "Engine LV2"
 Tier = 2
 BuildWeight = 3
 DryMass = 600.0

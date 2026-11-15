@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_shuttle_thin_film")
 UnlocksModelIds = PackedStringArray("mod_langley_esp")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

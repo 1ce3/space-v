@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 MaterialId = "mat_whipple"
-DisplayName = "Giáp Whipple"
+DisplayName = "Whipple shield"
 Tier = 3
 BuildWeightCost = 2
 MassMultiplier = 1.2

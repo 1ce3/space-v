@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t2_rosemount_rtd", "t3_cernox_oxynitride")
 UnlocksModelIds = PackedStringArray("mod_fiber_bragg_grating")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

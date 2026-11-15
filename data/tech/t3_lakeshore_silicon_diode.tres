@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_rosemount_rtd")
 UnlocksModelIds = PackedStringArray("mod_lakeshore_silicon_diode")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

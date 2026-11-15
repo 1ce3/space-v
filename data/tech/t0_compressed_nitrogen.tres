@@ -11,4 +11,4 @@ CostRP = 0
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("rcs_cold_gas")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

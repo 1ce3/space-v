@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "engine_land1"
-DisplayName = "Động cơ hạ cánh LAND1"
+DisplayName = "Landing engine LAND1"
 Tier = 3
 BuildWeight = 2
 DryMass = 120.0

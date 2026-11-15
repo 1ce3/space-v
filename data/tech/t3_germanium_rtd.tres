@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t3_lakeshore_silicon_diode")
 UnlocksModelIds = PackedStringArray("mod_germanium_rtd")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

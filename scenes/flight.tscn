@@ -232,7 +232,7 @@ theme_override_constants/separation = 8
 [node name="Day" type="Label" parent="UI/CruiseHUD/Panel/Margin/Box"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Ngày 0"
+text = "Day 0"
 
 [node name="DayBar" type="ProgressBar" parent="UI/CruiseHUD/Panel/Margin/Box"]
 custom_minimum_size = Vector2(0, 18)
@@ -257,13 +257,13 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Đốt chuyển quỹ đạo [Z]"
+text = "Transfer burn [Z]"
 
 [node name="Pause" type="Button" parent="UI/CruiseHUD/Panel/Margin/Box/Buttons"]
 custom_minimum_size = Vector2(120, 38)
 layout_mode = 2
 disabled = true
-text = "Tạm dừng"
+text = "Pause"
 
 [node name="Speed" type="Button" parent="UI/CruiseHUD/Panel/Margin/Box/Buttons"]
 custom_minimum_size = Vector2(80, 38)

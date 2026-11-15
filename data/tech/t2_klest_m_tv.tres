@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_zarya_vhf_uhf")
 UnlocksModelIds = PackedStringArray("mod_klest_m_tv")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

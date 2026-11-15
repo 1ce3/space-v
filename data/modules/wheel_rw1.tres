@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "wheel_rw1"
-DisplayName = "Bánh đà RW1"
+DisplayName = "Reaction wheel RW1"
 Tier = 1
 BuildWeight = 1
 DryMass = 40.0

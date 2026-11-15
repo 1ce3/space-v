@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_apollo_bourdon_tube")
 UnlocksModelIds = PackedStringArray("mod_shuttle_thin_film")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

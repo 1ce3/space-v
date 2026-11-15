@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_unified_s_band", "t2_klest_m_tv")
 UnlocksModelIds = PackedStringArray("mod_ku_band_tdrs")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

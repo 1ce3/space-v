@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 MaterialId = "mat_cfrp"
-DisplayName = "Sợi carbon CFRP"
+DisplayName = "Carbon fibre CFRP"
 Tier = 2
 BuildWeightCost = 1
 MassMultiplier = 0.7

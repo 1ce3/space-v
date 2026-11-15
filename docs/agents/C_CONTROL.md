@@ -182,7 +182,7 @@ Cấu hình: `AxisLockLinearZ`, `AxisLockAngularX`, `AxisLockAngularY` = true; `
 | Chặng 1: không động cơ nào cháy được nữa (không `IsIgnited`, không động cơ lỏng `IsArmed` còn nhiên liệu và lần đánh lửa, không stage nào còn nạp động cơ) và tốc độ thẳng đứng < 0 | `TargetNotReached` |
 | Chặng 3: `OnGroundContact` và `MonitorImpact` gãy | `Collision` |
 | Chặng 3: chạm đất không gãy nhưng nghiêng `|AttitudeDeg − 90| > MaxLandingTiltDeg`, hoặc pod không còn trong cây | `TippedOver` |
-| `flight_abort` | `Aborted` |
+| Pause menu (Esc) → Quit flight | `Aborted` |
 
 - **Đáp thành công:** chặng 3, chạm đất, không gãy, pod còn, nghiêng trong giới hạn → pha `Landed`, `SetSimulationFrozen(true)`, `LandingSpeedMps` vào black box, phát `MissionEnded` với `Outcome = Success`.
 - Mọi lần kết thúc: khoá input, `result = run.BlackBox.BuildResult(outcome)` (điền `SegmentsCompleted`, `MissionId`, `FailureCause`, `FailedModelId`, `FailedPartGroup`), phát `MissionEnded(result)` đúng một lần.
@@ -292,7 +292,7 @@ Xử lý xong thì `Coordinator.Hazards.Acknowledge(type)` và phát `AnomalyRes
 | `flight_deploy_toggle` | G |
 | `flight_sce_to_aux` | C |
 | `flight_seal_leak` | V |
-| `flight_abort` | Backspace |
+| Pause menu | Esc (`ui_cancel`) |
 | `flight_zoom_in`, `flight_zoom_out` | Lăn chuột lên, xuống |
 | `build_place`, `build_remove` | Chuột trái, chuột phải |
 | `build_toggle_decoupler` | Tab |

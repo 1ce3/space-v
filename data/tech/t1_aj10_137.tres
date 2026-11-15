@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("eng_aj10_137")
 BuildWeightBonus = 0
-Category = "Động cơ"
+Category = "Engines"

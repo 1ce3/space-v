@@ -5,13 +5,13 @@ extends Camera3D
 @export var sun_light: DirectionalLight3D 
 @export var terrain_node: Node3D 
 
-@export_group("1. Troposphere (Tầng đối lưu - Mây mù)")
+@export_group("1. Troposphere (clouds and haze)")
 @export var fog_start_height: float = 83.0 
 @export var fog_thick_height: float = 120.0  
 @export var normal_density: float = 0.0100 
 @export var thick_density: float = 0.0800  
 
-@export_group("2. Exosphere (Vũ trụ - Sương tan)")
+@export_group("2. Exosphere (space, haze fades)")
 @export var space_start_height: float = 130.0 
 # Độ cao mà sương mù sẽ biến mất hoàn toàn
 @export var space_dark_height: float = 200.0  
@@ -19,13 +19,13 @@ extends Camera3D
 @export_group("3. Terrain Management")
 @export var terrain_hide_height: float = 125.0 
 
-@export_group("4. Horizon Rotation (Xoay chân trời)")
+@export_group("4. Horizon Rotation")
 @export var target_z_rotation_degrees: float = 90.0 
 @export var rotation_start_height: float = 150.0 
 @export var rotation_distance: float = 100.0 
 
 # --- NHÓM MỚI CHO VIỆC LÀM TỐI ---
-@export_group("5. Deep Space (Làm tối bầu trời)")
+@export_group("5. Deep Space (darken the sky)")
 # Độ cao bắt đầu làm tối (Nên đặt bằng hoặc gần bằng space_dark_height để nối tiếp sau khi sương tan)
 @export var darken_start_height: float = 200.0 
 # Cần bay thêm bao nhiêu mét nữa thì trời đen kịt 100%?

@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_langley_esp", "t3_galileo_asi")
 UnlocksModelIds = PackedStringArray("mod_vaisala_barocap")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

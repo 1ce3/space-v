@@ -11,4 +11,4 @@ CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t3_germanium_rtd", "t3_cernox_oxynitride")
 UnlocksModelIds = PackedStringArray("mod_ruthenium_oxide")
 BuildWeightBonus = 0
-Category = "Cảm biến nhiệt"
+Category = "Temperature sensors"

@@ -11,4 +11,4 @@ CostRP = 30
 PrerequisiteNodeIds = PackedStringArray("t1_zarya_vhf_uhf")
 UnlocksModelIds = PackedStringArray("mod_whip_antenna_array")
 BuildWeightBonus = 0
-Category = "Liên lạc"
+Category = "Comms"

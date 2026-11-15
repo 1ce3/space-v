@@ -32,11 +32,11 @@ public partial class VictoryScreen : Godot.Control
         if (SummaryLabel == null || result == null) return;
         int s = Mathf.Max(0, Mathf.RoundToInt(result.FlightTime));
         SummaryLabel.Text =
-            "Robot đã đáp xuống sao Hỏa!\n\n" +
-            $"Tốc độ chạm đất   {result.LandingSpeedMps:0.0} m/s\n" +
-            $"Thời gian bay     {s / 60}:{s % 60:00}\n" +
-            $"Ngày hành trình   {result.CruiseDaysSurvived:0}\n" +
-            $"Độ cao lớn nhất   {result.MaxAltitude / 1000f:0.0} km";
+            "The robot has landed on Mars!\n\n" +
+            $"Landing speed     {result.LandingSpeedMps:0.0} m/s\n" +
+            $"Flight time       {s / 60}:{s % 60:00}\n" +
+            $"Cruise days       {result.CruiseDaysSurvived:0}\n" +
+            $"Max altitude      {result.MaxAltitude / 1000f:0.0} km";
         ContinueButton?.GrabFocus();
     }
 

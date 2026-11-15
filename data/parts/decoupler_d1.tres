@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "decoupler_d1"
-DisplayName = "Bộ tách tầng D1"
+DisplayName = "Decoupler D1"
 Tier = 0
 BuildWeight = 1
 DryMass = 30.0

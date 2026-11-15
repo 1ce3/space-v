@@ -28,17 +28,17 @@ public static class ModuleReboot
             if (nowSeconds < m.RebootReadyAtS) { waiting ??= m; continue; }
             return Attempt(pod, m, rng, nowSeconds);
         }
-        return waiting != null ? $"{NameOf(waiting)}: chờ {waiting.RebootReadyAtS - nowSeconds:0} s để khởi động lại" : null;
+        return waiting != null ? $"{NameOf(waiting)}: wait {waiting.RebootReadyAtS - nowSeconds:0} s to restart" : null;
     }
 
     /// <summary>One attempt on this module (energy, chance, cooldown).</summary>
     public static string Attempt(CommandPodPart pod, PodModule m, RandomNumberGenerator rng, float nowSeconds)
     {
         float wh = m.Definition?.RebootEnergyWh ?? 0f;
-        if (!PowerSolver.TryDrawEnergy(pod, wh)) return $"{NameOf(m)}: không đủ điện ({wh:0} Wh) để khởi động lại";
+        if (!PowerSolver.TryDrawEnergy(pod, wh)) return $"{NameOf(m)}: not enough power ({wh:0} Wh) to restart";
         m.RebootReadyAtS = nowSeconds + CooldownSeconds;
         bool ok = m.TryReboot(rng);
-        return ok ? $"{NameOf(m)}: khởi động lại THÀNH CÔNG" : $"{NameOf(m)}: khởi động lại thất bại (thử lại sau {CooldownSeconds:0} s)";
+        return ok ? $"{NameOf(m)}: restart SUCCEEDED" : $"{NameOf(m)}: restart failed (retry in {CooldownSeconds:0} s)";
     }
 
     public static int CountBroken(CommandPodPart pod)

@@ -11,4 +11,4 @@ CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t2_tavis_reluctance", "t2_pioneer_venus_asi")
 UnlocksModelIds = PackedStringArray("mod_galileo_asi")
 BuildWeightBonus = 0
-Category = "Cảm biến áp suất"
+Category = "Pressure sensors"

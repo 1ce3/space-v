@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 ModelId = "heatshield_h1"
-DisplayName = "Khiên nhiệt H1"
+DisplayName = "Heat shield H1"
 Tier = 3
 BuildWeight = 2
 DryMass = 200.0

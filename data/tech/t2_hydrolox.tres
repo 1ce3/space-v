@@ -11,4 +11,4 @@ CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("t1_rp1_lox")
 UnlocksModelIds = PackedStringArray("eng_rocketdyne_j2", "eng_rl10", "eng_rs25_ssme", "eng_vulcain_2", "eng_rs_68a")
 BuildWeightBonus = 0
-Category = "Nhiên liệu"
+Category = "Fuel"

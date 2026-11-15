@@ -331,7 +331,7 @@ public partial class BuildCursor : Node3D
         if (!_tooltip.Visible)
         {
             _tooltipLabel.Text = (part.Definition?.GetFormattedTooltip() ?? part.ModelId) +
-                (part.Material != null ? $"\nVật liệu: {part.Material.DisplayName}" : "");
+                (part.Material != null ? $"\nMaterial: {part.Material.DisplayName}" : "");
             _tooltip.Size = Vector2.Zero; // shrink to the new text
             _tooltip.Visible = true;
         }

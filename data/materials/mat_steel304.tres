@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 MaterialId = "mat_steel304"
-DisplayName = "Thép 304"
+DisplayName = "Steel 304"
 Tier = 1
 BuildWeightCost = 0
 MassMultiplier = 1.4
