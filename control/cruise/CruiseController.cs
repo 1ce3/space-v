@@ -203,11 +203,6 @@ public partial class CruiseController : Node
         if (input.AbortPressed) EndMission(FailureCause.Aborted, null, MissionOutcome.Aborted);
         if (Anomalies?.ConsumeMessage() is string rebootLine) Hud.ShowMessage(rebootLine);
         if (_holdTimer > 0f) _holdTimer -= (float)delta;
-        if (_dodgeTimer > 0f)
-        {
-            _dodgeTimer -= (float)delta;
-            if (_dodgeTimer <= 0f) MeteorHit("Không kịp né!");
-        }
         if (!IsPaused) Advance((float)delta);
     }
 
@@ -268,6 +263,14 @@ public partial class CruiseController : Node
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (OS.IsDebugBuild() && key.PhysicalKeycode == Key.M && _dodgeTimer <= 0f)
+        {
+            GD.Print("[Control] Debug M: meteor field now");
+            // Debug: start a meteor field now (same rules as the real event: comms lead time, auto-dodge, RCS).
+            HandlePhase2Event(_run?.ElapsedDays is float d ? Mathf.RoundToInt(d) : 0, new FlightEvent { Type = FlightEventType.MeteorField, Severity = 1f, SourceId = "" });
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (OS.IsDebugBuild() && key.PhysicalKeycode == Key.K && !HasBurned)
         {
             HasBurned = true; // debug: skip the transfer burn (no fuel used)
@@ -281,21 +284,6 @@ public partial class CruiseController : Node
             StormShelter = !StormShelter;
             _sim.PowerDownForFlare(StormShelter);
             Hud.ShowMessage(StormShelter ? "Chế độ trú bão: tắt toàn bộ thiết bị để tránh bức xạ" : "Đã bật lại thiết bị");
-            GetViewport().SetInputAsHandled();
-        }
-        else if (_dodgeTimer > 0f)
-        {
-            int dir = key.PhysicalKeycode is Key.A or Key.Q ? -1 : key.PhysicalKeycode is Key.D or Key.E ? 1 : 0;
-            if (dir == 0) return;
-            bool rcs = key.PhysicalKeycode is Key.Q or Key.E;
-            if (rcs && Pod?.GetModules<RcsThrusterModule>().Exists(m => m.CanOperate()) != true)
-            {
-                Hud.ShowMessage("Không có RCS hoạt động, dùng A/D (động cơ chính)");
-                return;
-            }
-            _dodgeTimer = 0f;
-            if (dir == _dodgeDir) Hud.ShowMessage("Né thành công! Thiên thạch bay qua.");
-            else MeteorHit("Né sai hướng!");
             GetViewport().SetInputAsHandled();
         }
     }
@@ -335,16 +323,25 @@ public partial class CruiseController : Node
                     canAuto |= d.AllowsAutoDodge;
                 }
         bool hasRcs = pod?.GetModules<RcsThrusterModule>().Exists(m => m.CanOperate()) == true;
-        if (canAuto && hasRcs && PowerSolver.TryDrawEnergy(pod, AutoDodgeEnergyWh))
-        {
-            Hud.ShowMessage($"Ngày {day}: VÙNG THIÊN THẠCH - ăng-ten và RCS tự né thành công ({AutoDodgeEnergyWh:0} Wh).");
-            return true;
-        }
-        _dodgeDir = _rng.Randf() < 0.5f ? -1 : 1;
-        _dodgeTimer = lead / Mathf.Max(TimeScale, 1f) + 0.5f;
-        string side = _dodgeDir < 0 ? "TRÁI (A hoặc Q)" : "PHẢI (D hoặc E)";
-        Hud.ShowMessage($"Ngày {day}: THIÊN THẠCH lao tới! Né sang {side} trong {lead:0} s");
+        bool auto = canAuto && hasRcs && PowerSolver.TryDrawEnergy(pod, AutoDodgeEnergyWh);
+        StartDodge(day, lead, auto, hasRcs);
         return true;
+    }
+
+    /// <summary>Switches to the 3D view and runs the real-time dodge; days stay stopped until it ends.</summary>
+    private void StartDodge(int day, float lead, bool auto, bool hasRcs)
+    {
+        _dodgeTimer = 1f; // "dodge running" flag: stops the day counter
+        Hud.Visible = false;
+        var dodge = new MeteorDodge { Vehicle = Vehicle, WarningSeconds = lead, AutoDodge = auto, HasRcs = hasRcs };
+        dodge.Finished += (hits, report) =>
+        {
+            _dodgeTimer = 0f;
+            Hud.Visible = true;
+            Hud.ShowMessage($"Ngày {day}: {report}" + (hits > 0 ? " (B: khởi động lại, V: bịt rò rỉ)" : ""));
+            RefreshDeltaV();
+        };
+        Vehicle.GetParent().AddChild(dodge);
     }
 
     private void MeteorHit(string prefix)

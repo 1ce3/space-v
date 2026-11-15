@@ -135,7 +135,11 @@ public partial class BodyEnvironmentVisual : Node3D
             float horizon = Mathf.Sqrt(2f * Body.Radius * h + h * h);
             cam.Far = Mathf.Clamp(horizon * 1.3f + 20000f, 20000f, Body.Radius * 3f);
             // Far/Near must stay below ~1e5 or Godot's frustum math fails (create_frustum_points errors, blank screen).
-            cam.Near = Mathf.Max(0.5f, cam.Far / 50000f);
+            // Near must stay well in front of the rocket (camera is ~30-400 m away), so cap it by the camera distance
+            // and shrink Far instead: Far/Near must stay under ~5e4 or Godot's frustum math fails.
+            float camDist = Mathf.Max(5f, cam.Position.Length());
+            cam.Near = Mathf.Clamp(cam.Far / 50000f, 0.5f, camDist * 0.2f);
+            cam.Far = Mathf.Min(cam.Far, cam.Near * 50000f);
         }
         UpdateStars(altitudeMeters, cam);
     }
