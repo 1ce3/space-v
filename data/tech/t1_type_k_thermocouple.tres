@@ -1,14 +1,11 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://u8eco0q7vs21"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
 NodeId = "t1_type_k_thermocouple"
 DisplayName = "Type K Thermocouple"
-Tier = 1
 CostRP = 30
-PrerequisiteNodeIds = PackedStringArray()
 UnlocksModelIds = PackedStringArray("mod_type_k_thermocouple")
-BuildWeightBonus = 0
 Category = "Temperature sensors"

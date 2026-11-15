@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://ds0xye42cb5nd"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 4
 CostRP = 120
 PrerequisiteNodeIds = PackedStringArray("t2_rosemount_rtd", "t3_cernox_oxynitride")
 UnlocksModelIds = PackedStringArray("mod_fiber_bragg_grating")
-BuildWeightBonus = 0
 Category = "Temperature sensors"

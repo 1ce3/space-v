@@ -21,6 +21,9 @@ extends Node3D
 ## Seconds for a cloud to fade in or out.
 @export var fade_time: float = 3.0
 @export_range(0.0, 1.0) var max_opacity: float = 0.95
+## Clouds fade out completely between these rocket altitudes (m) so they don't float in space.
+@export var high_alt_fade_start: float = 10000.0
+@export var high_alt_fade_end: float = 25000.0
 @export var follow_target: Node3D
 
 var _models: Array = []        # per model: Array of {mesh, xform} (unit width, centered)
@@ -35,8 +38,8 @@ func set_target_player(target: Node3D):
 func _ready():
 	_material = ShaderMaterial.new()
 	var shader := Shader.new()
-	# fog_disabled keeps distant clouds white instead of melting into the ground haze.
-	shader.code = "shader_type spatial;\nrender_mode fog_disabled, depth_prepass_alpha;\nuniform vec4 tint : source_color = vec4(1.0);\ninstance uniform float fade = 0.0;\nvoid fragment() { ALBEDO = tint.rgb; ROUGHNESS = 1.0; ALPHA = fade; }"
+	# Clouds blend into the atmospheric horizon haze with distance so they match the reference aerial perspective.
+	shader.code = "shader_type spatial;\nrender_mode depth_prepass_alpha;\nuniform vec4 tint : source_color = vec4(1.0);\nuniform vec4 horizon_haze : source_color = vec4(0.76, 0.88, 0.98, 1.0);\ninstance uniform float fade = 0.0;\nvoid fragment() {\n\tfloat dist = length(VERTEX);\n\tfloat aerial = smoothstep(1500.0, 6000.0, dist);\n\tALBEDO = mix(tint.rgb, horizon_haze.rgb, aerial * 0.75);\n\tROUGHNESS = 1.0;\n\tALPHA = fade * (1.0 - smoothstep(5000.0, 7500.0, dist));\n}"
 	_material.shader = shader
 	_material.set_shader_parameter("tint", cloud_color)
 	_prepare_models()
@@ -52,17 +55,21 @@ func _process(delta):
 
 func _step_fades(delta: float):
 	var step: float = delta / maxf(fade_time, 0.01) * max_opacity
+	var alt_factor: float = 1.0
+	if follow_target != null and high_alt_fade_end > high_alt_fade_start:
+		var alt: float = follow_target.global_position.y - global_position.y
+		alt_factor = 1.0 - smoothstep(high_alt_fade_start, high_alt_fade_end, alt)
 	var dead: Array = []
 	for key in _cells:
 		var c: Dictionary = _cells[key]
 		var f: float = c["fade"]
 		var t: float = c["target"]
-		if is_equal_approx(f, t):
-			continue
-		f = move_toward(f, t, step)
-		c["fade"] = f
+		if not is_equal_approx(f, t):
+			f = move_toward(f, t, step)
+			c["fade"] = f
+		var alpha: float = f * alt_factor
 		for node in c["nodes"]:
-			node.set_instance_shader_parameter("fade", f)
+			node.set_instance_shader_parameter("fade", alpha)
 		if f <= 0.0 and t <= 0.0:
 			dead.append(key)
 	for key in dead:

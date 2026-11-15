@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://b8dc0fky8suf0"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 5
 CostRP = 200
 PrerequisiteNodeIds = PackedStringArray("t5_rf_mass_gauge")
 UnlocksModelIds = PackedStringArray("mod_ecvt_3d_tomography")
-BuildWeightBonus = 0
 Category = "Fuel sensors"

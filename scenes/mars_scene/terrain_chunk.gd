@@ -9,6 +9,8 @@ var chunk_size: int
 var grid_scale: float
 var height_multiplier: float
 var noise: FastNoiseLite
+var fade_start: float = 8000.0
+var fade_end: float = 20000.0
 
 var _origin_x: float
 var _origin_z: float
@@ -50,6 +52,10 @@ func commit():
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
 	mesh = m
 	_arrays = []
+	if not Engine.is_editor_hint() and fade_end > 0.0:
+		visibility_range_end = fade_end
+		visibility_range_end_margin = maxf(1.0, fade_end - fade_start)
+		visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 func _wait_task():
 	if _task_id != -1:

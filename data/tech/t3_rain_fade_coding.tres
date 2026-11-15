@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://cmjlqobmhapvo"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 3
 CostRP = 80
 PrerequisiteNodeIds = PackedStringArray("t3_ku_band_tdrs")
 UnlocksModelIds = PackedStringArray("mod_rain_fade_coding")
-BuildWeightBonus = 0
 Category = "Comms"

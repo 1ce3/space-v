@@ -104,7 +104,7 @@ vertical_alignment = 1
 [node name="Node3D" type="Node3D" parent="." unique_id=1224214370]
 
 [node name="terrain" parent="Node3D" unique_id=229053794 instance=ExtResource("1_l6cm7")]
-transform = Transform3D(1, 0, 0, 0, 0.6, 0, 0, 0, 1, 624.36066, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 0.6, 0, 0, 0, 1, 0, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Node3D" unique_id=1671306237]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -80.30658, 24.956028, 0)
@@ -117,7 +117,7 @@ shadow_enabled = true
 environment = SubResource("Environment_bqqt6")
 
 [node name="holder" parent="Node3D" unique_id=66506750 instance=ExtResource("2_ekxnf")]
-transform = Transform3D(0.2991524, 0, -0.022535387, 0, 0.29999998, 0, 0.022535387, 0, 0.2991524, -65.54657, 10.141527, 11.357555)
+transform = Transform3D(0.34130228, 0, -0.07754197, 0, 0.35, 0, 0.07754197, 0, 0.34130228, -65.547, 9.732, 11.358)
 
 [node name="nasa_center" parent="Node3D" unique_id=392264443 instance=ExtResource("3_bqqt6")]
-transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, -33.09155, 18.313799, -16.445778)
+transform = Transform3D(0.5116895, 0, 0.058299653, 0, 0.515, 0, -0.058299653, 0, 0.5116895, -16.117, 28.519, -31.711)
