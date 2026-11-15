@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="TechNode" format=3]
+[gd_resource type="Resource" script_class="TechNode" format=3 uid="uid://b1qu2p2yxrehj"]
 
-[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+[ext_resource type="Script" uid="uid://bf4ibv28d4x0k" path="res://research/TechNode.cs" id="1_node"]
 
 [resource]
 script = ExtResource("1_node")
@@ -10,5 +10,4 @@ Tier = 2
 CostRP = 50
 PrerequisiteNodeIds = PackedStringArray("mat_t1")
 UnlocksModelIds = PackedStringArray("mat_cfrp")
-BuildWeightBonus = 0
 Category = "Vật liệu"
