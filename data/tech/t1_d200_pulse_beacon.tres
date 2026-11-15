@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t1_d200_pulse_beacon"
+DisplayName = "D-200 Pulse Beacon"
+Tier = 1
+CostRP = 30
+PrerequisiteNodeIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("mod_d200_pulse_beacon")
+BuildWeightBonus = 0
+Category = "Liên lạc"

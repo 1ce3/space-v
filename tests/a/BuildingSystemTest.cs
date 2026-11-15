@@ -183,12 +183,12 @@ public partial class BuildingSystemTest : Node
     private void TestInstruments()
     {
         PartCatalog cat = PartCatalog.Instance;
-        foreach (string id in new[] { "comms_c1", "comms_c2", "rad_x1", "rad_x2", "fuel_f1", "pressure_p1" })
+        foreach (string id in new[] { "mod_d200_pulse_beacon", "mod_tesat_laser", "mod_ad590mf", "mod_capacitance_probe", "mod_langley_esp", "mod_type_k_thermocouple" })
             Check($"{id} is an instrument", cat.GetDefinition(id) is InstrumentModuleDefinition);
         Check("pod_mk3 grid 4x3", (cat.GetDefinition("pod_mk3") as CommandPodPartDefinition)?.InventorySize == new Vector2I(4, 3));
-        var def = (ModuleDefinition)cat.GetDefinition("comms_c1").Duplicate();
+        var def = (ModuleDefinition)cat.GetDefinition("mod_d200_pulse_beacon").Duplicate();
         PodModule m = PodModule.Create(def);
-        Check("comms_c1 creates an InstrumentModule", m is InstrumentModule);
+        Check("mod_d200_pulse_beacon creates an InstrumentModule", m is InstrumentModule);
         var rng = new RandomNumberGenerator { Seed = 7 };
         Check("healthy module: reboot does nothing", !m.TryReboot(rng));
         m.State = ComponentState.Broken;

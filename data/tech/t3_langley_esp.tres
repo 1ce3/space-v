@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_langley_esp"
+DisplayName = "Langley ESP Multi-Channel"
+Tier = 3
+CostRP = 80
+PrerequisiteNodeIds = PackedStringArray("t2_shuttle_thin_film")
+UnlocksModelIds = PackedStringArray("mod_langley_esp")
+BuildWeightBonus = 0
+Category = "Cảm biến áp suất"

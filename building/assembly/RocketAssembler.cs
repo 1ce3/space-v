@@ -344,16 +344,70 @@ public class RocketAssembler
     {
         if (part == null) return null;
         if (part.HasNode("Visual")) return part.GetNode("Visual");
-        PackedScene scene = GetVisualScene(part.Definition as PartDefinition);
+        var def = part.Definition as PartDefinition;
+        PackedScene scene = GetVisualScene(def);
         if (scene == null) return null;
 
         Node visual = scene.Instantiate();
+        Node3D rawModel = null;
+        if (!visual.HasMethod(PartCatalog.BindMethod) && visual is Node3D model && PartCatalog.Instance != null)
+        {
+            // A plain model (.glb / .tscn without PartVisual): use the group placeholder for anchors and effects,
+            // hide its meshes and fit the model into their box after Bind.
+            PackedScene placeholder = def is DecouplerPartDefinition
+                ? PartCatalog.Instance.GetDecouplerPlaceholderScene() : PartCatalog.Instance.GetPlaceholderScene(def.PartGroup);
+            if (placeholder != null)
+            {
+                rawModel = model;
+                visual = placeholder.Instantiate();
+            }
+        }
         visual.Name = "Visual";
         part.AddChild(visual);
         // Called by name: Building never references the presentation classes (AGENTS 1.5).
         if (visual.HasMethod(PartCatalog.BindMethod)) visual.Call(PartCatalog.BindMethod, part);
         else GD.PushWarning($"[Building] RocketAssembler: scene of {part.ModelId} has no PartVisual root");
+        if (rawModel != null && visual is Node3D root) FitModel(root, rawModel);
         return visual;
+    }
+
+    /// <summary>
+    /// Puts a plain model in place of the placeholder meshes: uniform scale so it fits their box (width and height),
+    /// centred on it. Placeholder meshes are hidden; anchors (ExhaustPoint, ...) stay where they are.
+    /// </summary>
+    public static void FitModel(Node3D visual, Node3D model)
+    {
+        Node3D meshRoot = visual.GetNodeOrNull<Node3D>("MeshRoot") ?? visual;
+        Aabb? target = null;
+        foreach (Node n in meshRoot.FindChildren("*", nameof(MeshInstance3D), true, false))
+        {
+            if (n is not MeshInstance3D m || m.Mesh == null) continue;
+            Aabb box = RelativeTransform(visual, m) * m.GetAabb();
+            target = target == null ? box : target.Value.Merge(box);
+            m.Visible = false;
+        }
+        visual.AddChild(model);
+        model.Name = "Model";
+        Aabb? src = null;
+        foreach (Node n in model.FindChildren("*", nameof(MeshInstance3D), true, false))
+        {
+            if (n is not MeshInstance3D m || m.Mesh == null) continue;
+            Aabb box = RelativeTransform(model, m) * m.GetAabb();
+            src = src == null ? box : src.Value.Merge(box);
+        }
+        if (target == null || src == null || src.Value.Size.X <= 0f || src.Value.Size.Y <= 0f) return;
+        Aabb t = target.Value, s = src.Value;
+        float k = Mathf.Min(t.Size.X / s.Size.X, t.Size.Y / s.Size.Y);
+        model.Scale = Vector3.One * k;
+        model.Position = t.GetCenter() - s.GetCenter() * k;
+    }
+
+    private static Transform3D RelativeTransform(Node3D root, Node3D node)
+    {
+        Transform3D xf = Transform3D.Identity;
+        for (Node n = node; n != null && n != root; n = n.GetParent())
+            if (n is Node3D n3) xf = n3.Transform * xf;
+        return xf;
     }
 
     /// <summary>Own scene of the definition, else the group (or decoupler) placeholder.</summary>
@@ -467,7 +521,6 @@ public class RocketAssembler
             joint.Decouplers.Add(decoupler);
             decoupler.Joint = joint;
             tree.Add(decoupler);
-            joint.Strength += (decoupler.DecouplerDefinition?.AttachmentStrength ?? 0f) * (decoupler.Material?.StrengthMultiplier ?? 1f);
             joint.Strength += decoupler.GetEffectiveAttachmentStrength();
         }
         if (joint.Decouplers.Count == 0)

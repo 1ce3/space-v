@@ -7,4 +7,4 @@ script = ExtResource("1_node")
 NodeId = "t1_avionics"
 DisplayName = "Basic Avionics"
 CostRP = 30
-UnlocksModelIds = PackedStringArray("imu_g2", "wheel_rw1", "comms_c1", "fuel_f1")
+UnlocksModelIds = PackedStringArray("imu_g2", "wheel_rw1")

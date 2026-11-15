@@ -9,7 +9,7 @@ public enum Side { Top, Bottom, Left, Right }
 /// <summary>Group of a pod module (phase 2: a group, no longer a slot type; modules sit in the pod inventory grid).</summary>
 public enum ModuleSlotType { Avionics, Thermal, Power, Sensor, Comms }
 /// <summary>What an instrument module (Sensor or Comms group) does.</summary>
-public enum InstrumentKind { Comms, RadiationSensor, FuelSensor, PressureSensor }
+public enum InstrumentKind { Comms, RadiationSensor, FuelSensor, PressureSensor, TemperatureSensor }
 public enum AcsDeviceKind { Imu, StarTracker, ReactionWheel, RcsThruster }
 public enum ThermalDeviceKind { PassiveInsulation, ActiveRadiator, RadioisotopeHeater }
 public enum PowerDeviceKind { Battery, SolarArray, Rtg }
@@ -23,7 +23,7 @@ public enum FlightEventType
     SolarFlare, MeteorField, HullBreach, InstrumentFailure,
 }
 public enum FlightPhase { PreLaunch, PoweredAscent, Coast, OrbitReached, Entry, Descent, Landed, Failed }
-public enum GameState { Build, Flight, Debrief, Cruise, Victory, Research }
+public enum GameState { Build, Flight, Debrief, Cruise, Victory, Research, Home, Cutscene }
 public enum MissionOutcome { Success, Failed, Aborted }
 public enum SegmentKind { EarthAscent, Cruise, MarsEdl }
 public enum ParachuteState { Stowed, Deployed, Cut }

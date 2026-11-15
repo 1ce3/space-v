@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_methalox"
+DisplayName = "Methalox (CH4 / LNG + LOX)"
+Tier = 3
+CostRP = 90
+PrerequisiteNodeIds = PackedStringArray("t2_subcooled_rp1")
+UnlocksModelIds = PackedStringArray("eng_be_4", "eng_raptor_2_3", "eng_raptor_center", "eng_rvac")
+BuildWeightBonus = 0
+Category = "Nhiên liệu"

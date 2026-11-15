@@ -13,6 +13,8 @@ public partial class ThrottleController : Node
 
     /// <summary>Throttle command 0..1.</summary>
     public float Throttle { get; private set; }
+    /// <summary>Lowest throttle reachable with the throttle-down key while burning (X cuts to 0).</summary>
+    [Export(PropertyHint.Range, "0.01,0.5,0.01")] public float MinRunningThrottle { get; set; } = 0.01f;
     /// <summary>True in safe mode (SeuGlitch): the throttle cannot change.</summary>
     public bool IsFrozen { get; set; }
     /// <summary>Max G of the command pod; 0 disables the limiter.</summary>
@@ -40,6 +42,9 @@ public partial class ThrottleController : Node
         if (!IsFrozen && Settings != null)
         {
             float next = Throttle + input.ThrottleAxis * Settings.ThrottleRatePerSec * deltaTime;
+            // Lowering the throttle never reaches 0 while engines burn: 0 = shutdown, which spends an ignition.
+            // Only the cut key (X) shuts the engines down.
+            if (Throttle > 0f && next <= 0f) next = MinRunningThrottle;
             if (input.ThrottleFull) next = 1f;
             if (input.ThrottleCut) next = 0f;
             Throttle = Mathf.Clamp(next, 0f, 1f);
@@ -52,10 +57,29 @@ public partial class ThrottleController : Node
         foreach (LiquidEnginePart engine in _tree.GetParts<LiquidEnginePart>())
         {
             if (!engine.IsArmed) continue;
-            if (Throttle > 0f && !engine.IsIgnited) engine.Ignite();
+            if (Throttle > 0f && !engine.IsIgnited)
+            {
+                engine.Ignite();
+                if (!engine.IsIgnited && engine.IsAttached && _warned.Add(engine))
+                    _warning = engine.RemainingIgnitions <= 0
+                        ? $"{engine.Definition?.DisplayName ?? engine.ModelId}: hết lượt khởi động lại (tối đa {engine.LiquidDefinition?.MaxIgnitions ?? 0} lần)"
+                        : $"{engine.Definition?.DisplayName ?? engine.ModelId}: không khởi động được (hết nhiên liệu?)";
+            }
+            else if (engine.IsIgnited) _warned.Remove(engine);
             else if (Throttle <= 0f && engine.IsIgnited) engine.Shutdown();
             engine.SetThrottle(Throttle);
         }
+    }
+
+    private readonly System.Collections.Generic.HashSet<LiquidEnginePart> _warned = new();
+    private string _warning;
+
+    /// <summary>Why an engine did not relight (once per engine), cleared when read. Shown on the HUD.</summary>
+    public string ConsumeWarning()
+    {
+        string w = _warning;
+        _warning = null;
+        return w;
     }
 
     /// <summary>Scales the throttle down so G stays under maxGLimit (assumes G roughly proportional to throttle).</summary>

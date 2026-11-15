@@ -192,6 +192,12 @@ public partial class PartCatalog : Node
             }
 
             Node root = scene.Instantiate();
+            if (root is Node3D && !root.HasMethod(BindMethod) && part.Scene != null)
+            {
+                // Plain model (.glb): RocketAssembler.AttachVisual fits it into the group placeholder.
+                root.Free();
+                continue;
+            }
             if (root is not Node3D || !root.HasMethod(BindMethod))
                 problems.Add($"{part.ModelId}: scene root is not a PartVisual ({scene.ResourcePath})");
             if (root.GetNodeOrNull("MeshRoot") == null)

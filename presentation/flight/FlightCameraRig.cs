@@ -21,6 +21,11 @@ public partial class FlightCameraRig : Node3D
     /// <summary>Current distance from the target (m).</summary>
     public float DistanceM { get; private set; } = 60f;
 
+    /// <summary>Added to the camera position every frame (metres, camera-local). Camera shake scripts write here.</summary>
+    public Vector3 ShakeOffset { get; set; }
+    /// <summary>Added to the camera rotation every frame (degrees). Camera shake scripts write here.</summary>
+    public Vector3 ShakeRotationDeg { get; set; }
+
     private VehicleRoot _target;
 
     public override void _Ready()
@@ -65,8 +70,8 @@ public partial class FlightCameraRig : Node3D
     private void PlaceCamera()
     {
         if (Camera == null) return;
-        Camera.Position = new Vector3(0f, DistanceM * HeightOffsetFraction, DistanceM);
-        Camera.Rotation = Vector3.Zero;
+        Camera.Position = new Vector3(0f, DistanceM * HeightOffsetFraction, DistanceM) + ShakeOffset;
+        Camera.RotationDegrees = ShakeRotationDeg;
         Camera.Far = Mathf.Max(Camera.Far, DistanceM * 20f);
     }
 

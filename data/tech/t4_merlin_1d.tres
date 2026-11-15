@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t4_merlin_1d"
+DisplayName = "Merlin 1D"
+Tier = 4
+CostRP = 120
+PrerequisiteNodeIds = PackedStringArray("t1_rocketdyne_f1")
+UnlocksModelIds = PackedStringArray("eng_merlin_1d")
+BuildWeightBonus = 0
+Category = "Động cơ"

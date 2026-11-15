@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_pvt_gauging"
+DisplayName = "PVT Gauging System"
+Tier = 3
+CostRP = 80
+PrerequisiteNodeIds = PackedStringArray("t2_flow_burn_integrator")
+UnlocksModelIds = PackedStringArray("mod_pvt_gauging")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiên liệu"

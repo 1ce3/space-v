@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t3_lakeshore_silicon_diode"
+DisplayName = "Lake Shore Silicon Diode"
+Tier = 3
+CostRP = 80
+PrerequisiteNodeIds = PackedStringArray("t2_rosemount_rtd")
+UnlocksModelIds = PackedStringArray("mod_lakeshore_silicon_diode")
+BuildWeightBonus = 0
+Category = "Cảm biến nhiệt"

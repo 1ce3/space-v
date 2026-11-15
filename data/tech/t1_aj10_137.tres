@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t1_aj10_137"
+DisplayName = "AJ10-137"
+Tier = 1
+CostRP = 30
+PrerequisiteNodeIds = PackedStringArray()
+UnlocksModelIds = PackedStringArray("eng_aj10_137")
+BuildWeightBonus = 0
+Category = "Động cơ"

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechNode" format=3]
+
+[ext_resource type="Script" path="res://research/TechNode.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+NodeId = "t5_tesat_laser"
+DisplayName = "TESAT LCT / EDRS Laser"
+Tier = 5
+CostRP = 200
+PrerequisiteNodeIds = PackedStringArray("t3_gimbal_stabilizer", "t4_small_deep_space_transponder", "t4_delta_dor_navigation")
+UnlocksModelIds = PackedStringArray("mod_tesat_laser")
+BuildWeightBonus = 0
+Category = "Liên lạc"
