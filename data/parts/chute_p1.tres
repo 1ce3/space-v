@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ParachutePartDefinition" format=3]
 
 [ext_resource type="Script" path="res://building/data/ParachutePartDefinition.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://assets/parts/chute_p1.tscn" id="2_scene"]
 
 [resource]
 script = ExtResource("1_script")
@@ -28,3 +29,4 @@ MaxDeployDynamicPressure = 1500.0
 MaxDeployMach = 2.5
 AttachmentStrength = 300000.0
 InflationTimeS = 6.0
+Scene = ExtResource("2_scene")

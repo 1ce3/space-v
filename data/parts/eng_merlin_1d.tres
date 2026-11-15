@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="LiquidEnginePartDefinition" format=3]
 
 [ext_resource type="Script" path="res://building/data/LiquidEnginePartDefinition.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c82o0jrdpo54t" path="res://assets/models/thruster/merlin1D.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_script")
@@ -24,9 +25,11 @@ MaxShear = 2000000.0
 MaxBending = 2000000.0
 ImpactToleranceMps = 10.0
 PropellantType = 1
-MaxThrustVac = 137100.0
+MaxThrustVac = 133800.0
+RealThrustVacKN = 914.0
 IspSeaLevel = 282.0
 IspVacuum = 311.0
 GimbalRangeDeg = 5.0
 MinThrottle = 0.4
 MaxIgnitions = 3
+Scene = ExtResource("2_model")

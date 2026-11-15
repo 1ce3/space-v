@@ -16,6 +16,11 @@ dest_files=["res://.godot/imported/terrain.blend-3e31abd1630805858e1e03620e83580
 nodes/root_type=""
 nodes/root_name=""
 nodes/root_script=null
+<<<<<<< Updated upstream
+=======
+mesh_library/use_node_names_as_mesh_names=false
+array_mesh/deduplicate_surfaces=true
+>>>>>>> Stashed changes
 nodes/apply_root_scale=true
 nodes/root_scale=1.0
 nodes/import_as_skeleton_bones=false

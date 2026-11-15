@@ -150,8 +150,8 @@ public partial class MeteorDodge : Node3D
     }
 
     private string Controls() => AutoDodge
-        ? "Antenna + RCS auto-dodging..."
-        : "A/D rotate · Shift/W main engine" + (HasRcs ? " · Q/E RCS strafe" : " · (no RCS)");
+        ? "Antenna + RCS dodging automatically..."
+        : "A/D rotate · Shift/W main engine" + (HasRcs ? " · Q/E RCS sideways" : " · (no RCS)");
 
     /// <summary>Strafes away from the nearest meteor that will pass close (auto-dodge from comms + RCS).</summary>
     private void AutoSteer(ref float strafe)

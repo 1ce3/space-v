@@ -30,6 +30,19 @@ public partial class EngineVisual : PartVisual
     [Export] public float LightEnergy { get; set; } = 2f;
     [Export] public float LightRangeM { get; set; } = 12f;
 
+    [ExportGroup("Thrust effect")]
+    /// <summary>Particle + sound scene played at ExhaustPoint while burning (art team: scenes/vfx.tscn). Null = cone plume only.</summary>
+    [Export] public PackedScene ThrustVfxScene { get; set; }
+    /// <summary>Loaded when ThrustVfxScene is not set in the inspector.</summary>
+    public const string DefaultThrustVfxPath = "res://scenes/vfx.tscn";
+    /// <summary>Keep the code cone plume under the particles (a soft glow core).</summary>
+    [Export] public bool ConeWithParticles { get; set; }
+    /// <summary>Thrust sound volume at minimum / full throttle (dB).</summary>
+    [Export] public float SoundMinDb { get; set; } = -14f;
+    [Export] public float SoundMaxDb { get; set; } = 0f;
+    /// <summary>Distance (m) at which the sound starts to fade; large because the flight camera stays far away.</summary>
+    [Export] public float SoundUnitSizeM { get; set; } = 60f;
+
     [ExportGroup("Gimbal")]
     /// <summary>Visual multiplier of the gimbal angle (real angles of a few degrees are hard to see).</summary>
     [Export] public float GimbalExaggeration { get; set; } = 2f;
@@ -47,6 +60,9 @@ public partial class EngineVisual : PartVisual
     private MeshInstance3D _outer;
     private MeshInstance3D _core;
     private OmniLight3D _light;
+    private Node3D _vfx;
+    private readonly System.Collections.Generic.List<GpuParticles3D> _particles = new();
+    private AudioStreamPlayer3D _sound;
     private float _gimbalDeg;
     private readonly RandomNumberGenerator _rng = new();
 
@@ -83,6 +99,7 @@ public partial class EngineVisual : PartVisual
         _plume.Visible = on;
         if (_light != null) _light.Visible = on && LightEnergy > 0f;
         PlumeFraction = on ? Mathf.Clamp(thrustFraction, 0f, 1f) : 0f;
+        UpdateThrustEffect(on, ambientPressure);
         if (!on) return;
 
         float pressureRatio = Mathf.Clamp(ambientPressure / EnginePart.SeaLevelPressurePa, 0f, 1f);
@@ -96,6 +113,68 @@ public partial class EngineVisual : PartVisual
         _core.Scale = new Vector3(PlumeRadiusM * 0.45f, length * 0.45f, PlumeRadiusM * 0.45f);
         _core.Position = new Vector3(0f, -length * 0.225f, 0f);
         if (_light != null) _light.LightEnergy = LightEnergy * (0.6f + 0.4f * PlumeFraction);
+    }
+
+    /// <summary>Particles follow the burn (more and longer with throttle, wider in vacuum); the roar loops while burning.</summary>
+    private void UpdateThrustEffect(bool on, float ambientPressure)
+    {
+        if (_vfx == null) return;
+        foreach (GpuParticles3D p in _particles)
+        {
+            if (p.Emitting != on) p.Emitting = on;
+            p.AmountRatio = Mathf.Lerp(0.35f, 1f, PlumeFraction);
+        }
+        if (on)
+        {
+            float pressureRatio = Mathf.Clamp(ambientPressure / EnginePart.SeaLevelPressurePa, 0f, 1f);
+            float width = Mathf.Lerp(VacuumWidthScale, 1f, pressureRatio);
+            float length = Mathf.Lerp(MinPlumeFraction, 1f, PlumeFraction);
+            _vfx.Scale = new Vector3(width, length, width) * (PlumeRadiusM / 0.55f);
+        }
+        if (_sound == null) return;
+        if (on)
+        {
+            _sound.VolumeDb = Mathf.Lerp(SoundMinDb, SoundMaxDb, PlumeFraction);
+            if (!_sound.Playing) _sound.Play();
+        }
+        else if (_sound.Playing) _sound.Stop();
+    }
+
+    /// <summary>Instances the thrust effect scene under the plume (meters), particles off until ignition.</summary>
+    private void BuildThrustEffect()
+    {
+        PackedScene scene = ThrustVfxScene;
+        if (scene == null && ResourceLoader.Exists(DefaultThrustVfxPath)) scene = ResourceLoader.Load<PackedScene>(DefaultThrustVfxPath);
+        if (scene == null || _plume == null) return;
+        _vfx = scene.Instantiate<Node3D>();
+        _vfx.Name = "ThrustVfx";
+        _plume.AddChild(_vfx);
+        foreach (Node n in _vfx.FindChildren("*", nameof(GpuParticles3D), true, false))
+            if (n is GpuParticles3D p)
+            {
+                p.Emitting = false;
+                _particles.Add(p);
+            }
+        _sound = _vfx.FindChildren("*", nameof(AudioStreamPlayer3D), true, false).Count > 0
+            ? (AudioStreamPlayer3D)_vfx.FindChildren("*", nameof(AudioStreamPlayer3D), true, false)[0] : null;
+        if (_sound != null)
+        {
+            _sound.Autoplay = false;
+            _sound.Stop();
+            _sound.UnitSize = SoundUnitSizeM;
+            // The roar is a short clip: loop it while the engine burns.
+            if (_sound.Stream is AudioStreamMP3 mp3 && !mp3.Loop)
+            {
+                var looped = (AudioStreamMP3)mp3.Duplicate();
+                looped.Loop = true;
+                _sound.Stream = looped;
+            }
+        }
+        if (!ConeWithParticles)
+        {
+            if (_outer != null) _outer.Visible = false;
+            if (_core != null) _core.Visible = false;
+        }
     }
 
     /// <summary>Rotates GimbalPivot (degrees, before exaggeration).</summary>
@@ -133,5 +212,6 @@ public partial class EngineVisual : PartVisual
             };
             _plume.AddChild(_light);
         }
+        BuildThrustEffect();
     }
 }
